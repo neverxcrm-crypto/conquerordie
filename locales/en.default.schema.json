@@ -599,7 +599,7 @@
       }
     },
     "cart_recommendations": {
-      "name": "Cart recommendations (internal)"
+      "name": "Cart recommendations"
     }
   },
   "settings_schema": {

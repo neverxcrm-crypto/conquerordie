@@ -1,55 +1,7 @@
 {%- comment -%}
   ============================================================
-  NAV / HEADER — cabeçalho do site
+  NAV / HEADER — Versão Otimizada (UI/UX Elite)
   ============================================================
-
-  O QUE FAZ:
-  Monta o cabeçalho da loja: logo, navegação de múltiplos níveis
-  (menu com submenus e sub-submenus), busca, link de conta,
-  contador do carrinho e seletores de localização (país/moeda e
-  idioma). Inclui um menu mobile em drawer, com botão hambúrguer.
-
-  ONDE É USADA:
-  No layout (layout/theme.liquid), como header FIXA no topo em
-  todas as páginas. É uma section de grupo/header do tema.
-  O position:fixed fica no wrapper .section-header (assets/base.css)
-  e o <main> reserva --header-height para compensar.
-
-  PRINCIPAIS PARTES:
-  - Logo: usa settings.logo (imagem, prioritariamente SVG) ou, se
-    vazio, o nome da loja (shop.name) como texto — nunca recriada.
-  - header__nav: percorre section.settings.menu.links montando o
-    menu desktop com até 3 níveis (link > child > grandchild).
-  - header__actions: busca (details com painel), conta (só se
-    customer_accounts_enabled) e carrinho com contador
-    data-cart-count baseado em cart.item_count. O link do carrinho
-    tem data-cart-open: com cart_type "drawer" o carrinho.js
-    intercepta o clique e abre o cart-drawer; com "page" (ou sem JS),
-    o link funciona normalmente e leva para /cart.
-  - header__mobile-nav: drawer que desliza da direita em telas
-    <= 1000px, aberto/fechado pelo <script> (aria-expanded/hidden
-    + classe .is-open para animar transform/opacity).
-
-  ESTADOS DE SCROLL:
-  No topo: barra sólida de 68px (58px no mobile), opaca.
-  Ao rolar: 56px (48px no mobile) + glassmorphism (preto
-  translúcido com blur 24px). A altura do espaçador do <main> não
-  muda, então a página não salta quando a header comprime.
-  O <script> no fim do arquivo adiciona/remove a classe
-  ".header--scrolled" no <header> conforme scrollY, usando
-  requestAnimationFrame + listener passivo e um threshold com
-  histerese (entra em >24px, sai em <12px) para não alternar perto
-  do topo. Todo o efeito visual (altura, glass, blur, escala da
-  logo) é CSS — o JS só troca a classe.
-
-  OBSERVAÇÕES:
-  - Ícones vêm do snippet 'icon' (search, account, cart, etc.),
-    todos com o mesmo stroke/escala.
-  - O menu é definido no setting menu (link_list, default
-    "main-menu"); submenus só aparecem se o link tiver filhos.
-  - O bloqueio de scroll do drawer reutiliza a classe "bloquear"
-    já definida em assets/normalizar.css (mesma usada pelo carrinho).
-  - Estilos e o JS ficam inline neste arquivo, como no resto do tema.
 {%- endcomment -%}
 <header class="header" data-section-id="{{ section.id }}">
   <div class="header__inner page-width">
@@ -88,7 +40,7 @@
         {%- for link in section.settings.menu.links -%}
           <li class="header__menu-item {% if link.links != blank %}header__menu-item--has-dropdown{% endif %}">
             <a href="{{ link.url }}" class="header__menu-link" {% if link.current %}aria-current="page"{% endif %}>
-              {{ link.title | escape }}
+              <span class="header__menu-link-text">{{ link.title | escape }}</span>
             </a>
             {%- if link.links != blank -%}
               <ul class="header__submenu" role="list">
@@ -124,7 +76,7 @@
               value="{{ search.terms | escape }}"
               placeholder="{{ 'general.search.placeholder' | t }}"
               aria-label="{{ 'general.search.search' | t }}"
-              class="field__input"
+              class="field__input header__search-input"
             >
             <button type="submit" class="visually-hidden">{{ 'general.search.submit' | t }}</button>
           </form>
@@ -148,7 +100,6 @@
       </a>
     </div>
   </div>
-
 </header>
 
 <div class="header__scrim" data-mobile-scrim hidden></div>
@@ -156,14 +107,23 @@
 <div class="header__mobile-nav" id="MobileNav-{{ section.id }}" role="dialog" aria-modal="true" aria-label="{{ 'sections.header.menu' | t }}" hidden>
   <ul class="header__mobile-menu" role="list">
     {%- for link in section.settings.menu.links -%}
-      <li>
-        <a href="{{ link.url }}" class="header__mobile-link" {% if link.current %}aria-current="page"{% endif %}>{{ link.title | escape }}</a>
+      <li class="header__mobile-item" style="--item-index: {{ forloop.index }};">
         {%- if link.links != blank -%}
-          <ul role="list" class="header__mobile-submenu">
-            {%- for child in link.links -%}
-              <li><a href="{{ child.url }}" class="header__mobile-link header__mobile-link--child">{{ child.title | escape }}</a></li>
-            {%- endfor -%}
-          </ul>
+          <details class="header__mobile-details">
+            <summary class="header__mobile-link header__mobile-link--summary">
+              <span>{{ link.title | escape }}</span>
+              <span class="header__mobile-chevron">
+                <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+            </summary>
+            <ul role="list" class="header__mobile-submenu">
+              {%- for child in link.links -%}
+                <li><a href="{{ child.url }}" class="header__mobile-link header__mobile-link--child">{{ child.title | escape }}</a></li>
+              {%- endfor -%}
+            </ul>
+          </details>
+        {%- else -%}
+          <a href="{{ link.url }}" class="header__mobile-link" {% if link.current %}aria-current="page"{% endif %}>{{ link.title | escape }}</a>
         {%- endif -%}
       </li>
     {%- endfor -%}
@@ -171,44 +131,30 @@
 </div>
 
 <style>
-  /* ==========================================================
-     Header — barra sólida (preto absoluto), fixa, full-bleed.
-     .header carrega o background; .header__inner é quem recebe
-     o page-width, para o glass ocupar o viewport inteiro.
-     Posicionamento fixo fica no wrapper, em assets/base.css.
-     ========================================================== */
+  /* Base Header & Efeito de Transição Avançado */
   .header {
-    /* Quem fixa e o wrapper .section-header (ver assets/base.css).
-       O relative + z-index aqui existe porque o wrapper cria um
-       contexto de empilhamento: dentro dele a header precisa ficar
-       ACIMA do drawer, senao o painel cobre o botao de fechar. */
     position: relative;
     z-index: 3;
     background-color: var(--color-background);
-    border-bottom: 1px solid transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     transition:
-      background-color 380ms cubic-bezier(0.22, 1, 0.36, 1),
-      border-color 380ms cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 380ms cubic-bezier(0.22, 1, 0.36, 1),
-      backdrop-filter 380ms cubic-bezier(0.22, 1, 0.36, 1);
+      background-color 450ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 450ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 450ms cubic-bezier(0.16, 1, 0.3, 1),
+      backdrop-filter 450ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* Estado ao rolar: superficie escura translucida + blur sutil.
-     Nao e "vidro" — e a mesma cor do header com transparencia,
-     para a fotografia/conteudo por tras continuar perceptivel. */
+  /* Glassmorphism de Alta Definição com Brilho Especular */
   .header--scrolled {
-    /* Preto translucido + blur: a fotografia por tras continua
-       perceptivel. saturate compensa a lavagem que o blur causa,
-       senao o conteudo atras fica acinzentado. */
-    background-color: var(--color-overlay);
-    border-bottom-color: var(--color-border-strong);
-    box-shadow: 0 14px 40px var(--color-scrim);
-    backdrop-filter: blur(24px) saturate(140%);
-    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    background-color: var(--color-overlay, rgba(12, 12, 15, 0.72));
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 
+      0 16px 36px -10px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
   }
 
-  /* Sem suporte a backdrop-filter, o fundo volta a ser solido —
-     texto translucido sobre foto sem blur seria ilegivel. */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .header--scrolled { background-color: var(--color-background); }
   }
@@ -217,52 +163,59 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 20px;
-    /* 19px + 30px de logo = 68px (= --header-height) */
-    padding-top: 19px;
-    padding-bottom: 19px;
-    transition: padding 380ms cubic-bezier(0.22, 1, 0.36, 1);
+    gap: 24px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    transition: padding 450ms cubic-bezier(0.16, 1, 0.3, 1);
   }
-  /* Comprimida: 13px + 30px = 56px. Reducao de 12px — perceptivel,
-     sem a header "desaparecer". */
+
   .header--scrolled .header__inner {
-    padding-top: 13px;
-    padding-bottom: 13px;
+    padding-top: 12px;
+    padding-bottom: 12px;
   }
 
   .header__logo-image,
   .header__logo-text {
     display: block;
     transform-origin: left center;
-    transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 450ms cubic-bezier(0.16, 1, 0.3, 1);
   }
-  /* Teto de altura: a header tem altura previsivel qualquer que seja
-     a proporcao do logo enviado. width:auto preserva o aspect ratio. */
+
   .header__logo-image {
-    max-height: 30px;
+    max-height: 32px;
     width: auto;
     height: auto;
   }
-  .header__logo-text { font-size: var(--f3); line-height: 30px; }
+
+  .header__logo-text { 
+    font-size: var(--f3); 
+    font-weight: var(--font-weight-bold, 700);
+    letter-spacing: -0.02em;
+    line-height: 32px; 
+  }
+
   .header--scrolled .header__logo-image,
   .header--scrolled .header__logo-text {
     transform: scale(0.88);
   }
 
+  /* Desktop Menu Interativo */
   .header__nav { flex: 1; display: flex; justify-content: center; }
   .header__menu {
     display: flex;
     align-items: center;
-    gap: 32px;
+    gap: 36px;
     margin: 0;
     padding: 0;
     list-style: none;
   }
   .header__menu-item { position: relative; }
 
-  /* Links — sans UI, tracking discreto, hover por opacidade + linha fina */
-  .header__menu-link,
-  .header__submenu-link {
+  .header__menu-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 0;
     font-family: var(--font-ui-family);
     font-size: var(--f1);
     font-weight: var(--font-weight-medium);
@@ -271,163 +224,224 @@
     text-transform: uppercase;
     color: var(--color-text);
     text-decoration: none;
+    opacity: 0.8;
+    transition: opacity 250ms ease, transform 250ms ease;
   }
-  .header__menu-link {
-    position: relative;
-    display: inline-block;
-    padding: 8px 0;
-    opacity: 0.75;
-    transition: opacity 220ms ease, transform 220ms ease;
-  }
+
   .header__menu-link::after {
     content: '';
     position: absolute;
     left: 0;
-    right: 0;
-    bottom: 4px;
-    height: 1px;
-    background-color: currentColor;
+    bottom: 2px;
+    width: 100%;
+    height: 2px;
+    background-color: var(--color-text);
     transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform-origin: right center;
+    transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-radius: 2px;
   }
+
   .header__menu-link:hover,
   .header__menu-link:focus-visible {
     opacity: 1;
     transform: translateY(-1px);
   }
+
   .header__menu-link:hover::after,
-  .header__menu-link:focus-visible::after,
-  .header__menu-link[aria-current='page']::after {
+  .header__menu-link:focus-visible::after {
     transform: scaleX(1);
-  }
-  /* Página atual: o fio vira OURO. É o indicador mais discreto
-     possível — uma linha de 1px — e ainda assim inequívoco. */
-  .header__menu-link[aria-current='page'] { opacity: 1; }
-  .header__menu-link[aria-current='page']::after {
-    background-color: var(--color-accent);
-    height: 1px;
+    transform-origin: left center;
   }
 
+  .header__menu-link[aria-current='page'] { 
+    opacity: 1; 
+    font-weight: var(--font-weight-semibold, 600);
+  }
+
+  .header__menu-link[aria-current='page']::after {
+    transform: scaleX(1);
+    background-color: var(--color-accent);
+    height: 2px;
+  }
+
+  /* Dropdown Flutuante Otimizado */
   .header__submenu {
     position: absolute;
-    top: 100%;
-    left: 0;
-    min-width: 200px;
+    top: calc(100% + 8px);
+    left: -12px;
+    min-width: 220px;
     margin: 0;
-    padding: 8px 0;
+    padding: 10px;
     list-style: none;
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--inputs-radius);
+    background-color: var(--color-surface, rgba(20, 20, 24, 0.95));
+    border: 1px solid var(--color-border-strong, rgba(255, 255, 255, 0.1));
+    border-radius: calc(var(--inputs-radius) + 4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(16px);
     opacity: 0;
     visibility: hidden;
-    transform: translateY(6px);
-    transition: opacity 200ms ease, transform 200ms ease, visibility 200ms;
+    transform: translateY(10px) scale(0.98);
+    transition: opacity 220ms ease, transform 220ms cubic-bezier(0.16, 1, 0.3, 1), visibility 220ms;
     z-index: 20;
   }
-  .header__submenu--nested { top: 0; left: 100%; }
+
+  .header__submenu--nested { top: -10px; left: calc(100% + 8px); }
+
   .header__menu-item--has-dropdown:hover > .header__submenu,
   .header__menu-item--has-dropdown:focus-within > .header__submenu,
   .header__submenu-item--has-dropdown:hover > .header__submenu,
   .header__submenu-item--has-dropdown:focus-within > .header__submenu {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
+
   .header__submenu-item { position: relative; }
   .header__submenu-link {
     display: block;
-    padding: 8px 16px;
+    padding: 10px 14px;
     width: 100%;
-    text-transform: none;
-    letter-spacing: var(--tracking-normal);
+    font-size: var(--f1);
+    color: var(--color-text);
+    text-decoration: none;
+    border-radius: var(--inputs-radius);
     opacity: 0.85;
-    transition: opacity 200ms ease, background-color 200ms ease;
+    transition: opacity 200ms ease, background-color 200ms ease, transform 200ms ease;
   }
-  .header__submenu-link:hover { opacity: 1; background-color: var(--color-surface-elevated); }
 
-  /* Ações — search / account / cart, mesmo stroke, mesma escala */
-  .header__actions { display: flex; align-items: center; gap: 4px; }
+  .header__submenu-link:hover { 
+    opacity: 1; 
+    background-color: var(--color-surface-elevated, rgba(255, 255, 255, 0.08)); 
+    transform: translateX(4px);
+  }
+
+  /* Botões de Ação & Animações */
+  .header__actions { display: flex; align-items: center; gap: 8px; }
   .header__action-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     position: relative;
+    width: 40px;
+    height: 40px;
     color: var(--color-text);
-    background: none;
+    background: transparent;
     border: none;
+    border-radius: 50%;
     cursor: pointer;
     text-decoration: none;
     opacity: 0.85;
-    transition: opacity 200ms ease, transform 200ms ease;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 200ms ease, background-color 200ms ease, transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
+
   .header__action-button:hover,
   .header__action-button:focus-visible {
     opacity: 1;
-    transform: translateY(-1px);
+    background-color: rgba(255, 255, 255, 0.06);
+    transform: scale(1.12);
   }
-  .header__action-button svg { width: 20px; height: 20px; }
+
+  .header__action-button:active {
+    transform: scale(0.92);
+  }
+
   .header__cart-count {
     position: absolute;
-    top: 2px;
-    right: 2px;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
+    top: 4px;
+    right: 4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
     font-family: var(--font-ui-family);
     font-size: 10px;
-    font-weight: var(--font-weight-semibold);
-    line-height: 16px;
+    font-weight: 700;
+    line-height: 18px;
     text-align: center;
-    color: var(--color-text-on-accent);
-    background-color: var(--color-accent);
-    border-radius: 8px;
+    color: var(--color-text-on-accent, #fff);
+    background-color: var(--color-accent, #0071e3);
+    border-radius: 9px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    animation: cartPulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
   }
+
+  @keyframes cartPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+  }
+
+  /* Painel de Busca Animado */
   .header__search { position: relative; }
   .header__search summary { list-style: none; cursor: pointer; }
   .header__search summary::-webkit-details-marker { display: none; }
+  .header__search[open] .header__search-panel {
+    animation: searchExpand 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes searchExpand {
+    from { opacity: 0; transform: translateY(8px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
   .header__search-panel {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 12px);
     right: 0;
-    margin-top: 12px;
     width: 320px;
     max-width: 90vw;
-    padding: 12px;
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--inputs-radius);
-    box-shadow: 0 12px 32px var(--color-scrim);
+    padding: 8px;
+    background-color: var(--color-surface, #1c1c1e);
+    border: 1px solid var(--color-border-strong, rgba(255, 255, 255, 0.12));
+    border-radius: calc(var(--inputs-radius) + 4px);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
     z-index: 20;
   }
 
-  /* Botao hamburguer — morfa para X quando o drawer esta aberto */
+  .header__search-input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: var(--inputs-radius);
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid transparent;
+    color: var(--color-text);
+    outline: none;
+    transition: border-color 200ms ease, background-color 200ms ease;
+  }
+
+  .header__search-input:focus {
+    border-color: var(--color-accent);
+    background-color: transparent;
+  }
+
+  /* Mobile Hamburguer Transição Morfólogica */
   .header__menu-toggle { display: none; background: none; border: none; }
   .header__burger,
   .header__burger::before,
   .header__burger::after {
     display: block;
-    width: 20px;
+    width: 22px;
     height: 2px;
     background-color: var(--color-text);
-    transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1), top 250ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease;
+    border-radius: 2px;
+    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), top 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease;
   }
   .header__burger { position: relative; }
-  .header__burger::before { content: ''; position: absolute; top: -6px; }
-  .header__burger::after { content: ''; position: absolute; top: 6px; }
+  .header__burger::before { content: ''; position: absolute; top: -7px; }
+  .header__burger::after { content: ''; position: absolute; top: 7px; }
   .header__menu-toggle[aria-expanded='true'] .header__burger { background-color: transparent; }
   .header__menu-toggle[aria-expanded='true'] .header__burger::before { top: 0; transform: rotate(45deg); }
   .header__menu-toggle[aria-expanded='true'] .header__burger::after { top: 0; transform: rotate(-45deg); }
 
-  /* Scrim + drawer mobile — desliza da direita, fundo solido, tipografia limpa */
+  /* Mobile Drawer & Acordeões */
   .header__scrim {
     position: fixed;
     inset: 0;
-    background-color: var(--color-scrim);
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
     opacity: 0;
     z-index: 1;
-    transition: opacity 320ms ease;
+    transition: opacity 350ms ease;
   }
   .header__scrim.is-open { opacity: 1; }
 
@@ -440,62 +454,87 @@
     overflow-y: auto;
     background-color: var(--color-background);
     border-left: 1px solid var(--color-border);
-    padding: calc(var(--header-height) + 28px) 28px 40px;
+    padding: calc(var(--header-height) + 24px) 24px 40px;
     z-index: 2;
     transform: translateX(100%);
     opacity: 0;
-    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1), opacity 400ms ease;
   }
+
   .header__mobile-nav.is-open { transform: translateX(0); opacity: 1; }
-  .header__mobile-menu, .header__mobile-submenu { list-style: none; margin: 0; padding: 0; }
+
+  .header__mobile-menu { list-style: none; margin: 0; padding: 0; }
+  
+  /* Staggered animation dos itens do mobile */
+  .header__mobile-nav.is-open .header__mobile-item {
+    animation: mobileItemFadeIn 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(var(--item-index, 1) * 40ms);
+  }
+
+  @keyframes mobileItemFadeIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
   .header__mobile-link {
-    display: block;
-    padding: 14px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
     font-size: var(--f3);
     font-weight: var(--font-weight-medium);
     color: var(--color-text);
     text-decoration: none;
     border-bottom: 1px solid var(--color-border);
+    transition: color 200ms ease;
   }
-  .header__mobile-menu > li:last-child > .header__mobile-link { border-bottom: none; }
+
+  .header__mobile-details summary {
+    list-style: none;
+    cursor: pointer;
+  }
+  .header__mobile-details summary::-webkit-details-marker { display: none; }
+
+  .header__mobile-chevron {
+    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .header__mobile-details[open] .header__mobile-chevron {
+    transform: rotate(180deg);
+  }
+
+  .header__mobile-submenu {
+    list-style: none;
+    padding: 0 0 8px 16px;
+    margin: 0;
+  }
+
   .header__mobile-link--child {
-    padding: 10px 0 10px 16px;
+    padding: 10px 0;
     font-size: var(--f2);
     color: var(--color-text-secondary);
     border-bottom: none;
   }
-  .header__mobile-link[aria-current='page'] { color: var(--color-accent-readable); }
 
   @media screen and (max-width: 1000px) {
     .header__nav { display: none; }
-    .header__menu-toggle { display: inline-flex; }
-    /* 16px + 26px de logo = 58px; comprimida 11px + 26px = 48px */
-    .header__inner { justify-content: space-between; padding-top: 16px; padding-bottom: 16px; }
-    .header--scrolled .header__inner { padding-top: 11px; padding-bottom: 11px; }
-    .header__logo-image { max-height: 26px; }
-    .header__logo-text { line-height: 26px; }
+    .header__menu-toggle { display: inline-flex; align-items: center; justify-content: center; }
+    .header__inner { padding-top: 14px; padding-bottom: 14px; }
+    .header--scrolled .header__inner { padding-top: 10px; padding-bottom: 10px; }
+    .header__logo-image { max-height: 28px; }
     .header__logo-link { margin: 0 auto; }
-    .header__actions { gap: 0; }
   }
+
   @media screen and (min-width: 1001px) {
-    .header__scrim,
-    .header__mobile-nav { display: none !important; }
+    .header__scrim, .header__mobile-nav { display: none !important; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .header,
-    .header__inner,
-    .header__logo-image,
-    .header__logo-text,
-    .header__menu-link,
-    .header__menu-link::after,
-    .header__action-button,
-    .header__scrim,
-    .header__mobile-nav,
-    .header__burger,
-    .header__burger::before,
-    .header__burger::after {
+    .header, .header__inner, .header__logo-image, .header__logo-text,
+    .header__menu-link, .header__action-button, .header__scrim,
+    .header__mobile-nav, .header__cart-count {
       transition-duration: 0.01ms !important;
+      animation: none !important;
     }
   }
 </style>
@@ -505,9 +544,8 @@
     var header = document.querySelector('.header[data-section-id="{{ section.id }}"]');
     if (!header) return;
 
-    /* ---- Scroll state: matte -> glass, com histerese e rAF ---- */
-    var ENTER_AT = 24;
-    var EXIT_AT = 12;
+    var ENTER_AT = 20;
+    var EXIT_AT = 8;
     var ticking = false;
     var isScrolled = false;
 
@@ -554,8 +592,6 @@
     function closeDrawer() {
       drawer.classList.remove('is-open');
       scrim.classList.remove('is-open');
-      // Idem: se o cart drawer ainda estiver aberto, é ele quem
-      // controla o destrave do scroll.
       var cartDrawer = document.getElementById('CartDrawer');
       if (!cartDrawer || !cartDrawer.classList.contains('is-open')) {
         document.body.classList.remove('bloquear');
@@ -564,7 +600,7 @@
       closeTimer = setTimeout(function () {
         drawer.hidden = true;
         scrim.hidden = true;
-      }, 320);
+      }, 400);
     }
 
     if (toggle && drawer && scrim) {
