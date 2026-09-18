@@ -5,57 +5,45 @@
 
   O QUE FAZ:
   Renderiza um grid com TODAS as coleções da loja, cada uma como
-  card (imagem + título) linkando para a página da coleção.
-  Usa paginação nativa de 12 itens por página.
+  painel editorial (snippets/collection-panel — o mesmo da home,
+  com a faixa lateral e o nome na vertical). 3 colunas no desktop,
+  2 no tablet, 1 no celular. Paginação nativa de 12 por página.
 
   ONDE É USADA:
   Template list-collections (página /collections que lista as coleções).
 
   PRINCIPAIS PARTES:
   - {%- paginate collections by 12 -%}: paginação da lista de coleções
-  - Imagem: usa featured_image da coleção; se não houver, cai para
-    a imagem do primeiro produto; e se nada, placeholder SVG
+  - Imagem/título/fallbacks: resolvidos dentro do snippet
   - render 'pagination': snippet de navegação entre páginas
-  - Setting: heading (título da página)
+  - Settings: heading, rótulos de contagem e CTA dos painéis
 
   OBSERVAÇÕES:
   O CSS é escopado por #shopify-section-{{ section.id }} para não vazar.
 {%- endcomment -%}
 
 <div class="list-collections page-width" data-section-id="{{ section.id }}">
-  {%- if section.settings.heading != blank -%}
-    <h1 class="list-collections__heading">{{ section.settings.heading | escape }}</h1>
-  {%- endif -%}
+  <header class="list-collections__header" data-reveal>
+    <p class="eyebrow">{{ collections.size }} {{ section.settings.count_label | escape }}</p>
+    {%- if section.settings.heading != blank -%}
+      <h1 class="list-collections__heading">{{ section.settings.heading | escape }}</h1>
+    {%- endif -%}
+  </header>
 
   {%- paginate collections by 12 -%}
-    <ul class="list-collections__grid product-grid" role="list">
+    <ul class="list-collections__grid" role="list">
       {%- for collection in collections -%}
-        {%- liquid
-          assign collection_image = collection.featured_image
-          unless collection_image
-            assign collection_image = collection.products.first.featured_image
-          endunless
-        -%}
-        <li class="list-collections__item">
-          <a href="{{ collection.url }}" class="list-collections__link">
-            <div class="list-collections__media">
-              {%- if collection_image -%}
-                {{
-                  collection_image
-                  | image_url: width: 720
-                  | image_tag:
-                    loading: 'lazy',
-                    widths: '180, 360, 540, 720',
-                    sizes: '(min-width: 1000px) 25vw, 50vw',
-                    class: 'list-collections__image',
-                    alt: collection.title | escape
-                }}
-              {%- else -%}
-                {{ 'collection-1' | placeholder_svg_tag: 'list-collections__image placeholder-svg' }}
-              {%- endif -%}
-            </div>
-            <h2 class="list-collections__title">{{ collection.title }}</h2>
-          </a>
+        {%- assign panel_index = paginate.current_offset | plus: forloop.index -%}
+        <li class="list-collections__item" data-reveal>
+          {%- render 'collection-panel',
+            collection: collection,
+            index: panel_index,
+            cta: section.settings.card_cta,
+            show_count: true,
+            count_label: section.settings.products_label,
+            sizes: '(min-width: 1001px) 30vw, (min-width: 601px) 50vw, 90vw',
+            parallax: false
+          -%}
         </li>
       {%- endfor -%}
     </ul>
@@ -66,39 +54,35 @@
 
 <style>
   #shopify-section-{{ section.id }} .list-collections {
-    margin-top: 24px;
-    margin-bottom: var(--spacing-sections, 40px);
+    padding-top: clamp(32px, 5vw, 72px);
+    padding-bottom: var(--space-section);
+  }
+  #shopify-section-{{ section.id }} .list-collections__header {
+    display: grid;
+    gap: 16px;
+    margin-bottom: clamp(28px, 4vw, 56px);
   }
   #shopify-section-{{ section.id }} .list-collections__heading {
-    font-size: var(--f6);
-    text-align: center;
-    margin: 0 0 32px;
+    font-size: var(--f8);
+    text-transform: uppercase;
+    margin: 0;
   }
-  #shopify-section-{{ section.id }} .list-collections__link {
-    display: block;
-    text-decoration: none;
-    color: inherit;
+  /* 3 colunas retrato no desktop, 2 no tablet, 1 no celular */
+  #shopify-section-{{ section.id }} .list-collections__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(10px, 1.2vw, 18px);
+    list-style: none;
+    margin: 0;
+    padding: 0;
   }
-  #shopify-section-{{ section.id }} .list-collections__media {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    overflow: hidden;
-    border-radius: var(--media-radius, 8px);
-    background-color: var(--color-surface);
+  #shopify-section-{{ section.id }} .collection-panel { aspect-ratio: 3 / 4; height: auto; }
+  @media screen and (max-width: 1000px) {
+    #shopify-section-{{ section.id }} .list-collections__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
-  #shopify-section-{{ section.id }} .list-collections__image {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  #shopify-section-{{ section.id }} .list-collections__title {
-    font-size: var(--f3);
-    font-weight: var(--font-weight-regular);
-    text-align: center;
-    margin: 12px 0 0;
+  @media screen and (max-width: 600px) {
+    #shopify-section-{{ section.id }} .list-collections__grid { grid-template-columns: 1fr; }
+    #shopify-section-{{ section.id }} .collection-panel { aspect-ratio: 4 / 5; }
   }
   #shopify-section-{{ section.id }} .pagination {
     margin-top: 40px;
@@ -146,6 +130,24 @@
       "id": "heading",
       "default": "Collections",
       "label": "t:sections.main_list_collections.settings.heading.label"
+    },
+    {
+      "type": "text",
+      "id": "count_label",
+      "default": "coleções",
+      "label": "t:sections.main_list_collections.settings.count_label.label"
+    },
+    {
+      "type": "text",
+      "id": "products_label",
+      "default": "peças",
+      "label": "t:sections.main_list_collections.settings.products_label.label"
+    },
+    {
+      "type": "text",
+      "id": "card_cta",
+      "default": "Explorar",
+      "label": "t:sections.main_list_collections.settings.card_cta.label"
     }
   ]
 }

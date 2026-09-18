@@ -34,6 +34,14 @@ html {
   background-color: var(--color-background);
   scroll-behavior: smooth;
 }
+/* Com o Lenis ativo, ele e quem suaviza: o smooth nativo brigaria
+   com a interpolacao e deixaria ancoras/scrollTo lentos. */
+html.lenis,
+html.lenis body { height: auto; }
+html.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: clip; }
+.lenis [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-smooth iframe { pointer-events: none; }
 body {
   margin: 0;
   -webkit-tap-highlight-color: rgba(255, 255, 255, 0);

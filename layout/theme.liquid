@@ -15,8 +15,8 @@
   - Open Graph / JSON-LD e demais tags via {% render 'meta-tags' %}.
   - CSS: index.css (ponto de entrada) + css-variables (variaveis
     do tema geradas pelas settings).
-  - Scripts: troca no-js -> js e carrega carrinho.js e revelar.js
-    (ambos defer).
+  - Scripts: troca no-js -> js e carrega carrinho.js, revelar.js e
+    o scroll suave (gsap, ScrollTrigger, lenis, movimento.js), todos defer.
   - {{ content_for_header }}: scripts obrigatorios do Shopify.
 
   NO <body> temos:
@@ -63,6 +63,15 @@
     <script>document.documentElement.className = document.documentElement.className.replace('no-js', 'js');</script>
     <script src="{{ 'carrinho.js' | asset_url }}" defer="defer"></script>
     <script src="{{ 'revelar.js' | asset_url }}" defer="defer"></script>
+    {%- comment -%}
+      Scroll suave: GSAP + ScrollTrigger + Lenis (vendorizados em assets/,
+      sem CDN externo). Todos defer — a ordem de execucao e a do HTML,
+      entao movimento.js ja encontra as tres libs carregadas.
+    {%- endcomment -%}
+    <script src="{{ 'gsap.min.js' | asset_url }}" defer="defer"></script>
+    <script src="{{ 'ScrollTrigger.min.js' | asset_url }}" defer="defer"></script>
+    <script src="{{ 'lenis.min.js' | asset_url }}" defer="defer"></script>
+    <script src="{{ 'movimento.js' | asset_url }}" defer="defer"></script>
 
     {{ content_for_header }}
   </head>

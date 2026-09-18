@@ -275,6 +275,10 @@ textarea.field__input:focus {
   transform: none;
 }
 
+/* Parallax (assets/movimento.js) — o wrapper corta o excesso da
+   imagem ampliada. Sem JS a imagem fica parada e intacta. */
+[data-parallax] { overflow: hidden; }
+
 /* Product grid */
 .product-grid {
   display: grid;
@@ -397,6 +401,266 @@ textarea.field__input:focus {
 }
 .price--card { font-size: var(--f2); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); }
 
+/* ==========================================================
+   Collection panel — snippets/collection-panel.liquid
+   ==========================================================
+   Foto retrato + faixa lateral de vidro escuro com o nome da
+   coleção na vertical. A faixa e a info recebem .scheme-dark no
+   markup: ficam sobre fotografia, mesmo em seção clara.
+   O layout em volta (acordeão, trilho, grade) é de cada section. */
+.collection-panel {
+  --cp-band: clamp(52px, 4.4vw, 68px);
+  --cp-radius: 14px;
+  --cp-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  display: block;
+  height: 100%;
+  border-radius: var(--cp-radius);
+  overflow: hidden;
+  isolation: isolate;
+  color: inherit;
+  text-decoration: none;
+  background-color: var(--cod-black);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    0 24px 48px -28px rgba(0, 0, 0, 0.55);
+  transition: box-shadow 500ms var(--cp-ease);
+}
+.collection-panel__media,
+.collection-panel__frame {
+  position: absolute;
+  inset: 0;
+}
+.collection-panel__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  display: block;
+  transition: transform 1100ms var(--cp-ease), filter 600ms ease;
+}
+.collection-panel__image.placeholder-svg {
+  background-color: var(--cod-graphite);
+  fill: rgba(255, 255, 255, 0.18);
+}
+/* Véu: só a base escurece, onde a info aparece */
+.collection-panel__media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.2) 38%, rgba(0, 0, 0, 0) 60%);
+  opacity: 0.55;
+  transition: opacity 500ms ease;
+  pointer-events: none;
+}
+
+/* Faixa lateral — vidro escuro, borda-guia de 1px */
+.collection-panel__band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  width: var(--cp-band);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border-right: 1px solid var(--color-border);
+  transition: background-color 500ms ease;
+}
+/* Fio de ouro: desce pela borda da faixa no hover */
+.collection-panel__band::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -1px;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--color-accent-readable), var(--color-accent) 60%, transparent);
+  transform: scaleY(0);
+  transform-origin: top center;
+  transition: transform 800ms var(--cp-ease);
+}
+.collection-panel__index {
+  font-family: var(--font-ui-family);
+  font-size: var(--f0);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-label);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent-readable);
+}
+/* Nome na vertical, lido de baixo para cima */
+.collection-panel__label {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font-ui-family);
+  font-size: clamp(0.9375rem, 0.8rem + 0.45vw, 1.3rem);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+  transition: letter-spacing 700ms var(--cp-ease);
+}
+.collection-panel__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-strong);
+  transition: background-color 400ms ease, border-color 400ms ease, color 400ms ease, transform 500ms var(--cp-ease);
+}
+.collection-panel__arrow svg { width: 13px; height: 13px; }
+
+/* Info — canto inferior, ao lado da faixa */
+.collection-panel__info {
+  position: absolute;
+  left: var(--cp-band);
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: clamp(18px, 2vw, 28px);
+  pointer-events: none;
+  transition: opacity 400ms ease, transform 600ms var(--cp-ease);
+}
+.collection-panel__title {
+  font-family: var(--font-display-family);
+  font-size: var(--f6);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+  margin: 0 0 10px;
+  /* Máscara: o título sobe de dentro dela no hover (JS da section) */
+  overflow: hidden;
+  padding-bottom: 0.08em;
+}
+.collection-panel__title-inner {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Sombra: escurece os painéis que NÃO estão em foco */
+.collection-panel__shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-color: var(--cod-black);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 700ms var(--cp-ease);
+}
+/* Brilho dourado que acompanha o cursor (posicionado via JS) */
+.collection-panel__glow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(227, 201, 139, 0.22) 0%, rgba(201, 162, 77, 0.08) 35%, transparent 65%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.collection-panel__text {
+  max-width: 30ch;
+  font-size: var(--f1);
+  line-height: var(--leading-ui);
+  color: var(--color-text-secondary);
+  margin: 0 0 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.collection-panel__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  margin: 0;
+  font-family: var(--font-ui-family);
+  font-size: var(--f0);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+.collection-panel__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-accent-readable);
+}
+.collection-panel__cta svg { width: 12px; height: 12px; }
+
+/* Desktop com mouse: a info entra no hover. No toque (e em telas
+   menores) ela fica sempre visível, sem a descrição. */
+@media screen and (min-width: 1001px) and (hover: hover) {
+  .collection-panel__info { opacity: 0; transform: translateY(14px); }
+  .collection-panel:hover .collection-panel__info,
+  .collection-panel:focus-visible .collection-panel__info { opacity: 1; transform: none; }
+}
+@media screen and (max-width: 1000px), (hover: none) {
+  .collection-panel__media::after { opacity: 0.9; }
+  .collection-panel__text { display: none; }
+  .collection-panel__title { font-size: var(--f5); }
+}
+@media screen and (max-width: 600px) {
+  .collection-panel { --cp-band: 48px; --cp-radius: 12px; }
+  .collection-panel__band { padding: 16px 0; }
+  .collection-panel__arrow { width: 28px; height: 28px; }
+}
+
+@media (hover: hover) {
+  .collection-panel:hover,
+  .collection-panel:focus-visible {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.1),
+      0 32px 64px -28px rgba(0, 0, 0, 0.7);
+  }
+  .collection-panel:hover .collection-panel__image,
+  .collection-panel:focus-visible .collection-panel__image { transform: scale(1.05); }
+  .collection-panel:hover .collection-panel__media::after,
+  .collection-panel:focus-visible .collection-panel__media::after { opacity: 1; }
+  .collection-panel:hover .collection-panel__band,
+  .collection-panel:focus-visible .collection-panel__band { background-color: rgba(0, 0, 0, 0.66); }
+  .collection-panel:hover .collection-panel__band::after,
+  .collection-panel:focus-visible .collection-panel__band::after { transform: scaleY(1); }
+  .collection-panel:hover .collection-panel__label,
+  .collection-panel:focus-visible .collection-panel__label { letter-spacing: 0.28em; }
+  .collection-panel:hover .collection-panel__arrow,
+  .collection-panel:focus-visible .collection-panel__arrow {
+    color: var(--color-text-on-accent);
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    transform: rotate(-45deg);
+  }
+}
+
 /* Rich text content (RTE) shared styles */
 .rte a { color: var(--color-accent-readable); }
 .rte img { max-width: 100%; height: auto; border-radius: var(--media-radius); }
@@ -406,6 +670,10 @@ textarea.field__input:focus {
 /* Respeita quem pediu menos movimento no sistema operacional */
 @media (prefers-reduced-motion: reduce) {
   .js [data-reveal],
+  .collection-panel,
+  .collection-panel *,
+  .collection-panel *::after,
+  .collection-panel__media::after,
   .card-product__image,
   .card-product__quick-add,
   .arrow-link svg,
@@ -413,5 +681,6 @@ textarea.field__input:focus {
     transition-duration: 0.01ms !important;
   }
   .js [data-reveal] { opacity: 1; transform: none; }
-  .card-product:hover .card-product__image { transform: none; }
+  .card-product:hover .card-product__image,
+  .collection-panel:hover .collection-panel__image { transform: none; }
 }

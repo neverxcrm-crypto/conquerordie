@@ -178,6 +178,19 @@
         },
         "button_link": {
           "label": "Button link"
+        },
+        "panel_height": {
+          "label": "Panel height (desktop)",
+          "info": "Panels shrink on smaller screens and become a swipeable rail on mobile."
+        },
+        "card_cta": {
+          "label": "Panel call to action"
+        },
+        "show_count": {
+          "label": "Show product count"
+        },
+        "count_label": {
+          "label": "Product count label"
         }
       },
       "blocks": {
@@ -333,6 +346,15 @@
       "settings": {
         "heading": {
           "label": "Heading"
+        },
+        "count_label": {
+          "label": "Collections count label"
+        },
+        "products_label": {
+          "label": "Product count label"
+        },
+        "card_cta": {
+          "label": "Panel call to action"
         }
       }
     },

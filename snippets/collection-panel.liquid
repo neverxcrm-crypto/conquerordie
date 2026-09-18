@@ -1,0 +1,110 @@
+{%- comment -%}
+  ============================================================
+  collection-panel — painel editorial de coleção
+  ============================================================
+
+  O QUE FAZ:
+  Foto retrato inteira + FAIXA LATERAL de vidro escuro com o nome da
+  coleção na vertical (lido de baixo para cima, como etiqueta de
+  arara), índice em ouro no topo e seta na base. No canto inferior,
+  a info (título, descrição, contagem, CTA) entra no hover no
+  desktop e fica sempre visível no toque.
+
+  ┌──┬──────────────┐
+  │01│              │
+  │N │    foto      │
+  │O │              │
+  │M │  TÍTULO      │
+  │E │  12 peças →  │
+  └──┴──────────────┘
+
+  PARÂMETROS:
+  - collection  (obrigatório) objeto collection (pode ser vazio no onboarding)
+  - image       imagem que sobrescreve a da coleção
+  - title       título que sobrescreve o da coleção
+  - text        descrição curta (padrão: descrição da coleção, 14 palavras)
+  - index       número do painel (vira "01", "02"...)
+  - cta         rótulo do CTA ("Explorar")
+  - show_count  true/false — mostra a quantidade de produtos
+  - count_label sufixo da contagem ("peças")
+  - sizes       atributo sizes do <img>
+  - parallax    true/false — liga o parallax do movimento.js
+
+  ESTILO:
+  assets/base.css, bloco "Collection panel". O layout em volta
+  (acordeão, trilho, grade) é de cada section.
+{%- endcomment -%}
+{%- liquid
+  assign panel_image = image | default: collection.featured_image
+  if panel_image == blank and collection != blank
+    assign panel_image = collection.products.first.featured_image
+  endif
+
+  if title != blank
+    assign panel_title = title
+  elsif collection != blank
+    assign panel_title = collection.title
+  else
+    assign panel_title = 'onboarding.collection_title' | t
+  endif
+
+  assign panel_text = text
+  if panel_text == blank and collection.description != blank
+    assign panel_text = collection.description | strip_html | truncatewords: 14
+  endif
+
+  assign panel_index = index | default: 1 | prepend: '0' | slice: -2, 2
+  assign panel_sizes = sizes | default: '(min-width: 1001px) 30vw, (min-width: 601px) 50vw, 80vw'
+-%}
+<a
+  href="{{ collection.url | default: routes.collections_url }}"
+  class="collection-panel"
+  aria-label="{{ panel_title | escape }}"
+>
+  <div class="collection-panel__media" {% if parallax %}data-parallax="0.08"{% endif %}>
+    <div class="collection-panel__frame" data-parallax-target>
+      {%- if panel_image != blank -%}
+        {{
+          panel_image
+          | image_url: width: 1400
+          | image_tag:
+            loading: 'lazy',
+            class: 'collection-panel__image',
+            widths: '360, 540, 720, 960, 1200, 1400',
+            sizes: panel_sizes,
+            alt: panel_image.alt | default: panel_title | escape
+        }}
+      {%- else -%}
+        {{ 'collection-1' | placeholder_svg_tag: 'collection-panel__image placeholder-svg' }}
+      {%- endif -%}
+    </div>
+  </div>
+
+  {%- comment -%} Camadas de interação: sombra (painéis vizinhos recuam) e brilho que segue o cursor. {%- endcomment -%}
+  <span class="collection-panel__shade" aria-hidden="true"></span>
+  <span class="collection-panel__glow" aria-hidden="true"></span>
+
+  <div class="collection-panel__band scheme-dark" aria-hidden="true">
+    <span class="collection-panel__index">{{ panel_index }}</span>
+    <span class="collection-panel__label">{{ panel_title | escape }}</span>
+    <span class="collection-panel__arrow">{% render 'icon', name: 'arrow-right' %}</span>
+  </div>
+
+  <div class="collection-panel__info scheme-dark">
+    <h3 class="collection-panel__title"><span class="collection-panel__title-inner">{{ panel_title | escape }}</span></h3>
+    {%- if panel_text != blank -%}
+      <p class="collection-panel__text">{{ panel_text | escape }}</p>
+    {%- endif -%}
+    <p class="collection-panel__meta">
+      {%- if show_count and collection.all_products_count > 0 -%}
+        <span>{{ collection.all_products_count }} {{ count_label | escape }}</span>
+      {%- endif -%}
+      {%- if cta != blank -%}
+        <span class="collection-panel__cta">
+          {{- cta | escape -}}
+          {% render 'icon', name: 'arrow-right' %}
+        </span>
+      {%- endif -%}
+    </p>
+  </div>
+</a>

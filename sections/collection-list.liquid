@@ -1,259 +1,622 @@
 {%- comment -%}
   ============================================================
-  COLLECTION LIST — exploração editorial de coleções
+  COLLECTION LIST — "Escolha seu lado"
   ============================================================
 
   O QUE FAZ:
-  Galeria de coleções curadas pelo lojista. Não é uma grade de cards
-  iguais: um painel de introdução (eyebrow, título, texto, CTA) ocupa
-  a primeira coluna e as coleções seguem como imagens verticais altas,
-  com nome, micro descrição e seta. É o momento de IDENTIFICAÇÃO da
-  narrativa da home — "escolha seu lado".
+  Galeria editorial de coleções curadas pelo lojista. Cada coleção é
+  um painel retrato com a foto inteira e uma FAIXA LATERAL de vidro
+  escuro onde o nome da coleção corre na vertical (lido de baixo
+  para cima, como etiqueta de arara). É o momento de IDENTIFICAÇÃO
+  da narrativa da home.
 
   ONDE É USADA:
   Home (templates/index.json) e qualquer página via preset.
 
-  PRINCIPAIS PARTES:
-  - Painel de intro (settings da seção), opcional: sem título nem
-    texto ele some e as imagens ocupam a largura toda.
-  - blocks 'featured_collection': cada um escolhe 1 coleção e pode
-    sobrescrever imagem, título e descrição. Sem override, usa os
-    dados reais da coleção (featured_image, title, description).
-  - A imagem é o card: o texto fica sobre ela, no rodapé.
+  PAINEL:
+  snippets/collection-panel.liquid (markup) + base.css "Collection
+  panel" (estilo). Aqui fica só o layout em volta: intro, acordeão,
+  trilho mobile, entrada e progresso.
 
-  INTERAÇÃO (desktop):
-  Hover aumenta a imagem em ~2% e clareia o véu da foto; as outras
-  coleções perdem um pouco de presença. Tudo por opacity/transform —
-  sem 3D, sem glow, sem parallax.
+  COMPORTAMENTO:
+  - Desktop (≥1001px): os painéis dividem a largura em flex. O painel
+    sob o cursor (ou com foco de teclado) cresce e os vizinhos
+    recuam — acordeão horizontal. A faixa ganha um fio de ouro que
+    desce de cima a baixo.
+  - Tablet/mobile: vira um trilho com scroll-snap horizontal, com
+    contador 01/04 e barra de progresso em ouro abaixo.
+  - Entrada: cada painel abre por clip-path em cascata (revelar.js
+    põe .is-revealed com 60ms de atraso entre irmãos).
+  - Parallax vertical leve na foto (assets/movimento.js).
+  - Com GSAP: acordeão com inércia, foto e brilho seguindo o cursor,
+    info em cascata, profundidade no trilho mobile e entrada ligada
+    ao scroll. Detalhes no script ao fim desta section.
 
   OBSERVAÇÕES:
-  - As imagens são recortadas em retrato (3:4) via aspect-ratio, para
-    a fileira ter ritmo mesmo com fotos de proporções diferentes.
-  - O corpo do card recebe .scheme-dark: ele fica sobre a fotografia
-    escura, mesmo a seção sendo clara, então precisa dos tokens de
-    texto do esquema escuro.
-  - Cantos retos de propósito: imagem editorial não é card.
-  - Sem imagem na coleção, entra o placeholder do Shopify.
+  - prefers-reduced-motion: sem acordeão animado, sem clip-path,
+    sem parallax — tudo aparece pronto.
 {%- endcomment -%}
 {%- liquid
   assign has_intro = false
   if section.settings.heading != blank or section.settings.text != blank
     assign has_intro = true
   endif
+  assign total = section.blocks.size
+  assign total_label = total | prepend: '0' | slice: -2, 2
 -%}
 <div
-  class="collection-list {% if has_intro %}collection-list--with-intro{% endif %}"
+  class="collection-list"
   data-section-id="{{ section.id }}"
+  style="--cl-count: {{ total | at_least: 1 }}; --cl-height: {{ section.settings.panel_height }}px;"
 >
-  <div class="collection-list__inner page-width">
+  <div class="page-width">
     {%- if has_intro -%}
-      <div class="collection-list__intro" data-reveal>
-        {%- if section.settings.eyebrow != blank -%}
-          <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
-        {%- endif -%}
-        {%- if section.settings.heading != blank -%}
-          <h2 class="collection-list__heading">{{ section.settings.heading | newline_to_br }}</h2>
-        {%- endif -%}
-        {%- if section.settings.text != blank -%}
-          <p class="collection-list__text">{{ section.settings.text | escape }}</p>
-        {%- endif -%}
-        {%- if section.settings.button_label != blank -%}
-          <a href="{{ section.settings.button_link | default: routes.collections_url }}" class="arrow-link collection-list__cta">
-            {{ section.settings.button_label | escape }}
-            {% render 'icon', name: 'arrow-right' %}
-          </a>
-        {%- endif -%}
-      </div>
+      <header class="collection-list__intro" data-reveal>
+        <div class="collection-list__intro-main">
+          {%- if section.settings.eyebrow != blank -%}
+            <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+          {%- endif -%}
+          {%- if section.settings.heading != blank -%}
+            {%- assign heading_lines = section.settings.heading | newline_to_br | split: '<br />' -%}
+            <h2 class="collection-list__heading">
+              {%- for line in heading_lines -%}
+                <span class="collection-list__line"><span class="collection-list__line-inner" data-collection-line>{{ line | strip }}</span></span>
+              {%- endfor -%}
+            </h2>
+          {%- endif -%}
+        </div>
+        <div class="collection-list__intro-aside">
+          {%- if section.settings.text != blank -%}
+            <p class="collection-list__text">{{ section.settings.text | escape }}</p>
+          {%- endif -%}
+          {%- if section.settings.button_label != blank -%}
+            <a href="{{ section.settings.button_link | default: routes.collections_url }}" class="arrow-link collection-list__cta">
+              {{ section.settings.button_label | escape }}
+              {% render 'icon', name: 'arrow-right' %}
+            </a>
+          {%- endif -%}
+        </div>
+      </header>
     {%- endif -%}
 
-    <ul class="collection-list__grid" role="list" data-collection-gallery>
+    <ul class="collection-list__rail" role="list" data-collection-rail>
       {%- for block in section.blocks -%}
-        {%- liquid
-          assign collection = collections[block.settings.collection]
-          assign card_image = block.settings.image | default: collection.featured_image
-          assign card_title = block.settings.title | default: collection.title
-          assign card_text = block.settings.text
-        -%}
-        <li class="collection-list__item" data-reveal {{ block.shopify_attributes }}>
-          <a href="{{ collection.url | default: routes.collections_url }}" class="collection-card">
-            <div class="collection-card__media">
-              {%- if card_image != blank -%}
-                {{
-                  card_image
-                  | image_url: width: 900
-                  | image_tag:
-                    loading: 'lazy',
-                    class: 'collection-card__image',
-                    widths: '300, 450, 600, 900',
-                    sizes: '(min-width: 1000px) 22vw, 70vw',
-                    alt: card_image.alt | default: card_title | escape
-                }}
-              {%- else -%}
-                {{ 'collection-1' | placeholder_svg_tag: 'collection-card__image placeholder-svg' }}
-              {%- endif -%}
-            </div>
-
-            <div class="collection-card__body scheme-dark">
-              <h3 class="collection-card__title">
-                {{ card_title | default: 'onboarding.collection_title' | t }}
-              </h3>
-              {%- if card_text != blank -%}
-                <p class="collection-card__text">{{ card_text | escape }}</p>
-              {%- endif -%}
-              <span class="collection-card__arrow" aria-hidden="true">{% render 'icon', name: 'arrow-right' %}</span>
-            </div>
-          </a>
+        <li class="collection-list__item" data-reveal data-collection-item {{ block.shopify_attributes }}>
+          {%- render 'collection-panel',
+            collection: collections[block.settings.collection],
+            image: block.settings.image,
+            title: block.settings.title,
+            text: block.settings.text,
+            index: forloop.index,
+            cta: section.settings.card_cta,
+            show_count: section.settings.show_count,
+            count_label: section.settings.count_label,
+            sizes: '(min-width: 1001px) 40vw, (min-width: 601px) 50vw, 80vw',
+            parallax: true
+          -%}
         </li>
       {%- endfor -%}
     </ul>
+
+    {%- if total > 1 -%}
+      <div class="collection-list__progress" aria-hidden="true">
+        <span class="collection-list__counter"><span data-collection-current>01</span> / {{ total_label }}</span>
+        <span class="collection-list__bar"><span class="collection-list__bar-fill" data-collection-bar></span></span>
+      </div>
+    {%- endif -%}
   </div>
 </div>
 
 <style>
-  .collection-list {
+  #shopify-section-{{ section.id }} .collection-list {
+    --cl-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --cl-gap: clamp(8px, 0.9vw, 14px);
     padding-top: var(--space-section);
     padding-bottom: var(--space-section);
     background-color: var(--color-background);
-  }
-  .collection-list__inner {
-    display: grid;
-    gap: clamp(28px, 4vw, 56px);
-    align-items: center;
-  }
-  /* Com intro: painel de texto + galeria. Sem intro: só a galeria. */
-  .collection-list--with-intro .collection-list__inner {
-    grid-template-columns: minmax(200px, 0.55fr) 3fr;
-  }
-
-  .collection-list__intro { max-width: 22rem; }
-  .collection-list__intro .eyebrow { margin-bottom: 20px; }
-  .collection-list__heading { font-size: var(--f6); margin-bottom: 16px; }
-  .collection-list__text { font-size: var(--f1); color: var(--color-text-secondary); margin-bottom: 24px; }
-  .collection-list__cta { color: var(--color-text-primary); }
-
-  .collection-list__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-    gap: 4px;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  .collection-card {
-    position: relative;
-    display: block;
-    text-decoration: none;
-    color: inherit;
     overflow: hidden;
-    transition: opacity 320ms ease;
-  }
-  .collection-card__media { position: relative; aspect-ratio: 3 / 4; overflow: hidden; background-color: var(--color-surface); }
-  .collection-card__image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  /* Véu só na base, onde o texto encosta */
-  .collection-card__media::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--photo-veil-bottom);
-    transition: opacity 320ms ease;
   }
 
-  .collection-card__body {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 2;
-    padding: clamp(16px, 2vw, 28px);
+  /* ---------- Intro: título grande à esquerda, apoio à direita ---------- */
+  #shopify-section-{{ section.id }} .collection-list__intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: end;
+    gap: clamp(20px, 4vw, 64px);
+    margin-bottom: clamp(28px, 4vw, 56px);
   }
-  .collection-card__title {
+  #shopify-section-{{ section.id }} .collection-list__intro .eyebrow { margin-bottom: 18px; }
+  #shopify-section-{{ section.id }} .collection-list__heading {
     font-family: var(--font-display-family);
-    font-size: var(--f4);
-    font-weight: var(--font-weight-semibold);
-    letter-spacing: var(--tracking-heading);
-    line-height: var(--leading-heading);
-    color: var(--color-text-primary);
-    margin: 0 0 8px;
-  }
-  .collection-card__text {
-    font-family: var(--font-ui-family);
-    font-size: var(--f0);
-    letter-spacing: var(--tracking-label);
+    font-size: var(--f8);
+    font-weight: var(--font-weight-bold);
+    line-height: 0.95;
+    letter-spacing: var(--tracking-display);
     text-transform: uppercase;
+    margin: 0;
+    text-wrap: balance;
+  }
+  /* Cada linha é uma máscara; a linha interna sobe de dentro dela */
+  #shopify-section-{{ section.id }} .collection-list__line {
+    display: block;
+    overflow: hidden;
+    padding-block: 0.06em 0.1em;
+    margin-block: -0.06em -0.1em;
+  }
+  #shopify-section-{{ section.id }} .collection-list__line-inner { display: block; }
+  #shopify-section-{{ section.id }} .collection-list__intro-aside {
+    justify-self: end;
+    max-width: 24rem;
+    display: grid;
+    gap: 18px;
+    justify-items: start;
+    padding-bottom: 6px;
+  }
+  #shopify-section-{{ section.id }} .collection-list__text {
+    font-size: var(--f2);
     color: var(--color-text-secondary);
     margin: 0;
   }
-  .collection-card__arrow {
-    display: inline-flex;
-    margin-top: 14px;
-    color: var(--color-accent-readable);
-    opacity: 0;
-    transform: translateX(-6px);
-    transition: opacity 280ms ease, transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  .collection-card__arrow svg { width: 16px; height: 16px; }
+  #shopify-section-{{ section.id }} .collection-list__cta { color: var(--color-text-primary); }
 
-  @media (hover: hover) {
-    /* A coleção sob o cursor ganha presença; as irmãs recuam. */
-    [data-collection-gallery]:hover .collection-card { opacity: 0.72; }
-    [data-collection-gallery] .collection-card:hover,
-    [data-collection-gallery] .collection-card:focus-visible { opacity: 1; }
-    .collection-card:hover .collection-card__image,
-    .collection-card:focus-visible .collection-card__image { transform: scale(1.02); }
-    .collection-card:hover .collection-card__media::after { opacity: 0.75; }
-    .collection-card:hover .collection-card__arrow,
-    .collection-card:focus-visible .collection-card__arrow { opacity: 1; transform: none; }
+  /* ---------- Trilho ---------- */
+  #shopify-section-{{ section.id }} .collection-list__rail {
+    display: flex;
+    gap: var(--cl-gap);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    outline: none;
   }
-  /* No toque não existe hover: a seta fica sempre visível */
-  @media (hover: none) {
-    .collection-card__arrow { opacity: 1; transform: none; }
+  #shopify-section-{{ section.id }} .collection-list__item {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
   }
 
+  /* ---------- Progresso (trilho mobile) ---------- */
+  #shopify-section-{{ section.id }} .collection-list__progress { display: none; }
+
+  /* ==========================================================
+     DESKTOP — acordeão horizontal
+     ========================================================== */
+  @media screen and (min-width: 1001px) {
+    #shopify-section-{{ section.id }} .collection-list__rail {
+      /* Nunca mais alto que a tela: o painel inteiro cabe na dobra. */
+      height: min(clamp(420px, 44vw, var(--cl-height, 600px)), calc(100vh - var(--header-height) - 48px));
+      min-height: 400px;
+    }
+    #shopify-section-{{ section.id }} .collection-list__item {
+      transition: flex-grow 800ms var(--cl-ease);
+    }
+  }
+
+  @media screen and (min-width: 1001px) and (hover: hover) {
+    #shopify-section-{{ section.id }} .collection-list__item:hover,
+    #shopify-section-{{ section.id }} .collection-list__item:focus-within {
+      flex-grow: 1.9;
+    }
+    /* A info só entra depois que o painel já começou a abrir */
+    #shopify-section-{{ section.id }} .collection-list__item:hover .collection-panel__info,
+    #shopify-section-{{ section.id }} .collection-list__item:focus-within .collection-panel__info {
+      transition-delay: 180ms;
+    }
+    #shopify-section-{{ section.id }} .collection-list__rail:hover .collection-list__item:not(:hover) .collection-panel__shade {
+      opacity: 0.38;
+    }
+  }
+
+  /* ==========================================================
+     Modo animado (JS + GSAP ativos): o GSAP assume flex, sombra,
+     foto e info. As transições CSS saem para não haver duas
+     curvas brigando pela mesma propriedade (era o que deixava o
+     hover "seco" e travado ao cruzar painéis rapidamente).
+     ========================================================== */
+  #shopify-section-{{ section.id }} .collection-list__rail.is-enhanced .collection-list__item {
+    /* só o clip-path da entrada continua no CSS */
+    transition: clip-path 1100ms var(--cl-ease) !important;
+  }
+  #shopify-section-{{ section.id }} .collection-list__rail.is-depth .collection-panel__shade,
+  #shopify-section-{{ section.id }} .collection-list__rail.is-enhanced .collection-panel__image,
+  #shopify-section-{{ section.id }} .collection-list__rail.is-enhanced .collection-panel__shade,
+  #shopify-section-{{ section.id }} .collection-list__rail.is-enhanced .collection-panel__info {
+    transition: none !important;
+  }
+  #shopify-section-{{ section.id }} .collection-list__rail.is-enhanced .collection-panel { cursor: pointer; }
+  #shopify-section-{{ section.id }} .collection-panel__arrow svg { will-change: transform; }
+
+  /* ==========================================================
+     TABLET / MOBILE — trilho com scroll-snap
+     ========================================================== */
   @media screen and (max-width: 1000px) {
-    .collection-list--with-intro .collection-list__inner { grid-template-columns: 1fr; }
-    .collection-list__intro { max-width: 100%; }
-    /* Scroll horizontal com snap: mantém o formato retrato no mobile */
-    .collection-list__grid {
-      grid-auto-flow: column;
-      grid-auto-columns: 68%;
-      grid-template-columns: none;
+    #shopify-section-{{ section.id }} .collection-list__intro {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+    #shopify-section-{{ section.id }} .collection-list__intro-aside { justify-self: start; }
+
+    #shopify-section-{{ section.id }} .collection-list__rail {
       overflow-x: auto;
+      overscroll-behavior-x: contain;
       scroll-snap-type: x mandatory;
-      gap: 8px;
+      scroll-padding-inline: var(--page-gutter);
       margin-inline: calc(var(--page-gutter) * -1);
       padding-inline: var(--page-gutter);
+      padding-bottom: 28px;
+      margin-bottom: -28px;
       scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
     }
-    .collection-list__grid::-webkit-scrollbar { display: none; }
-    .collection-list__item { scroll-snap-align: start; }
+    #shopify-section-{{ section.id }} .collection-list__rail::-webkit-scrollbar { display: none; }
+    #shopify-section-{{ section.id }} .collection-list__item {
+      flex: 0 0 clamp(260px, 44vw, 380px);
+      scroll-snap-align: start;
+    }
+    #shopify-section-{{ section.id }} .collection-panel {
+      height: auto;
+      aspect-ratio: 3 / 4;
+      transform-origin: center 60%;
+    }
+    #shopify-section-{{ section.id }} .collection-list__progress {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 24px;
+    }
+    #shopify-section-{{ section.id }} .collection-list__counter {
+      font-family: var(--font-ui-family);
+      font-size: var(--f0);
+      font-weight: var(--font-weight-medium);
+      letter-spacing: var(--tracking-label);
+      color: var(--color-text-muted);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    #shopify-section-{{ section.id }} .collection-list__counter [data-collection-current] { color: var(--color-text-primary); }
+    #shopify-section-{{ section.id }} .collection-list__bar {
+      position: relative;
+      flex: 1;
+      height: 1px;
+      background-color: var(--color-border-strong);
+      overflow: hidden;
+    }
+    #shopify-section-{{ section.id }} .collection-list__bar-fill {
+      position: absolute;
+      inset: 0;
+      background-color: var(--color-accent);
+      transform-origin: left center;
+      transform: scaleX(calc(1 / var(--cl-count, 4)));
+      transition: transform 200ms linear;
+    }
+  }
+
+  @media screen and (max-width: 600px) {
+    #shopify-section-{{ section.id }} .collection-list__item { flex-basis: 78vw; }
+  }
+
+  /* ==========================================================
+     Entrada — clip-path em cascata (substitui o fade padrão)
+     ========================================================== */
+  .js #shopify-section-{{ section.id }} .collection-list__item[data-reveal] {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(18% 0 0 0 round var(--cl-radius));
+    transition: clip-path 1100ms var(--cl-ease), flex-grow 800ms var(--cl-ease);
+  }
+  .js #shopify-section-{{ section.id }} .collection-list__item[data-reveal] .collection-panel__frame {
+    transform: scale(1.12);
+    transition: transform 1400ms var(--cl-ease);
+  }
+  /* Estado final com inset NEGATIVO: a área de corte passa a sobrar
+     para fora do painel, e a sombra dele não fica cortada. */
+  .js #shopify-section-{{ section.id }} .collection-list__item[data-reveal].is-revealed {
+    clip-path: inset(-15% -15% -15% -15% round 0);
+  }
+  .js #shopify-section-{{ section.id }} .collection-list__item[data-reveal].is-revealed .collection-panel__frame {
+    transform: none;
+  }
+  /* Com o parallax ativo, o GSAP assume o transform do frame. */
+  .has-smooth-scroll #shopify-section-{{ section.id }} .collection-list__item[data-reveal] .collection-panel__frame {
+    transition: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .collection-card,
-    .collection-card__image,
-    .collection-card__arrow,
-    .collection-card__media::after { transition-duration: 0.01ms !important; }
-    .collection-card:hover .collection-card__image { transform: none; }
+    #shopify-section-{{ section.id }} .collection-list__item { transition-duration: 0.01ms !important; }
+    .js #shopify-section-{{ section.id }} .collection-list__item[data-reveal] { clip-path: none; }
+    .js #shopify-section-{{ section.id }} .collection-list__item[data-reveal] .collection-panel__frame { transform: none; }
   }
 </style>
+
+<script>
+  /*
+    Interação da galeria. Tudo com GSAP para ter UMA curva por
+    propriedade, interrompível a qualquer momento (cruzar os painéis
+    rápido não trava nem "pula").
+
+    DESKTOP (mouse): acordeão com inércia, foto que acompanha o
+    cursor, brilho dourado, título sobe da máscara, texto e meta em
+    cascata, seta magnética, vizinhos escurecem.
+    TABLET/MOBILE: trilho com profundidade — o card fora do foco
+    encolhe e escurece conforme o deslize; barra de progresso.
+    SCROLL (todas as telas): cards entram em degraus ligados à rolagem
+    (scrub), título entra linha a linha.
+
+    Sem GSAP ou com prefers-reduced-motion: fica o CSS puro
+    (hover simples e trilho nativo), nada quebra.
+  */
+  (function () {
+    var SECTION_ID = 'shopify-section-{{ section.id }}';
+
+    function init() {
+      var section = document.getElementById(SECTION_ID);
+      if (!section || section.__codCollections) return;
+      section.__codCollections = true;
+
+      var rail = section.querySelector('[data-collection-rail]');
+      if (!rail) return;
+      var items = Array.prototype.slice.call(rail.querySelectorAll('[data-collection-item]'));
+      var bar = section.querySelector('[data-collection-bar]');
+      var current = section.querySelector('[data-collection-current]');
+
+      /* ---------- Progresso do trilho (≤1000px) ---------- */
+      var progressTick = false;
+      function updateProgress() {
+        progressTick = false;
+        if (!bar) return;
+        var max = rail.scrollWidth - rail.clientWidth;
+        var ratio = max > 0 ? rail.scrollLeft / max : 0;
+        var visible = rail.clientWidth / Math.max(rail.scrollWidth, 1);
+        var scale = visible + (1 - visible) * ratio;
+        bar.style.transform = 'scaleX(' + Math.min(1, Math.max(0.04, scale)) + ')';
+        if (current && items.length) {
+          current.textContent = ('0' + (Math.round(ratio * (items.length - 1)) + 1)).slice(-2);
+        }
+      }
+      rail.addEventListener('scroll', function () {
+        if (!progressTick) { progressTick = true; window.requestAnimationFrame(updateProgress); }
+      }, { passive: true });
+      window.addEventListener('resize', updateProgress);
+      updateProgress();
+
+      var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var gsap = window.gsap;
+      if (reduced || !gsap) return;
+
+      var panels = items.map(function (item) {
+        var panel = item.querySelector('.collection-panel');
+        return {
+          item: item,
+          panel: panel,
+          img: panel.querySelector('.collection-panel__image'),
+          shade: panel.querySelector('.collection-panel__shade'),
+          glow: panel.querySelector('.collection-panel__glow'),
+          info: panel.querySelector('.collection-panel__info'),
+          title: panel.querySelector('.collection-panel__title-inner'),
+          text: panel.querySelector('.collection-panel__text'),
+          meta: panel.querySelector('.collection-panel__meta'),
+          arrow: panel.querySelector('.collection-panel__arrow svg')
+        };
+      });
+
+      var mm = gsap.matchMedia();
+
+      /* ==========================================================
+         DESKTOP — acordeão com inércia
+         ========================================================== */
+      mm.add('(min-width: 1001px) and (hover: hover)', function () {
+        var ac = new AbortController();
+        var on = function (el, type, fn) { if (el) el.addEventListener(type, fn, { signal: ac.signal }); };
+        var active = null;
+        var timer = null;
+
+        rail.classList.add('is-enhanced');
+
+        panels.forEach(function (p) {
+          // Valores inline desde o início: os :hover do CSS (fallback)
+          // nunca chegam a aparecer por baixo do GSAP.
+          gsap.set(p.item, { flexGrow: 1 });
+          gsap.set(p.shade, { opacity: 0 });
+          gsap.set(p.img, { scale: 1, xPercent: 0, yPercent: 0 });
+          gsap.set(p.info, { autoAlpha: 1, y: 0 });
+          gsap.set(p.title, { yPercent: 115 });
+          gsap.set([p.text, p.meta].filter(Boolean), { autoAlpha: 0, y: 18 });
+          gsap.set(p.glow, { xPercent: -50, yPercent: -50, x: 0, y: 0, opacity: 0 });
+
+          p.tl = gsap.timeline({ paused: true, defaults: { ease: 'expo.out' } })
+            .to(p.title, { yPercent: 0, duration: 1 }, 0.14)
+            .to([p.text, p.meta].filter(Boolean), { autoAlpha: 1, y: 0, duration: 0.9, stagger: 0.08 }, 0.24);
+
+          // quickTo: segue o cursor com atraso macio, sem recriar tweens
+          p.imgX = gsap.quickTo(p.img, 'xPercent', { duration: 1.4, ease: 'power3.out' });
+          p.imgY = gsap.quickTo(p.img, 'yPercent', { duration: 1.4, ease: 'power3.out' });
+          p.glowX = gsap.quickTo(p.glow, 'x', { duration: 0.7, ease: 'power3.out' });
+          p.glowY = gsap.quickTo(p.glow, 'y', { duration: 0.7, ease: 'power3.out' });
+          if (p.arrow) {
+            p.arrowX = gsap.quickTo(p.arrow, 'x', { duration: 0.6, ease: 'power3.out' });
+            p.arrowY = gsap.quickTo(p.arrow, 'y', { duration: 0.6, ease: 'power3.out' });
+          }
+        });
+
+        function setActive(index) {
+          if (active === index) return;
+          active = index;
+          var idle = index === null;
+
+          panels.forEach(function (p, i) {
+            var isOn = i === index;
+            gsap.to(p.item, {
+              flexGrow: idle ? 1 : (isOn ? 2.15 : 0.8),
+              duration: 1.15,
+              ease: 'expo.out',
+              overwrite: 'auto'
+            });
+            gsap.to(p.shade, {
+              opacity: idle || isOn ? 0 : 0.4,
+              duration: 0.9,
+              ease: 'power2.out',
+              overwrite: 'auto'
+            });
+            gsap.to(p.img, {
+              scale: isOn ? 1.09 : 1,
+              duration: isOn ? 1.8 : 1.2,
+              ease: 'power3.out',
+              overwrite: 'auto'
+            });
+            gsap.to(p.glow, { opacity: isOn ? 1 : 0, duration: 0.6, ease: 'power2.out', overwrite: 'auto' });
+
+            if (isOn) {
+              p.tl.timeScale(1).play();
+            } else {
+              p.tl.timeScale(2.2).reverse();
+              p.imgX(0); p.imgY(0);
+              if (p.arrowX) { p.arrowX(0); p.arrowY(0); }
+            }
+          });
+        }
+
+        panels.forEach(function (p, i) {
+          // Intenção: um pequeno atraso evita que cruzar o mouse por
+          // cima de todos os painéis dispare 4 aberturas seguidas.
+          on(p.item, 'mouseenter', function () {
+            window.clearTimeout(timer);
+            timer = window.setTimeout(function () { setActive(i); }, active === null ? 40 : 90);
+          });
+
+          on(p.panel, 'pointermove', function (event) {
+            var r = p.panel.getBoundingClientRect();
+            var rx = (event.clientX - r.left) / r.width;
+            var ry = (event.clientY - r.top) / r.height;
+            p.imgX((0.5 - rx) * 3.5);
+            p.imgY((0.5 - ry) * 3.5);
+            p.glowX(event.clientX - r.left);
+            p.glowY(event.clientY - r.top);
+            if (p.arrowX) {
+              p.arrowX((rx - 0.5) * 6);
+              p.arrowY((ry - 0.5) * 10);
+            }
+          });
+
+          on(p.item, 'focusin', function () { window.clearTimeout(timer); setActive(i); });
+        });
+
+        on(rail, 'mouseleave', function () {
+          window.clearTimeout(timer);
+          timer = window.setTimeout(function () { setActive(null); }, 140);
+        });
+        on(rail, 'focusout', function (event) {
+          if (!rail.contains(event.relatedTarget)) setActive(null);
+        });
+
+        // Saindo do desktop: o matchMedia reverte os tweens; aqui só
+        // limpamos listeners e o modo animado.
+        return function () {
+          window.clearTimeout(timer);
+          ac.abort();
+          rail.classList.remove('is-enhanced');
+          panels.forEach(function (p) { p.tl.kill(); });
+        };
+      });
+
+      /* ==========================================================
+         TABLET / MOBILE — profundidade no trilho
+         ========================================================== */
+      mm.add('(max-width: 1000px)', function () {
+        var ac = new AbortController();
+        var tick = false;
+        rail.classList.add('is-depth');
+
+        function paint() {
+          tick = false;
+          var anchor = rail.getBoundingClientRect().left + parseFloat(getComputedStyle(rail).paddingLeft || 0);
+          panels.forEach(function (p) {
+            var box = p.item.getBoundingClientRect();
+            var d = Math.min(1, Math.abs(box.left - anchor) / Math.max(box.width, 1));
+            gsap.set(p.panel, { scale: 1 - d * 0.07 });
+            gsap.set(p.shade, { opacity: d * 0.35 });
+          });
+        }
+        rail.addEventListener('scroll', function () {
+          if (!tick) { tick = true; window.requestAnimationFrame(paint); }
+        }, { passive: true, signal: ac.signal });
+        window.addEventListener('resize', paint, { signal: ac.signal });
+        paint();
+
+        return function () { ac.abort(); rail.classList.remove('is-depth'); };
+      });
+
+      /* ==========================================================
+         SCROLL — entrada ligada à rolagem (todas as telas)
+         ========================================================== */
+      if (window.ScrollTrigger) {
+        mm.add('all', function () {
+          // Cada card sobe de um degrau diferente e todos se alinham
+          // juntos: a fileira "assenta" enquanto a pessoa rola.
+          gsap.fromTo(items,
+            { yPercent: function (i) { return 8 + i * 7; } },
+            {
+              yPercent: 0,
+              ease: 'none',
+              scrollTrigger: { trigger: rail, start: 'top bottom', end: 'top 40%', scrub: 1.2 }
+            }
+          );
+
+          var lines = section.querySelectorAll('[data-collection-line]');
+          if (lines.length) {
+            gsap.fromTo(lines,
+              { yPercent: 110, rotate: 2 },
+              {
+                yPercent: 0,
+                rotate: 0,
+                duration: 1.2,
+                ease: 'expo.out',
+                stagger: 0.1,
+                scrollTrigger: { trigger: section, start: 'top 78%', once: true }
+              }
+            );
+          }
+        });
+      }
+
+      // Theme editor: section recriada => desmonta tudo desta instância.
+      document.addEventListener('shopify:section:unload', function (event) {
+        if (event.target && event.target.id === SECTION_ID) mm.revert();
+      });
+    }
+
+    // Os scripts do tema são defer: GSAP só existe depois do parse.
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+</script>
 
 {% schema %}
 {
   "name": "t:sections.collection_list.name",
   "tag": "section",
+  "class": "section-collection-list",
   "settings": [
     { "type": "text", "id": "eyebrow", "label": "t:sections.collection_list.settings.eyebrow.label" },
-    { "type": "textarea", "id": "heading", "default": "Collections", "label": "t:sections.collection_list.settings.heading.label" },
+    { "type": "textarea", "id": "heading", "default": "Collections", "label": "t:sections.collection_list.settings.heading.label", "info": "t:sections.collection_list.settings.heading.info" },
     { "type": "text", "id": "text", "label": "t:sections.collection_list.settings.text.label" },
     { "type": "text", "id": "button_label", "label": "t:sections.collection_list.settings.button_label.label" },
-    { "type": "url", "id": "button_link", "label": "t:sections.collection_list.settings.button_link.label" }
+    { "type": "url", "id": "button_link", "label": "t:sections.collection_list.settings.button_link.label" },
+    {
+      "type": "range",
+      "id": "panel_height",
+      "min": 440,
+      "max": 760,
+      "step": 20,
+      "unit": "px",
+      "default": 600,
+      "label": "t:sections.collection_list.settings.panel_height.label",
+      "info": "t:sections.collection_list.settings.panel_height.info"
+    },
+    { "type": "text", "id": "card_cta", "default": "Explorar", "label": "t:sections.collection_list.settings.card_cta.label" },
+    { "type": "checkbox", "id": "show_count", "default": true, "label": "t:sections.collection_list.settings.show_count.label" },
+    { "type": "text", "id": "count_label", "default": "peças", "label": "t:sections.collection_list.settings.count_label.label" }
   ],
   "blocks": [
     {
@@ -267,6 +630,7 @@
       ]
     }
   ],
+  "max_blocks": 6,
   "presets": [
     {
       "name": "t:sections.collection_list.name",
