@@ -35,7 +35,7 @@
           endif
         -%}
 
-        <!-- Elemento 1: Mídia / Background -->
+        <!-- Imagem do Banner -->
         <div class="hero__media">
           {%- if block.settings.image != blank -%}
             {%- if block.settings.image_mobile != blank -%}
@@ -80,65 +80,60 @@
           {%- endif -%}
         </div>
 
-        <!-- Elemento 2: Conteúdo Principal -->
+        <!-- Conteúdo do Banner -->
         <div class="hero__content page-width">
           <div class="hero__text-container">
             
-            <!-- Componente Dedicado de Sombra/Degradê de Contraste -->
-            <div class="hero__text-shadow" aria-hidden="true"></div>
+            <!-- Eyebrow -->
+            {%- if block.settings.eyebrow != blank -%}
+              <div class="hero__element hero__element--eyebrow">
+                <p class="eyebrow hero__eyebrow">{{ block.settings.eyebrow | escape }}</p>
+              </div>
+            {%- endif -%}
 
-            <div class="hero__text-inner">
-              
-              <!-- Elemento: Eyebrow -->
-              {%- if block.settings.eyebrow != blank -%}
-                <div class="hero__element hero__element--eyebrow">
-                  <p class="eyebrow hero__eyebrow">{{ block.settings.eyebrow | escape }}</p>
-                </div>
-              {%- endif -%}
+            <!-- Título com Degradê/Sombra Dedicada -->
+            {%- if block.settings.heading != blank -%}
+              <div class="hero__element hero__element--heading">
+                <div class="hero__heading-shadow" aria-hidden="true"></div>
+                {%- if forloop.first -%}
+                  <h1 class="hero__heading">{{ block.settings.heading | newline_to_br }}</h1>
+                {%- else -%}
+                  <p class="hero__heading" role="heading" aria-level="2">{{ block.settings.heading | newline_to_br }}</p>
+                {%- endif -%}
+              </div>
+            {%- endif -%}
 
-              <!-- Elemento: Heading -->
-              {%- if block.settings.heading != blank -%}
-                <div class="hero__element hero__element--heading">
-                  {%- if forloop.first -%}
-                    <h1 class="hero__heading">{{ block.settings.heading | newline_to_br }}</h1>
-                  {%- else -%}
-                    <p class="hero__heading" role="heading" aria-level="2">{{ block.settings.heading | newline_to_br }}</p>
-                  {%- endif -%}
-                </div>
-              {%- endif -%}
+            <!-- Subtítulo -->
+            {%- if block.settings.subheading != blank -%}
+              <div class="hero__element hero__element--subheading">
+                <p class="hero__subheading">{{ block.settings.subheading | escape }}</p>
+              </div>
+            {%- endif -%}
 
-              <!-- Elemento: Subheading -->
-              {%- if block.settings.subheading != blank -%}
-                <div class="hero__element hero__element--subheading">
-                  <p class="hero__subheading">{{ block.settings.subheading | escape }}</p>
-                </div>
-              {%- endif -%}
+            <!-- Descrição -->
+            {%- if block.settings.text != blank -%}
+              <div class="hero__element hero__element--body">
+                <div class="hero__body rte">{{ block.settings.text }}</div>
+              </div>
+            {%- endif -%}
 
-              <!-- Elemento: Descrição / Texto -->
-              {%- if block.settings.text != blank -%}
-                <div class="hero__element hero__element--body">
-                  <div class="hero__body rte">{{ block.settings.text }}</div>
-                </div>
-              {%- endif -%}
+            <!-- Botão com Degradê/Sombra Dedicada -->
+            {%- if block.settings.button_label != blank -%}
+              <div class="hero__element hero__element--cta">
+                <div class="hero__cta-shadow" aria-hidden="true"></div>
+                <a href="{{ block.settings.button_link | default: routes.all_products_collection_url }}" class="button hero__cta">
+                  <span>{{ block.settings.button_label | escape }}</span>
+                  {% render 'icon', name: 'arrow-right' %}
+                </a>
+              </div>
+            {%- endif -%}
 
-              <!-- Elemento: Botão CTA -->
-              {%- if block.settings.button_label != blank -%}
-                <div class="hero__element hero__element--cta">
-                  <a href="{{ block.settings.button_link | default: routes.all_products_collection_url }}" class="button hero__cta">
-                    <span>{{ block.settings.button_label | escape }}</span>
-                    {% render 'icon', name: 'arrow-right' %}
-                  </a>
-                </div>
-              {%- endif -%}
-
-            </div>
           </div>
         </div>
       </li>
     {%- endfor -%}
   </ul>
 
-  <!-- Elemento 3: Navegação do Carrossel -->
   {%- if slide_count > 1 -%}
     <div class="hero__indicator">
       <button type="button" class="hero__nav tap-target" data-hero-prev aria-label="{{ 'general.slider.previous' | t }}">
@@ -156,7 +151,6 @@
 </div>
 
 <style>
-  /* Layout Base & Opções de Altura */
   .hero {
     margin-top: calc(-1 * var(--header-height, 70px));
     position: relative;
@@ -184,10 +178,19 @@
   }
   .hero__slide.is-active { opacity: 1; visibility: visible; }
 
-  /* Elemento Mídia */
+  /* Mídia */
   .hero__media { position: absolute; inset: 0; }
   .hero__image { width: 100%; height: 100%; object-fit: cover; display: block; }
   .hero__placeholder { display: flex; align-items: center; justify-content: center; background-color: var(--color-surface, #121212); }
+
+  /* Degradê Geral Lateral */
+  .hero__media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--photo-veil-side, linear-gradient(to right, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0) 100%));
+    pointer-events: none;
+  }
 
   /* Container do Conteúdo */
   .hero__content {
@@ -200,48 +203,58 @@
     .hero__content { padding-bottom: 0; }
   }
 
-  /* Estrutura dos Elementos de Texto */
   .hero__text-container {
     position: relative;
     max-width: 34rem;
     width: 100%;
-    isolation: isolate;
   }
 
-  /* COMPONENTE EXCLUSIVO DE SOMBRA / DEGRADÊ ATRÁS DOS ELEMENTOS */
-  .hero__text-shadow {
+  /* Elementos Individuais */
+  .hero__element { position: relative; display: block; isolation: isolate; }
+  .hero__element--eyebrow { margin-bottom: 20px; }
+  .hero__element--heading { margin-bottom: 20px; display: inline-block; width: 100%; }
+  .hero__element--subheading { margin-bottom: 20px; }
+  .hero__element--body { margin-bottom: 32px; }
+  .hero__element--cta { margin-top: 8px; display: inline-block; }
+
+  /* DEGRADÊ/SOMBRA EXCLUSIVA ATRÁS DOS TÍTULOS */
+  .hero__heading-shadow {
     position: absolute;
-    inset: -32px -40px;
+    inset: -30px -40px;
     background: radial-gradient(
       ellipse at center,
-      rgba(0, 0, 0, 0.82) 0%,
-      rgba(0, 0, 0, 0.5) 55%,
+      rgba(0, 0, 0, 0.95) 0%,
+      rgba(0, 0, 0, 0.7) 45%,
       rgba(0, 0, 0, 0) 100%
     );
     filter: blur(20px);
     z-index: -1;
     pointer-events: none;
-    border-radius: 32px;
+    border-radius: 50%;
   }
 
-  .hero__text-inner {
-    position: relative;
-    z-index: 1;
+  /* DEGRADÊ/SOMBRA EXCLUSIVA ATRÁS DO BOTÃO */
+  .hero__cta-shadow {
+    position: absolute;
+    inset: -20px -30px;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(0, 0, 0, 0.95) 0%,
+      rgba(0, 0, 0, 0.65) 50%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    filter: blur(14px);
+    z-index: -1;
+    pointer-events: none;
+    border-radius: 40px;
   }
-
-  /* Elementos Individuais */
-  .hero__element { display: block; }
-  .hero__element--eyebrow { margin-bottom: 20px; }
-  .hero__element--heading { margin-bottom: 20px; }
-  .hero__element--subheading { margin-bottom: 20px; }
-  .hero__element--body { margin-bottom: 32px; }
-  .hero__element--cta { margin-top: 8px; }
 
   /* Tipografia */
   .hero__heading {
     font-size: var(--f8);
     margin: 0;
     color: var(--color-text-primary, #ffffff);
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.9);
   }
   .hero__subheading {
     font-family: var(--font-ui-family);
@@ -251,17 +264,26 @@
     text-transform: uppercase;
     color: var(--color-text-primary, #ffffff);
     margin: 0;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+  }
+  .hero__eyebrow {
+    margin: 0;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
   }
   .hero__body {
     font-size: var(--f2);
-    color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
+    color: var(--color-text-secondary, rgba(255, 255, 255, 0.85));
     max-width: 34ch;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
   }
   .hero__body p { margin: 0 0 4px; }
 
-  /* Elemento Botão CTA com Hover em Branco Puro */
+  /* Botão CTA com Hover em Branco Puro */
   .hero__cta {
+    position: relative;
+    z-index: 1;
     min-width: 180px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
     transition: transform 250ms ease, background-color 250ms ease, border-color 250ms ease, color 250ms ease;
   }
 
@@ -283,7 +305,7 @@
     fill: #ffffff !important;
   }
 
-  /* Componente Indicador */
+  /* Indicador */
   .hero__indicator {
     position: absolute;
     right: var(--page-gutter, 20px);
@@ -336,9 +358,11 @@
     .hero--default .hero__slide { min-height: 70vh; }
     .hero--tall .hero__slide { min-height: 100vh; min-height: 100dvh; }
 
-    .hero__text-shadow { inset: -24px -20px; }
+    .hero__heading-shadow { inset: -20px -20px; }
+    .hero__cta-shadow { inset: -15px -20px; }
     .hero__text-container { max-width: 100%; }
     .hero__body { max-width: 100%; }
+    .hero__element--cta { width: 100%; }
     .hero__cta { width: 100%; }
     .hero__indicator { flex-direction: row; bottom: 20px; right: var(--page-gutter, 20px); }
     .hero__counter { flex-direction: row; gap: 4px; }
