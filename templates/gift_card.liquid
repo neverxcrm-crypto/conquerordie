@@ -82,9 +82,9 @@
       .giftcard__card {
         position: relative;
         padding: 32px 24px;
-        border: 1px solid var(--color-border, #c2c2c2);
+        border: 1px solid var(--color-border);
         border-radius: var(--media-radius, 8px);
-        background-color: var(--color-background-contrast, #f2f3f8);
+        background-color: var(--color-surface);
         margin-bottom: 24px;
       }
 
@@ -96,7 +96,10 @@
       }
 
       .giftcard__value {
-        font-family: var(--font-heading-family);
+        font-family: var(--font-display-family);
+        font-weight: var(--font-weight-bold);
+        line-height: var(--leading-display);
+        letter-spacing: var(--tracking-display);
         font-size: var(--f8);
         line-height: 1;
         margin-bottom: 4px;
@@ -112,8 +115,8 @@
         margin-top: 8px;
         padding: 4px 10px;
         font-size: var(--f1);
-        color: var(--color-accent-text, #fff);
-        background-color: var(--color-sale, #d02e2e);
+        color: var(--color-on-status);
+        background-color: var(--color-error);
         border-radius: 4px;
       }
 
@@ -124,7 +127,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: var(--color-background, #fff);
+        background-color: var(--color-background);
         padding: 8px;
         border-radius: var(--inputs-radius, 4px);
       }
@@ -143,12 +146,12 @@
       .giftcard__code {
         display: inline-block;
         padding: 10px 16px;
-        font-family: var(--font-body-family);
+        font-family: var(--font-ui-family);
         font-size: var(--f4);
-        letter-spacing: 0.15em;
-        border: 1px dashed var(--color-border, #c2c2c2);
+        letter-spacing: var(--tracking-code);
+        border: 1px dashed var(--color-border);
         border-radius: var(--inputs-radius, 4px);
-        background-color: var(--color-background, #fff);
+        background-color: var(--color-background);
       }
 
       .giftcard__actions {
@@ -189,7 +192,7 @@
     </style>
   </head>
 
-  <body class="template-gift-card">
+  <body class="template-gift-card scheme-light">
     <main class="giftcard" role="main">
       <div class="giftcard__logo">
         {%- if settings.logo != blank -%}

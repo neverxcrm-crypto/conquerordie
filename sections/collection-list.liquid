@@ -1,65 +1,247 @@
 {%- comment -%}
   ============================================================
-  COLLECTION LIST — grade de coleções selecionadas
+  COLLECTION LIST — exploração editorial de coleções
   ============================================================
 
   O QUE FAZ:
-  Mostra um conjunto de coleções ESCOLHIDAS pelo lojista (via blocks)
-  como cards com imagem + título, cada um linkando para a coleção.
-  Diferente do main-list-collections, aqui você curadoria quais.
+  Galeria de coleções curadas pelo lojista. Não é uma grade de cards
+  iguais: um painel de introdução (eyebrow, título, texto, CTA) ocupa
+  a primeira coluna e as coleções seguem como imagens verticais altas,
+  com nome, micro descrição e seta. É o momento de IDENTIFICAÇÃO da
+  narrativa da home — "escolha seu lado".
 
   ONDE É USADA:
-  Seção reutilizável (tem preset com 3 blocos) — comum na home.
+  Home (templates/index.json) e qualquer página via preset.
 
   PRINCIPAIS PARTES:
-  - section.blocks do tipo featured_collection (cada um escolhe 1 coleção)
-  - featured_image da coleção ou placeholder SVG
-  - Settings: heading, columns_desktop
-  - Colunas via --grid-columns inline no wrapper
+  - Painel de intro (settings da seção), opcional: sem título nem
+    texto ele some e as imagens ocupam a largura toda.
+  - blocks 'featured_collection': cada um escolhe 1 coleção e pode
+    sobrescrever imagem, título e descrição. Sem override, usa os
+    dados reais da coleção (featured_image, title, description).
+  - A imagem é o card: o texto fica sobre ela, no rodapé.
+
+  INTERAÇÃO (desktop):
+  Hover aumenta a imagem em ~2% e clareia o véu da foto; as outras
+  coleções perdem um pouco de presença. Tudo por opacity/transform —
+  sem 3D, sem glow, sem parallax.
 
   OBSERVAÇÕES:
-  Cada card é um bloco; adicione/remova coleções no theme editor.
+  - As imagens são recortadas em retrato (3:4) via aspect-ratio, para
+    a fileira ter ritmo mesmo com fotos de proporções diferentes.
+  - O corpo do card recebe .scheme-dark: ele fica sobre a fotografia
+    escura, mesmo a seção sendo clara, então precisa dos tokens de
+    texto do esquema escuro.
+  - Cantos retos de propósito: imagem editorial não é card.
+  - Sem imagem na coleção, entra o placeholder do Shopify.
 {%- endcomment -%}
-<div class="collection-list page-width" data-section-id="{{ section.id }}" style="--grid-columns: {{ section.settings.columns_desktop }};">
-  {%- if section.settings.heading != blank -%}
-    <h2 class="collection-list__heading">{{ section.settings.heading | escape }}</h2>
-  {%- endif -%}
+{%- liquid
+  assign has_intro = false
+  if section.settings.heading != blank or section.settings.text != blank
+    assign has_intro = true
+  endif
+-%}
+<div
+  class="collection-list {% if has_intro %}collection-list--with-intro{% endif %}"
+  data-section-id="{{ section.id }}"
+>
+  <div class="collection-list__inner page-width">
+    {%- if has_intro -%}
+      <div class="collection-list__intro" data-reveal>
+        {%- if section.settings.eyebrow != blank -%}
+          <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+        {%- endif -%}
+        {%- if section.settings.heading != blank -%}
+          <h2 class="collection-list__heading">{{ section.settings.heading | newline_to_br }}</h2>
+        {%- endif -%}
+        {%- if section.settings.text != blank -%}
+          <p class="collection-list__text">{{ section.settings.text | escape }}</p>
+        {%- endif -%}
+        {%- if section.settings.button_label != blank -%}
+          <a href="{{ section.settings.button_link | default: routes.collections_url }}" class="arrow-link collection-list__cta">
+            {{ section.settings.button_label | escape }}
+            {% render 'icon', name: 'arrow-right' %}
+          </a>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
 
-  <ul class="collection-list__grid product-grid" role="list">
-    {%- for block in section.blocks -%}
-      {%- assign collection = collections[block.settings.collection] -%}
-      <li {{ block.shopify_attributes }}>
-        <a href="{{ collection.url | default: '#' }}" class="collection-card">
-          <div class="collection-card__media">
-            {%- if collection.featured_image -%}
-              {{
-                collection.featured_image
-                | image_url: width: 720
-                | image_tag:
-                  loading: 'lazy',
-                  class: 'collection-card__image',
-                  widths: '360, 540, 720',
-                  sizes: '(min-width: 1000px) 25vw, 50vw',
-                  alt: collection.title | escape
-              }}
-            {%- else -%}
-              {{ 'collection-1' | placeholder_svg_tag: 'collection-card__image placeholder-svg' }}
-            {%- endif -%}
-          </div>
-          <h3 class="collection-card__title">{{ collection.title | default: 'onboarding.collection_title' | t }}</h3>
-        </a>
-      </li>
-    {%- endfor -%}
-  </ul>
+    <ul class="collection-list__grid" role="list" data-collection-gallery>
+      {%- for block in section.blocks -%}
+        {%- liquid
+          assign collection = collections[block.settings.collection]
+          assign card_image = block.settings.image | default: collection.featured_image
+          assign card_title = block.settings.title | default: collection.title
+          assign card_text = block.settings.text
+        -%}
+        <li class="collection-list__item" data-reveal {{ block.shopify_attributes }}>
+          <a href="{{ collection.url | default: routes.collections_url }}" class="collection-card">
+            <div class="collection-card__media">
+              {%- if card_image != blank -%}
+                {{
+                  card_image
+                  | image_url: width: 900
+                  | image_tag:
+                    loading: 'lazy',
+                    class: 'collection-card__image',
+                    widths: '300, 450, 600, 900',
+                    sizes: '(min-width: 1000px) 22vw, 70vw',
+                    alt: card_image.alt | default: card_title | escape
+                }}
+              {%- else -%}
+                {{ 'collection-1' | placeholder_svg_tag: 'collection-card__image placeholder-svg' }}
+              {%- endif -%}
+            </div>
+
+            <div class="collection-card__body scheme-dark">
+              <h3 class="collection-card__title">
+                {{ card_title | default: 'onboarding.collection_title' | t }}
+              </h3>
+              {%- if card_text != blank -%}
+                <p class="collection-card__text">{{ card_text | escape }}</p>
+              {%- endif -%}
+              <span class="collection-card__arrow" aria-hidden="true">{% render 'icon', name: 'arrow-right' %}</span>
+            </div>
+          </a>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
 </div>
 
 <style>
-  .collection-list { padding-top: var(--spacing-sections); padding-bottom: var(--spacing-sections); }
-  .collection-list__heading { font-size: var(--f6); margin-bottom: 24px; }
-  .collection-card { display: block; text-decoration: none; color: inherit; }
-  .collection-card__media { position: relative; width: 100%; padding-bottom: 100%; overflow: hidden; border-radius: var(--media-radius); background-color: var(--color-background-contrast); }
-  .collection-card__image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .collection-card__title { margin-top: 12px; font-size: var(--f3); }
+  .collection-list {
+    padding-top: var(--space-section);
+    padding-bottom: var(--space-section);
+    background-color: var(--color-background);
+  }
+  .collection-list__inner {
+    display: grid;
+    gap: clamp(28px, 4vw, 56px);
+    align-items: center;
+  }
+  /* Com intro: painel de texto + galeria. Sem intro: só a galeria. */
+  .collection-list--with-intro .collection-list__inner {
+    grid-template-columns: minmax(200px, 0.55fr) 3fr;
+  }
+
+  .collection-list__intro { max-width: 22rem; }
+  .collection-list__intro .eyebrow { margin-bottom: 20px; }
+  .collection-list__heading { font-size: var(--f6); margin-bottom: 16px; }
+  .collection-list__text { font-size: var(--f1); color: var(--color-text-secondary); margin-bottom: 24px; }
+  .collection-list__cta { color: var(--color-text-primary); }
+
+  .collection-list__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 4px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .collection-card {
+    position: relative;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    transition: opacity 320ms ease;
+  }
+  .collection-card__media { position: relative; aspect-ratio: 3 / 4; overflow: hidden; background-color: var(--color-surface); }
+  .collection-card__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  /* Véu só na base, onde o texto encosta */
+  .collection-card__media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--photo-veil-bottom);
+    transition: opacity 320ms ease;
+  }
+
+  .collection-card__body {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    padding: clamp(16px, 2vw, 28px);
+  }
+  .collection-card__title {
+    font-family: var(--font-display-family);
+    font-size: var(--f4);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-heading);
+    line-height: var(--leading-heading);
+    color: var(--color-text-primary);
+    margin: 0 0 8px;
+  }
+  .collection-card__text {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+  .collection-card__arrow {
+    display: inline-flex;
+    margin-top: 14px;
+    color: var(--color-accent-readable);
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity 280ms ease, transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .collection-card__arrow svg { width: 16px; height: 16px; }
+
+  @media (hover: hover) {
+    /* A coleção sob o cursor ganha presença; as irmãs recuam. */
+    [data-collection-gallery]:hover .collection-card { opacity: 0.72; }
+    [data-collection-gallery] .collection-card:hover,
+    [data-collection-gallery] .collection-card:focus-visible { opacity: 1; }
+    .collection-card:hover .collection-card__image,
+    .collection-card:focus-visible .collection-card__image { transform: scale(1.02); }
+    .collection-card:hover .collection-card__media::after { opacity: 0.75; }
+    .collection-card:hover .collection-card__arrow,
+    .collection-card:focus-visible .collection-card__arrow { opacity: 1; transform: none; }
+  }
+  /* No toque não existe hover: a seta fica sempre visível */
+  @media (hover: none) {
+    .collection-card__arrow { opacity: 1; transform: none; }
+  }
+
+  @media screen and (max-width: 1000px) {
+    .collection-list--with-intro .collection-list__inner { grid-template-columns: 1fr; }
+    .collection-list__intro { max-width: 100%; }
+    /* Scroll horizontal com snap: mantém o formato retrato no mobile */
+    .collection-list__grid {
+      grid-auto-flow: column;
+      grid-auto-columns: 68%;
+      grid-template-columns: none;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      gap: 8px;
+      margin-inline: calc(var(--page-gutter) * -1);
+      padding-inline: var(--page-gutter);
+      scrollbar-width: none;
+    }
+    .collection-list__grid::-webkit-scrollbar { display: none; }
+    .collection-list__item { scroll-snap-align: start; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .collection-card,
+    .collection-card__image,
+    .collection-card__arrow,
+    .collection-card__media::after { transition-duration: 0.01ms !important; }
+    .collection-card:hover .collection-card__image { transform: none; }
+  }
 </style>
 
 {% schema %}
@@ -67,15 +249,21 @@
   "name": "t:sections.collection_list.name",
   "tag": "section",
   "settings": [
-    { "type": "text", "id": "heading", "default": "Collections", "label": "t:sections.collection_list.settings.heading.label" },
-    { "type": "range", "id": "columns_desktop", "min": 2, "max": 5, "step": 1, "default": 3, "label": "t:sections.collection_list.settings.columns_desktop.label" }
+    { "type": "text", "id": "eyebrow", "label": "t:sections.collection_list.settings.eyebrow.label" },
+    { "type": "textarea", "id": "heading", "default": "Collections", "label": "t:sections.collection_list.settings.heading.label" },
+    { "type": "text", "id": "text", "label": "t:sections.collection_list.settings.text.label" },
+    { "type": "text", "id": "button_label", "label": "t:sections.collection_list.settings.button_label.label" },
+    { "type": "url", "id": "button_link", "label": "t:sections.collection_list.settings.button_link.label" }
   ],
   "blocks": [
     {
       "type": "featured_collection",
       "name": "t:sections.collection_list.blocks.featured_collection.name",
       "settings": [
-        { "type": "collection", "id": "collection", "label": "t:sections.collection_list.blocks.featured_collection.settings.collection.label" }
+        { "type": "collection", "id": "collection", "label": "t:sections.collection_list.blocks.featured_collection.settings.collection.label" },
+        { "type": "image_picker", "id": "image", "label": "t:sections.collection_list.blocks.featured_collection.settings.image.label", "info": "t:sections.collection_list.blocks.featured_collection.settings.image.info" },
+        { "type": "text", "id": "title", "label": "t:sections.collection_list.blocks.featured_collection.settings.title.label", "info": "t:sections.collection_list.blocks.featured_collection.settings.title.info" },
+        { "type": "text", "id": "text", "label": "t:sections.collection_list.blocks.featured_collection.settings.text.label" }
       ]
     }
   ],
@@ -83,6 +271,7 @@
     {
       "name": "t:sections.collection_list.name",
       "blocks": [
+        { "type": "featured_collection" },
         { "type": "featured_collection" },
         { "type": "featured_collection" },
         { "type": "featured_collection" }

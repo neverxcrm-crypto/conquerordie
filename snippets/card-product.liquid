@@ -6,7 +6,7 @@
   O QUE FAZ:
   Renderiza o card de um produto: imagem (com troca de imagem no hover se
   ativado nas settings), badge de promoção/esgotado, vendor opcional,
-  título e preço (via snippet 'price').
+  título, preço (via snippet 'price'), swatches de cor e quick add.
 
   COMO USAR:
   {% render 'card-product', card_product: product %}
@@ -19,6 +19,18 @@
   O aspect ratio da imagem vem de settings.card_image_ratio
   ('portrait', 'square' ou 'adapt'). A segunda imagem no hover depende de
   settings.card_show_second_image; o vendor depende de settings.card_show_vendor.
+
+  SWATCHES:
+  Só aparecem quando a opção de cor do produto tem swatch de verdade
+  (value.swatch.color/image, configurado no admin). Sem swatch real,
+  nada é renderizado — o card não inventa bolinhas.
+
+  QUICK ADD (settings.card_quick_add):
+  - Produto com uma única variante: form de add-to-cart, interceptado
+    pelo carrinho.js (AJAX) — sem sair da página.
+  - Produto com variantes: vira link para a PDP escolher tamanho/cor,
+    porque adicionar sem escolher variante não é uma decisão do card.
+  - Produto esgotado: nada é renderizado.
 {%- endcomment -%}
 {%- liquid
   assign ratio = 1
@@ -34,6 +46,7 @@
   endcase
 -%}
 <div class="card-product">
+  <div class="card-product__media-wrap">
   <a href="{{ card_product.url }}" class="card-product__link">
     <div class="card-product__media" style="padding-bottom: {{ 1 | divided_by: ratio | times: 100 }}%;">
       {%- if card_product.featured_media -%}
@@ -69,7 +82,32 @@
         <span class="card-product__badge card-product__badge--sold-out">{{ 'products.product.sold_out' | t }}</span>
       {%- endif -%}
     </div>
+  </a>
 
+  {%- if settings.card_quick_add and card_product.available -%}
+    <div class="card-product__actions">
+      {%- if card_product.variants.size == 1 -%}
+        <form action="{{ routes.cart_add_url }}" method="post" enctype="multipart/form-data">
+          <input type="hidden" name="id" value="{{ card_product.selected_or_first_available_variant.id }}">
+          <input type="hidden" name="quantity" value="1">
+          <button
+            type="submit"
+            class="card-product__quick-add"
+            aria-label="{{ 'products.product.add_to_cart' | t }} — {{ card_product.title | escape }}"
+          >+</button>
+        </form>
+      {%- else -%}
+        <a
+          href="{{ card_product.url }}"
+          class="card-product__quick-add"
+          aria-label="{{ 'products.product.choose_options' | t }} — {{ card_product.title | escape }}"
+        >+</a>
+      {%- endif -%}
+    </div>
+  {%- endif -%}
+  </div>
+
+  <a href="{{ card_product.url }}" class="card-product__link card-product__link--info">
     <div class="card-product__info">
       {%- if settings.card_show_vendor and card_product.vendor != blank -%}
         <span class="card-product__vendor">{{ card_product.vendor }}</span>
@@ -78,4 +116,36 @@
       {% render 'price', product: card_product, use_variant: false, show_compare: true, price_class: 'price--card' %}
     </div>
   </a>
+
+  {%- liquid
+    assign color_option = null
+    for option in card_product.options_with_values
+      assign option_name = option.name | downcase
+      if option_name contains 'cor' or option_name contains 'color' or option_name contains 'colour'
+        assign color_option = option
+        break
+      endif
+    endfor
+  -%}
+  {%- if color_option -%}
+    {%- assign swatch_count = 0 -%}
+    {%- capture swatch_markup -%}
+      {%- for value in color_option.values limit: 4 -%}
+        {%- if value.swatch.image -%}
+          <li class="card-product__swatch" style="background-image:url({{ value.swatch.image | image_url: width: 40 }})" title="{{ value | escape }}"></li>
+        {%- elsif value.swatch.color -%}
+          <li class="card-product__swatch" style="background-color:{{ value.swatch.color }}" title="{{ value | escape }}"></li>
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endcapture -%}
+    {%- assign swatch_count = swatch_markup | split: '<li' | size | minus: 1 -%}
+    {%- if swatch_count > 0 -%}
+      <ul class="card-product__swatches" role="list" aria-label="{{ color_option.name | escape }}">
+        {{ swatch_markup }}
+        {%- if color_option.values.size > 4 -%}
+          <li class="card-product__swatch-more">+{{ color_option.values.size | minus: 4 }}</li>
+        {%- endif -%}
+      </ul>
+    {%- endif -%}
+  {%- endif -%}
 </div>

@@ -1,0 +1,393 @@
+{%- comment -%}
+  ============================================================
+  HERO — abertura editorial da home
+  ============================================================
+
+  O QUE FAZ:
+  Primeira dobra da loja: fotografia full-bleed ocupando quase toda
+  a viewport, com um bloco de texto compacto no terço esquerdo
+  (eyebrow de campanha, headline Display, subheadline, texto curto
+  e um CTA). Cada slide é um block — com 2+ blocks vira carrossel
+  com indicador editorial (01 / 04), setas de teclado e swipe.
+
+  ONDE É USADA:
+  Home (templates/index.json). Tem preset, então pode ser usada em
+  qualquer página pelo theme editor.
+
+  PRINCIPAIS PARTES:
+  - Um <li> por block 'slide'. O primeiro slide carrega eager +
+    fetchpriority high (é o LCP da home); os demais, lazy.
+  - image / image_mobile: arte separada para retrato, porque cortar
+    a foto desktop no mobile destrói a composição.
+  - hero__indicator: contador 01/04 + botões prev/next discretos.
+    Só renderiza com 2 ou mais slides.
+
+  ACESSIBILIDADE:
+  - role="region" + aria-roledescription="carousel" quando há vários
+    slides; cada slide é um group com aria-label "1 de 4".
+  - Setas ←/→ navegam quando o carrossel tem foco.
+  - Slides inativos ficam com inert/aria-hidden, então leitores de
+    tela e Tab não entram em conteúdo invisível.
+  - Sem autoplay: nada se move sozinho na primeira dobra.
+
+  OBSERVAÇÕES:
+  - O overlay é um gradiente lateral curto e localizado (só do lado
+    do texto), não um véu sobre a foto inteira — a peça precisa
+    continuar visível.
+  - .scheme-dark força os tokens escuros: o hero vive dentro do
+    <main>, que é claro por padrão.
+{%- endcomment -%}
+{%- liquid
+  assign slides = section.blocks
+  assign slide_count = slides.size
+-%}
+<div
+  class="hero scheme-dark hero--{{ section.settings.height }}"
+  data-section-id="{{ section.id }}"
+  {% if slide_count > 1 %}data-hero-carousel role="region" aria-roledescription="carousel" aria-label="{{ shop.name | escape }}"{% endif %}
+>
+  <ul class="hero__slides" role="list">
+    {%- for block in slides -%}
+      <li
+        class="hero__slide {% if forloop.first %}is-active{% endif %}"
+        data-hero-slide
+        {% if slide_count > 1 %}
+          role="group"
+          aria-roledescription="slide"
+          aria-label="{{ forloop.index }} / {{ slide_count }}"
+          {% unless forloop.first %}aria-hidden="true"{% endunless %}
+        {% endif %}
+        {{ block.shopify_attributes }}
+      >
+        {%- liquid
+          # Só o primeiro slide é candidato a LCP: ele carrega eager com
+          # prioridade alta; os demais ficam lazy para não competir.
+          if forloop.first
+            assign slide_loading = 'eager'
+            assign slide_priority = 'high'
+          else
+            assign slide_loading = 'lazy'
+            assign slide_priority = 'auto'
+          endif
+        -%}
+        <div class="hero__media">
+          {%- if block.settings.image != blank -%}
+            {%- if block.settings.image_mobile != blank -%}
+              <picture>
+                <source
+                  media="(max-width: 749px)"
+                  srcset="
+                    {{ block.settings.image_mobile | image_url: width: 750 }} 750w,
+                    {{ block.settings.image_mobile | image_url: width: 1100 }} 1100w
+                  "
+                  sizes="100vw"
+                >
+                {{
+                  block.settings.image
+                  | image_url: width: 3000
+                  | image_tag:
+                    loading: slide_loading,
+                    fetchpriority: slide_priority,
+                    class: 'hero__image',
+                    widths: '900, 1200, 1600, 2000, 2600, 3000',
+                    sizes: '100vw',
+                    alt: block.settings.image.alt | default: block.settings.heading | escape
+                }}
+              </picture>
+            {%- else -%}
+              {{
+                block.settings.image
+                | image_url: width: 3000
+                | image_tag:
+                  loading: slide_loading,
+                  fetchpriority: slide_priority,
+                  class: 'hero__image',
+                  widths: '900, 1200, 1600, 2000, 2600, 3000',
+                  sizes: '100vw',
+                  alt: block.settings.image.alt | default: block.settings.heading | escape
+              }}
+            {%- endif -%}
+          {%- else -%}
+            <div class="hero__image hero__placeholder">
+              {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
+            </div>
+          {%- endif -%}
+        </div>
+
+        <div class="hero__content page-width">
+          <div class="hero__text">
+            {%- if block.settings.eyebrow != blank -%}
+              <p class="eyebrow hero__eyebrow">{{ block.settings.eyebrow | escape }}</p>
+            {%- endif -%}
+
+            {%- if block.settings.heading != blank -%}
+              {%- if forloop.first -%}
+                <h1 class="hero__heading">{{ block.settings.heading | newline_to_br }}</h1>
+              {%- else -%}
+                <p class="hero__heading" role="heading" aria-level="2">{{ block.settings.heading | newline_to_br }}</p>
+              {%- endif -%}
+            {%- endif -%}
+
+            {%- if block.settings.subheading != blank -%}
+              <p class="hero__subheading">{{ block.settings.subheading | escape }}</p>
+            {%- endif -%}
+
+            {%- if block.settings.text != blank -%}
+              <div class="hero__body rte">{{ block.settings.text }}</div>
+            {%- endif -%}
+
+            {%- if block.settings.button_label != blank -%}
+              <a href="{{ block.settings.button_link | default: routes.all_products_collection_url }}" class="button hero__cta">
+                {{ block.settings.button_label | escape }}
+                {% render 'icon', name: 'arrow-right' %}
+              </a>
+            {%- endif -%}
+          </div>
+        </div>
+      </li>
+    {%- endfor -%}
+  </ul>
+
+  {%- if slide_count > 1 -%}
+    <div class="hero__indicator">
+      <button type="button" class="hero__nav tap-target" data-hero-prev aria-label="{{ 'general.slider.previous' | t }}">
+        {% render 'icon', name: 'arrow-right' %}
+      </button>
+      <p class="hero__counter" aria-live="polite">
+        <span class="hero__counter-current" data-hero-current>01</span>
+        <span class="hero__counter-total">{{ slide_count | prepend: '0' | slice: -2, 2 }}</span>
+      </p>
+      <button type="button" class="hero__nav tap-target" data-hero-next aria-label="{{ 'general.slider.next' | t }}">
+        {% render 'icon', name: 'arrow-right' %}
+      </button>
+    </div>
+  {%- endif -%}
+</div>
+
+<style>
+  .hero {
+    position: relative;
+    background-color: var(--color-background);
+    overflow: hidden;
+  }
+  .hero__slides { list-style: none; margin: 0; padding: 0; display: grid; }
+  /* Todos os slides ocupam a mesma célula do grid: sem salto de altura */
+  .hero__slide {
+    grid-area: 1 / 1;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    min-height: 88vh;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 600ms cubic-bezier(0.22, 1, 0.36, 1), visibility 600ms;
+  }
+  .hero__slide.is-active { opacity: 1; visibility: visible; }
+  .hero--short .hero__slide { min-height: 70vh; }
+  .hero--tall .hero__slide { min-height: 94vh; }
+
+  .hero__media { position: absolute; inset: 0; }
+  .hero__image { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .hero__placeholder { display: flex; align-items: center; justify-content: center; background-color: var(--color-surface); }
+
+  /* Overlay curto e localizado: escurece só o lado do texto,
+     preservando o produto e o rosto do outro lado. */
+  .hero__media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--photo-veil-side);
+  }
+
+  .hero__content { position: relative; z-index: 2; width: 100%; padding-bottom: clamp(56px, 9vh, 120px); }
+  .hero__text { max-width: 33rem; }
+  .hero__eyebrow { margin-bottom: 20px; }
+  .hero__heading {
+    font-size: var(--f8);
+    margin-bottom: 20px;
+    color: var(--color-text-primary);
+  }
+  .hero__subheading {
+    font-family: var(--font-ui-family);
+    font-size: var(--f2);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-primary);
+    margin-bottom: 20px;
+  }
+  .hero__body {
+    font-size: var(--f2);
+    color: var(--color-text-secondary);
+    margin-bottom: 32px;
+    max-width: 34ch;
+  }
+  .hero__body p { margin: 0 0 4px; }
+  .hero__cta { min-width: 180px; }
+
+  /* Indicador editorial — números, não um componente de carrossel */
+  .hero__indicator {
+    position: absolute;
+    right: var(--page-gutter);
+    bottom: clamp(56px, 9vh, 120px);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .hero__counter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-ui-family);
+    font-size: var(--f1);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-label);
+    color: var(--color-text-primary);
+    margin: 0;
+  }
+  .hero__counter-total { color: var(--color-text-muted); }
+  .hero__counter-total::before {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 28px;
+    margin: 0 auto 6px;
+    background-color: var(--color-border-strong);
+  }
+  .hero__nav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 200ms ease, color 200ms ease;
+  }
+  .hero__nav:hover, .hero__nav:focus-visible { opacity: 1; color: var(--color-text-primary); }
+  .hero__nav svg { width: 14px; height: 14px; }
+  [data-hero-prev] svg { transform: rotate(-90deg); }
+  [data-hero-next] svg { transform: rotate(90deg); }
+
+  @media screen and (max-width: 749px) {
+    .hero__slide { min-height: 78vh; }
+    .hero--tall .hero__slide { min-height: 86vh; }
+    /* No retrato o gradiente sobe de baixo, não da lateral */
+    .hero__media::after { background: var(--photo-veil-bottom); }
+    .hero__text { max-width: 100%; }
+    .hero__body { max-width: 100%; }
+    .hero__cta { width: 100%; }
+    .hero__indicator { flex-direction: row; bottom: 20px; right: var(--page-gutter); }
+    .hero__counter { flex-direction: row; gap: 4px; }
+    .hero__counter-total::before { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__slide { transition-duration: 0.01ms !important; }
+  }
+</style>
+
+{%- if slide_count > 1 -%}
+  <script>
+    (function () {
+      var root = document.querySelector('[data-hero-carousel][data-section-id="{{ section.id }}"]');
+      if (!root) return;
+
+      var slides = Array.prototype.slice.call(root.querySelectorAll('[data-hero-slide]'));
+      var current = root.querySelector('[data-hero-current]');
+      var index = 0;
+
+      function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+      function show(next) {
+        index = (next + slides.length) % slides.length;
+        slides.forEach(function (slide, i) {
+          var active = i === index;
+          slide.classList.toggle('is-active', active);
+          if (active) {
+            slide.removeAttribute('aria-hidden');
+            slide.removeAttribute('inert');
+          } else {
+            slide.setAttribute('aria-hidden', 'true');
+            slide.setAttribute('inert', '');
+          }
+        });
+        if (current) current.textContent = pad(index + 1);
+      }
+
+      // Estado inicial: tudo que não é o primeiro sai do fluxo de foco
+      show(0);
+
+      var prev = root.querySelector('[data-hero-prev]');
+      var next = root.querySelector('[data-hero-next]');
+      if (prev) prev.addEventListener('click', function () { show(index - 1); });
+      if (next) next.addEventListener('click', function () { show(index + 1); });
+
+      root.addEventListener('keydown', function (event) {
+        if (event.key === 'ArrowLeft') { show(index - 1); }
+        if (event.key === 'ArrowRight') { show(index + 1); }
+      });
+
+      // Swipe — só horizontal, e só se o gesto for claramente lateral
+      var startX = 0;
+      var startY = 0;
+      root.addEventListener('touchstart', function (event) {
+        startX = event.changedTouches[0].clientX;
+        startY = event.changedTouches[0].clientY;
+      }, { passive: true });
+      root.addEventListener('touchend', function (event) {
+        var dx = event.changedTouches[0].clientX - startX;
+        var dy = event.changedTouches[0].clientY - startY;
+        if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy)) {
+          show(dx < 0 ? index + 1 : index - 1);
+        }
+      }, { passive: true });
+    })();
+  </script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.hero.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "height",
+      "options": [
+        { "value": "short", "label": "t:sections.hero.settings.height.options__1.label" },
+        { "value": "default", "label": "t:sections.hero.settings.height.options__2.label" },
+        { "value": "tall", "label": "t:sections.hero.settings.height.options__3.label" }
+      ],
+      "default": "default",
+      "label": "t:sections.hero.settings.height.label"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "slide",
+      "name": "t:sections.hero.blocks.slide.name",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "t:sections.hero.blocks.slide.settings.image.label" },
+        { "type": "image_picker", "id": "image_mobile", "label": "t:sections.hero.blocks.slide.settings.image_mobile.label", "info": "t:sections.hero.blocks.slide.settings.image_mobile.info" },
+        { "type": "text", "id": "eyebrow", "label": "t:sections.hero.blocks.slide.settings.eyebrow.label" },
+        { "type": "textarea", "id": "heading", "label": "t:sections.hero.blocks.slide.settings.heading.label", "info": "t:sections.hero.blocks.slide.settings.heading.info" },
+        { "type": "text", "id": "subheading", "label": "t:sections.hero.blocks.slide.settings.subheading.label" },
+        { "type": "richtext", "id": "text", "label": "t:sections.hero.blocks.slide.settings.text.label" },
+        { "type": "text", "id": "button_label", "label": "t:sections.hero.blocks.slide.settings.button_label.label" },
+        { "type": "url", "id": "button_link", "label": "t:sections.hero.blocks.slide.settings.button_link.label" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.hero.name",
+      "blocks": [{ "type": "slide" }]
+    }
+  ]
+}
+{% endschema %}

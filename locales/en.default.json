@@ -37,6 +37,10 @@
       "email_placeholder": "Email",
       "confirmation": "Thanks for subscribing.",
       "button_label": "Subscribe"
+    },
+    "slider": {
+      "previous": "Previous slide",
+      "next": "Next slide"
     }
   },
   "accessibility": {
@@ -209,6 +213,12 @@
     "featured_collection": {
       "view_all": "View all",
       "view_all_label": "View all products in the {{ collection_name }} collection"
+    },
+    "campaign": {
+      "days": "Days",
+      "hours": "Hours",
+      "minutes": "Min",
+      "seconds": "Sec"
     }
   },
   "customer": {

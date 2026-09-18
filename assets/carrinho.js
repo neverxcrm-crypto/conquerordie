@@ -15,8 +15,10 @@
   Funciona sem JS: o formulario de produto ja envia nativamente
   para /cart/add. Se a requisicao AJAX falhar, o script faz
   fallback e submete o formulario do jeito tradicional.
-  O contador usa elementos com [data-cart-count]. O texto do
-  alerta vem de window.themeStrings.addedToCart quando disponivel.
+  O contador usa elementos com [data-cart-count]; o elemento fica
+  oculto (hidden) quando o carrinho esta vazio, para o badge nao
+  aparecer com "0" no header. O texto do alerta vem de
+  window.themeStrings.addedToCart quando disponivel.
 */
 (function () {
   'use strict';
@@ -24,6 +26,7 @@
   function updateCartCount(count) {
     document.querySelectorAll('[data-cart-count]').forEach(function (el) {
       el.textContent = count;
+      el.hidden = count === 0;
     });
   }
 
