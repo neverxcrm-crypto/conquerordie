@@ -1,37 +1,52 @@
 {%- comment -%}
   ============================================================
-  MARQUEE / CARROSSEL CONTINUO DE AVISOS (TICKER)
+  MARQUEE / TICKER CONTINUO — EDIÇÃO OURO PREMIUM (CUSTOMIZÁVEL)
   ============================================================
 {%- endcomment -%}
 
 {%- if section.blocks.size > 0 -%}
   <div 
-    class="ticker" 
+    class="ticker ticker--gold-edition" 
     data-section-id="{{ section.id }}"
     style="
       --ticker-bg: {{ section.settings.bg_color }};
-      --ticker-color: {{ section.settings.text_color }};
       --ticker-speed: {{ section.settings.speed }}s;
+      --ticker-font-size: {{ section.settings.font_size }}px;
+      --ticker-font-style: {% if section.settings.enable_italic %}italic{% else %}normal{% endif %};
+      --ticker-font-weight: {{ section.settings.font_weight }};
+      --ticker-text-transform: {{ section.settings.text_transform }};
+      --ticker-letter-spacing: {{ section.settings.letter_spacing }}px;
+      --ticker-custom-color: {{ section.settings.text_color }};
     "
   >
     <div class="ticker__wrapper {% if section.settings.pause_on_hover %}ticker__wrapper--pause{% endif %}">
-      {%- comment -%} Repetimos o grupo 4 vezes para garantir preenchimento em qualquer resolução sem lacunas {%- endcomment -%}
       {%- for i in (1..4) -%}
         <div class="ticker__track" {% if i > 1 %}aria-hidden="true"{% endif %}>
           {%- for block in section.blocks -%}
             <div class="ticker__item" {{ block.shopify_attributes }}>
               {%- if block.settings.link != blank -%}
                 <a href="{{ block.settings.link }}" class="ticker__link">
-                  <span>{{ block.settings.text | escape }}</span>
+                  <span class="{% if section.settings.enable_gold_effect %}ticker__text-gold{% else %}ticker__text-custom{% endif %}">
+                    {{ block.settings.text | escape }}
+                  </span>
                 </a>
               {%- else -%}
-                <span>{{ block.settings.text | escape }}</span>
+                <span class="{% if section.settings.enable_gold_effect %}ticker__text-gold{% else %}ticker__text-custom{% endif %}">
+                  {{ block.settings.text | escape }}
+                </span>
               {%- endif -%}
 
               {%- if section.settings.show_separator -%}
                 <span class="ticker__separator" aria-hidden="true">
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="5" cy="5" r="3.5" stroke="url(#gold-gradient-{{ section.id }})" stroke-width="1.5"/>
+                    <defs>
+                      <linearGradient id="gold-gradient-{{ section.id }}" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#FFE57F" />
+                        <stop offset="50%" stop-color="#D4AF37" />
+                        <stop offset="100%" stop-color="#AA771C" />
+                      </linearGradient>
+                    </defs>
                   </svg>
                 </span>
               {%- endif -%}
@@ -43,15 +58,17 @@
   </div>
 
   <style>
-    .ticker {
-      background-color: var(--ticker-bg, #000000);
-      color: var(--ticker-color, #ffffff);
+    /* Estilo Geral da Barra */
+    .ticker--gold-edition {
+      background-color: var(--ticker-bg, #08080a);
       overflow: hidden;
-      padding: 10px 0;
+      padding: 12px 0;
       white-space: nowrap;
       position: relative;
       z-index: 101;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid rgba(212, 175, 55, 0.25);
+      border-bottom: 1px solid rgba(212, 175, 55, 0.35);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
       user-select: none;
     }
 
@@ -69,35 +86,58 @@
       display: flex;
       align-items: center;
       flex-shrink: 0;
-      animation: tickerMarquee var(--ticker-speed, 20s) linear infinite;
+      animation: tickerMarquee var(--ticker-speed, 45s) linear infinite;
     }
 
     .ticker__item {
       display: inline-flex;
       align-items: center;
       gap: 24px;
-      padding: 0 12px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      padding: 0 16px;
+      font-size: var(--ticker-font-size, 13px);
+      font-style: var(--ticker-font-style, normal);
+      font-weight: var(--ticker-font-weight, 700);
+      text-transform: var(--ticker-text-transform, uppercase);
+      letter-spacing: var(--ticker-letter-spacing, 1.5px);
+    }
+
+    /* Efeito Ouro Metálico Reluzente */
+    .ticker__text-gold {
+      background: linear-gradient(
+        110deg,
+        #FBF0B9 0%,
+        #DFBA63 20%,
+        #FFF5C0 40%,
+        #B8860B 60%,
+        #E6C675 80%,
+        #FBF0B9 100%
+      );
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: goldShimmer 8s linear infinite;
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+    }
+
+    .ticker__text-custom {
+      color: var(--ticker-custom-color, #ffffff);
     }
 
     .ticker__link {
-      color: inherit;
       text-decoration: none;
-      transition: opacity 200ms ease;
+      transition: opacity 200ms ease, filter 200ms ease;
     }
 
     .ticker__link:hover {
-      opacity: 0.8;
+      opacity: 0.85;
+      filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.6));
     }
 
     .ticker__separator {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      opacity: 0.6;
+      filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.5));
     }
 
     @keyframes tickerMarquee {
@@ -108,47 +148,123 @@
         transform: translateX(-100%);
       }
     }
+
+    @keyframes goldShimmer {
+      0% {
+        background-position: 0% center;
+      }
+      100% {
+        background-position: 200% center;
+      }
+    }
   </style>
 {%- endif -%}
 
 {% schema %}
 {
-  "name": "Barra Contínua (Ticker)",
+  "name": "Barra Contínua (Ouro)",
   "class": "section-ticker",
   "settings": [
     {
-      "type": "color",
-      "id": "bg_color",
-      "label": "Cor do Fundo",
-      "default": "#000000"
-    },
-    {
-      "type": "color",
-      "id": "text_color",
-      "label": "Cor do Texto",
-      "default": "#ffffff"
+      "type": "header",
+      "content": "⚡ Animação & Velocidade"
     },
     {
       "type": "range",
       "id": "speed",
       "min": 10,
-      "max": 60,
-      "step": 2,
+      "max": 180,
+      "step": 5,
       "unit": "s",
-      "label": "Velocidade da Animação",
-      "info": "Menos segundos = mais rápido. Mais segundos = mais lento.",
-      "default": 24
-    },
-    {
-      "type": "checkbox",
-      "id": "show_separator",
-      "label": "Exibir Ícone Separador",
-      "default": true
+      "label": "Tempo da Volta Completa",
+      "info": "Aumente o valor para deixar o movimento MAIS LENTO (Exemplo: 50s a 90s para deslizamento lento).",
+      "default": 45
     },
     {
       "type": "checkbox",
       "id": "pause_on_hover",
       "label": "Pausar ao passar o mouse",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "✒️ Tipografia & Estilo de Texto"
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Tamanho da Fonte",
+      "default": 13
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_italic",
+      "label": "Texto em Itálico",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "font_weight",
+      "label": "Espessura da Fonte",
+      "options": [
+        { "value": "400", "label": "Normal (400)" },
+        { "value": "500", "label": "Médio (500)" },
+        { "value": "600", "label": "Semi-Negrito (600)" },
+        { "value": "700", "label": "Negrito (700)" }
+      ],
+      "default": "700"
+    },
+    {
+      "type": "select",
+      "id": "text_transform",
+      "label": "Caixa do Texto",
+      "options": [
+        { "value": "uppercase", "label": "MAIÚSCULAS" },
+        { "value": "capitalize", "label": "Primeiras Letras Maiúsculas" },
+        { "value": "none", "label": "Normal (Conforme Digitado)" }
+      ],
+      "default": "uppercase"
+    },
+    {
+      "type": "range",
+      "id": "letter_spacing",
+      "min": 0,
+      "max": 5,
+      "step": 0.5,
+      "unit": "px",
+      "label": "Espaçamento Entre Letras",
+      "default": 1.5
+    },
+    {
+      "type": "header",
+      "content": "🎨 Cores & Efeitos Metálicos"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_gold_effect",
+      "label": "Ativar Efeito Ouro Metálico Animado",
+      "default": true
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Cor do Texto (quando Ouro estiver desativado)",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Cor do Fundo da Barra",
+      "default": "#000000"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_separator",
+      "label": "Exibir Separador Dourado",
       "default": true
     }
   ],
@@ -161,7 +277,7 @@
           "type": "text",
           "id": "text",
           "label": "Texto",
-          "default": "FRETE GRÁTIS ACIMA DE R$585!"
+          "default": "FRETE GRÁTIS EM COMPRAS ACIMA DE R$585"
         },
         {
           "type": "url",
@@ -173,11 +289,11 @@
   ],
   "presets": [
     {
-      "name": "Barra Contínua (Ticker)",
+      "name": "Barra Contínua (Ouro)",
       "blocks": [
-        { "type": "announcement", "settings": { "text": "FRETE GRÁTIS ACIMA DE R$585!" } },
-        { "type": "announcement", "settings": { "text": "EM ATÉ 10X SEM JUROS" } },
-        { "type": "announcement", "settings": { "text": "CUPOM PRIMEIRA COMPRA: WELCOME10" } }
+        { "type": "announcement", "settings": { "text": "FRETE GRÁTIS EM COMPRAS ACIMA DE R$585" } },
+        { "type": "announcement", "settings": { "text": "PARCELE EM ATÉ 10X SEM JUROS" } },
+        { "type": "announcement", "settings": { "text": "QUALIDADE & ELEGÂNCIA EXCLUSIVA" } }
       ]
     }
   ]
