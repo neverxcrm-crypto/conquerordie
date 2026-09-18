@@ -157,6 +157,37 @@
         background-position: 200% center;
       }
     }
+
+    /* ==========================================================
+       PERFORMANCE NO TOQUE — brilho parado
+       ==========================================================
+       goldShimmer anima background-position. Diferente de transform
+       e opacity, background-position NAO pode ser animado na GPU: o
+       navegador redesenha o texto a cada frame — e aqui cada
+       redesenho passa por background-clip: text mais um drop-shadow,
+       em todos os itens da barra ao mesmo tempo, para sempre.
+
+       A barra fica no topo, entao na maior parte da navegacao esse
+       custo e pago por um efeito que nem esta na tela.
+
+       No celular o degrade de ouro continua identico — so para de
+       deslizar. A marquise (tickerMarquee) fica: ela anima transform,
+       que a GPU resolve sem repintar nada.
+       ========================================================== */
+    @media (max-width: 1000px), (pointer: coarse) {
+      .ticker__text-gold {
+        animation: none;
+        background-size: 100% auto;
+        background-position: 0 center;
+      }
+      /* O drop-shadow fica: com o brilho parado a barra e pintada
+         uma vez so, entao a sombra nao custa mais nada por frame. */
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ticker__track,
+      .ticker__text-gold { animation: none; }
+    }
   </style>
 {%- endif -%}
 

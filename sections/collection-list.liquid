@@ -229,6 +229,12 @@
      TABLET / MOBILE — trilho com scroll-snap
      ========================================================== */
   @media screen and (max-width: 1000px) {
+    /* A seta magnetica e um efeito de hover do desktop. O
+       will-change global acima reservava uma camada de GPU para cada
+       seta do trilho — em toda pagina, para sempre — sem nada nunca
+       animar no toque. */
+    #shopify-section-{{ section.id }} .collection-panel__arrow svg { will-change: auto; }
+
     #shopify-section-{{ section.id }} .collection-list__intro {
       grid-template-columns: 1fr;
       align-items: start;
@@ -583,8 +589,19 @@
       });
     }
 
-    // Os scripts do tema são defer: GSAP só existe depois do parse.
-    if (document.readyState === 'loading') {
+    /*
+      Antes: DOMContentLoaded. O GSAP era um <script defer> fixo, então
+      já existia nesse momento. Agora ele é injetado sob demanda
+      (snippets/carregar-movimento.liquid) e pode chegar DEPOIS do
+      DOMContentLoaded — init() rodaria sem gsap e o desktop cairia no
+      fallback sem efeito. CODReady só chama quando o DOM está pronto E
+      a decisão de carregar (ou não) as libs já foi resolvida.
+      No celular ela resolve sem baixar nada: init() roda, não acha
+      gsap e mantém o CSS puro — que é exatamente o que se quer lá.
+    */
+    if (typeof window.CODReady === 'function') {
+      window.CODReady(init);
+    } else if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', init);
     } else {
       init();

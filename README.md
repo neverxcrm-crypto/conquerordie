@@ -166,6 +166,7 @@ Pedaços reutilizáveis chamados via `{% render 'nome' %}`.
 | `product-media-gallery.liquid` | Estilos da galeria de mídia do produto |
 | `carrinho.liquid` | Placeholder do drawer de carrinho |
 | `alerta.liquid` | Toast de notificação (ex: "adicionado ao carrinho") |
+| `carregar-movimento.liquid` | Carrega o GSAP só em desktop com mouse — no celular o tema fica na rolagem nativa (ver **Performance no mobile**) |
 
 ### `assets/`
 | Arquivo | Função |
@@ -175,6 +176,9 @@ Pedaços reutilizáveis chamados via `{% render 'nome' %}`.
 | `base.css` | Estilos base compartilhados (grid, botões, inputs, acessibilidade) |
 | `fontes.css` | Placeholder para fontes próprias (por padrão usa fontes do Shopify) |
 | `carrinho.js` | Add-to-cart via AJAX + atualização do contador (com fallback nativo) |
+| `revelar.js` | Reveal no scroll via IntersectionObserver (roda em todos os dispositivos) |
+| `movimento.js` | Scroll suave (ScrollSmoother) + parallax — **só desktop**, degrada sozinho sem o GSAP |
+| `gsap.min.js`, `ScrollTrigger.min.js`, `ScrollSmoother.min.js` | Libs do GSAP, carregadas sob demanda pelo snippet `carregar-movimento` |
 | `site.webmanifest` | Manifesto PWA |
 
 ### `config/`
@@ -202,6 +206,41 @@ Pedaços reutilizáveis chamados via `{% render 'nome' %}`.
   Para adicionar outro idioma, crie `locales/pt-BR.json` (e `pt-BR.schema.json`).
 - **Formulários nativos**: carrinho, contato, busca e newsletter usam as tags
   `{% form %}` do Shopify — funcionam mesmo sem JavaScript.
+
+---
+
+## Performance no mobile
+
+O tema tem dois modos de execução, decididos em tempo real por
+`snippets/carregar-movimento.liquid`. O gancho é a classe
+`html.motion-full` ou `html.motion-lite`.
+
+**Desktop com mouse** (`pointer: fine` e ≥ 1001px, sem
+`prefers-reduced-motion` e sem economia de dados) recebe a experiência
+completa: GSAP + ScrollTrigger + ScrollSmoother, scroll suave, parallax e
+os efeitos de hover.
+
+**Celular e tablet** recebem o caminho leve. O princípio é que o celular
+não deve pagar por nenhum efeito que ele não pode mostrar:
+
+| Custo evitado | Como |
+|---|---|
+| ~131 KB de JS (GSAP + ScrollTrigger + ScrollSmoother) | Não são baixados; só `movimento.js` (9 KB), que degrada sozinho |
+| Rolagem reescrita em JS | Sem ScrollSmoother: volta a inércia nativa e a barra de endereço retrátil |
+| `backdrop-filter` recomposto a cada frame | Header, submenus, drawer, scrim e faixa dos painéis usam fundo opaco no toque |
+| Metade das imagens de uma grade | A foto de hover do card virou `background-image` dentro de `@media (hover: hover)` — no toque não há requisição |
+| Layout e pintura de sections fora da tela | `content-visibility: auto` a partir da 3ª section de `#MainContent` |
+| Repaint infinito do brilho dourado do ticker | A animação de `background-position` fica parada no toque; a marquise (transform) continua |
+| Camadas de GPU reservadas para efeitos de hover | `will-change` removido no toque (header, setas dos painéis, brilho do cursor) |
+
+O que **não** muda no mobile: o reveal no scroll (`revelar.js`, via
+IntersectionObserver), a marquise da barra de avisos, os `scroll-snap` dos
+trilhos e todo o visual — os fundos translúcidos continuam translúcidos,
+só sem o desfoque.
+
+Para reativar um efeito no mobile, ajuste a condição em
+`snippets/carregar-movimento.liquid` (JS) e a media query
+`(max-width: 1000px), (pointer: coarse)` da regra correspondente (CSS).
 
 ---
 

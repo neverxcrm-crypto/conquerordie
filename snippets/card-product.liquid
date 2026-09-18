@@ -8,6 +8,10 @@
   ativado nas settings), badge de promoção/esgotado, vendor opcional,
   título, preço (via snippet 'price'), swatches de cor e quick add.
 
+  A imagem de hover só é baixada em dispositivos que têm hover — ela
+  entra como background-image atrás de @media (hover: hover), não como
+  <img>. No celular isso corta metade das imagens da grade.
+
   COMO USAR:
   {% render 'card-product', card_product: product %}
   Dentro de um loop de coleção, por exemplo.
@@ -60,17 +64,29 @@
             sizes: '(min-width: 1000px) 25vw, 50vw',
             alt: card_product.featured_media.alt | default: card_product.title | escape
         }}
+        {%- comment -%}
+          Segunda imagem (troca no hover) — NAO e mais um <img>.
+
+          Como <img loading="lazy"> ela era baixada em toda tela que
+          chegasse perto do viewport, inclusive no celular, onde hover
+          nao existe e a foto jamais aparece: uma grade de 30 produtos
+          fazia 60 downloads de imagem para mostrar 30.
+
+          Agora a URL viaja numa custom property e quem a consome e
+          uma unica regra dentro de @media (hover: hover), em base.css.
+          Custom property nao dispara download sozinha: so quando a
+          regra que a le esta valendo. No toque, zero requisicao; no
+          desktop, exatamente o mesmo efeito de antes.
+
+          E decoracao pura, entao nao perde nada por nao ser <img>:
+          aria-hidden e o alt da foto principal ja descrevem o produto.
+        {%- endcomment -%}
         {%- if settings.card_show_second_image and card_product.media[1] -%}
-          {{
-            card_product.media[1]
-            | image_url: width: 720
-            | image_tag:
-              loading: 'lazy',
-              class: 'card-product__image card-product__image--secondary',
-              widths: '180, 360, 540, 720',
-              sizes: '(min-width: 1000px) 25vw, 50vw',
-              alt: card_product.media[1].alt | default: card_product.title | escape
-          }}
+          <div
+            class="card-product__hover-image"
+            aria-hidden="true"
+            style="--card-hover-image: url({{ card_product.media[1] | image_url: width: 720 }});"
+          ></div>
         {%- endif -%}
       {%- else -%}
         {{ 'product-1' | placeholder_svg_tag: 'card-product__image placeholder-svg' }}

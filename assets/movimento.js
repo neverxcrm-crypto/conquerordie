@@ -27,11 +27,18 @@
   "rolaria junto".
 
   QUANDO NÃO LIGA (scroll nativo):
+  - CELULAR E TABLET (pointer: coarse ou largura <= 1000px). O
+    smoother substitui a rolagem nativa por um transform pintado a
+    cada frame: no desktop isso é suave, no toque briga com a
+    inércia do sistema, repinta a página inteira e trava. No mobile
+    a rolagem é a do navegador, e o parallax não liga.
   - prefers-reduced-motion.
   - Editor de temas do Shopify (Shopify.designMode): o editor rola o
     iframe até a section selecionada e isso não combina com
     conteúdo transformado.
-  - GSAP/ScrollSmoother indisponíveis — o site segue 100% funcional.
+  - GSAP/ScrollSmoother indisponíveis — no mobile isso é o padrão:
+    as libs nem são baixadas (snippets/carregar-movimento.liquid).
+    O site segue 100% funcional.
 
   API PÚBLICA:
   window.CODMotion = { smoother, scrollTo(target), stop(), start() }
@@ -44,10 +51,25 @@
   var ScrollTrigger = window.ScrollTrigger;
   var ScrollSmoother = window.ScrollSmoother;
 
-  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function mq(query) {
+    return !!(window.matchMedia && window.matchMedia(query).matches);
+  }
+
+  var reduced = mq('(prefers-reduced-motion: reduce)');
   var designMode = !!(window.Shopify && window.Shopify.designMode);
   var wrapper = document.getElementById('smooth-wrapper');
   var content = document.getElementById('smooth-content');
+
+  /* Tela de toque (celular/tablet): ponteiro grosso ou viewport
+     estreita. No toque o ScrollSmoother troca a rolagem nativa —
+     com inercia e barra de endereco retratil — por um transform
+     pintado em JS a cada frame. E o que fazia o site engasgar no
+     celular. Aqui o efeito simplesmente nao liga.
+     Em condicoes normais as libs do GSAP nem chegam a ser baixadas
+     (snippets/carregar-movimento.liquid); esta guarda cobre o resto:
+     janela de desktop redimensionada para estreita, cache antigo e
+     o editor de temas em preview mobile. */
+  var toque = mq('(pointer: coarse)') || !mq('(min-width: 1001px)');
 
   function headerHeight() {
     return parseFloat(getComputedStyle(root).getPropertyValue('--header-height')) || 68;
@@ -59,7 +81,7 @@
      ScrollSmoother
   --------------------------------------------------------- */
   var smoother = null;
-  if (!reduced && !designMode && gsap && ScrollTrigger && ScrollSmoother && wrapper && content) {
+  if (!reduced && !toque && !designMode && gsap && ScrollTrigger && ScrollSmoother && wrapper && content) {
     gsap.registerPlugin(ScrollSmoother);
     // Antes de criar: o scroll-behavior: smooth nativo brigaria com o
     // smoother (ver normalizar.css).
@@ -68,7 +90,7 @@
       wrapper: wrapper,
       content: content,
       smooth: 1.1,            // segundos para "alcançar" a posição real
-      smoothTouch: 0.1,       // toque: suavização leve, sem parecer atrasado
+      smoothTouch: false,     // toque: rolagem nativa, sempre (ver 'toque' acima)
       effects: true,          // habilita data-speed / data-lag
       ignoreMobileResize: true
     });
@@ -136,7 +158,10 @@
      O wrapper precisa de overflow: hidden (regra global em base.css).
   --------------------------------------------------------- */
   function initParallax(scope) {
-    if (reduced) return;
+    // No toque o parallax custa caro: cada frame de rolagem repinta
+    // uma imagem AMPLIADA (scale > 1, mais pixels que a tela) e o
+    // scrub do ScrollTrigger acompanha o dedo. Fica so no desktop.
+    if (reduced || toque) return;
     scope.querySelectorAll('[data-parallax]').forEach(function (wrap) {
       if (wrap.__codParallax) return;
       // [data-parallax-target] deixa o <img> livre para outro transform
@@ -145,7 +170,10 @@
       if (!media) return;
       var amount = parseFloat(wrap.getAttribute('data-parallax')) || 0.1;
       var shift = amount * 100;
-      gsap.set(media, { scale: 1 + amount * 2, transformOrigin: '50% 50%', willChange: 'transform' });
+      // will-change permanente mantem a imagem numa camada propria da
+      // GPU pelo resto da vida da pagina (memoria de video). O GSAP ja
+      // liga e desliga isso sozinho durante o tween.
+      gsap.set(media, { scale: 1 + amount * 2, transformOrigin: '50% 50%' });
       wrap.__codParallax = gsap.fromTo(
         media,
         { yPercent: -shift / 2 },

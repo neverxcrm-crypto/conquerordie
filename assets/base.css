@@ -316,8 +316,24 @@ textarea.field__input:focus {
 .card-product__image {
   transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 400ms ease;
 }
-.card-product__image--secondary { opacity: 0; }
-.card-product:hover .card-product__image--secondary { opacity: 1; }
+/* A segunda foto e um enfeite de HOVER: no celular ela nunca aparece,
+   mas o <img> era baixado assim mesmo — dobrando as imagens de uma
+   grade de colecao (30 requisicoes viravam 60). Agora ela vem como
+   background-image declarado APENAS dentro de @media (hover: hover)
+   mais abaixo: uma URL guardada em custom property so e baixada
+   quando alguma regra que a consome esta valendo, entao no toque o
+   download nunca acontece. Ver snippets/card-product.liquid. */
+.card-product__hover-image {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  /* Mesmo zoom da foto principal, para as duas se moverem juntas */
+  transition: opacity 400ms ease, transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
 /* Zoom de 2% — perceptivel como vida, nunca como efeito */
 .card-product:hover .card-product__image { transform: scale(1.02); }
 
@@ -628,6 +644,18 @@ textarea.field__input:focus {
   .collection-panel__media::after { opacity: 0.9; }
   .collection-panel__text { display: none; }
   .collection-panel__title { font-size: var(--f5); }
+  /* Sem backdrop-filter no toque: a faixa fica sobre uma imagem que
+     escala e desliza no carrossel, e cada frame obrigaria o navegador
+     a refazer o blur do que passa atras dela. Fundo opaco entrega o
+     mesmo contraste de graca. */
+  .collection-panel__band {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background-color: rgba(0, 0, 0, 0.62);
+  }
+  /* O brilho que segue o cursor nao existe sem cursor: fora de cena
+     ele ainda reservava uma camada de GPU por painel. */
+  .collection-panel__glow { display: none; }
 }
 @media screen and (max-width: 600px) {
   .collection-panel { --cp-band: 48px; --cp-radius: 12px; }
@@ -636,6 +664,11 @@ textarea.field__input:focus {
 }
 
 @media (hover: hover) {
+  /* A unica regra que le --card-hover-image. Fora daqui o navegador
+     trata a custom property como texto e nao busca nada na rede. */
+  .card-product__hover-image { background-image: var(--card-hover-image); }
+  .card-product:hover .card-product__hover-image { opacity: 1; transform: scale(1.02); }
+
   .collection-panel:hover,
   .collection-panel:focus-visible {
     box-shadow:
@@ -675,6 +708,7 @@ textarea.field__input:focus {
   .collection-panel *::after,
   .collection-panel__media::after,
   .card-product__image,
+  .card-product__hover-image,
   .card-product__quick-add,
   .arrow-link svg,
   .button svg {
@@ -682,5 +716,52 @@ textarea.field__input:focus {
   }
   .js [data-reveal] { opacity: 1; transform: none; }
   .card-product:hover .card-product__image,
+  .card-product:hover .card-product__hover-image,
   .collection-panel:hover .collection-panel__image { transform: none; }
+}
+
+
+/* ==========================================================
+   MOBILE — pular o render do que está fora da tela
+   ==========================================================
+   Numa home de e-commerce a página tem 6-10 sections, e o
+   navegador calculava layout, estilo e pintura de TODAS elas antes
+   do primeiro render — mesmo das que estão cinco telas abaixo. Num
+   celular médio isso é a maior fatia do tempo até a página ficar
+   utilizável, e depois volta como engasgo a cada rolagem.
+
+   content-visibility: auto manda pular esse trabalho enquanto a
+   section está fora do viewport; ela é renderizada quando chega
+   perto. contain-intrinsic-size dá uma altura estimada no lugar,
+   e a palavra-chave 'auto' faz o navegador GUARDAR a altura real
+   depois do primeiro render — então a barra de rolagem não pula
+   quando a pessoa volta para cima.
+
+   Por que só no mobile: no desktop o ScrollSmoother e o
+   ScrollTrigger precisam medir a página inteira para calcular os
+   gatilhos, e uma section com o render pulado mediria a altura
+   estimada. No celular nada disso é carregado.
+
+   Por que a partir da 3ª: as duas primeiras são o que aparece na
+   abertura (hero + a seguinte). Pular o render delas não
+   economizaria nada e ainda arriscaria um salto visível.
+
+   As sections fixas (header, cart drawer, alertas) ficam FORA de
+   #MainContent no layout, então nunca entram nesta regra — o que
+   é essencial: content-visibility numa header fixa a faria sumir.
+   ========================================================== */
+@media screen and (max-width: 1000px) {
+  #MainContent > .shopify-section:nth-child(n + 3) {
+    content-visibility: auto;
+    /* Duas linhas de proposito. A palavra-chave 'auto' (guardar a
+       altura real medida) so chegou no Chrome 111, mas
+       content-visibility existe desde o 85. Sem a primeira linha,
+       um Chrome 85-110 pularia o render e nao colocaria altura
+       nenhuma no lugar: a section viraria 0px e a barra de rolagem
+       saltaria a cada tela. A ordem resolve — quem entende as duas
+       usa a segunda, quem entende so uma fica com a estimativa
+       fixa. */
+    contain-intrinsic-size: 600px;
+    contain-intrinsic-size: auto 600px;
+  }
 }

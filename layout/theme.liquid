@@ -15,9 +15,12 @@
   - Open Graph / JSON-LD e demais tags via {% render 'meta-tags' %}.
   - CSS: fontes.css, normalizar.css e base.css (cada um com asset_url,
     para ter cache-busting) + css-variables (variaveis do tema).
-  - Scripts: troca no-js -> js e carrega carrinho.js, revelar.js e
-    o scroll suave (gsap, ScrollTrigger, ScrollSmoother, movimento.js),
-    todos defer.
+  - Scripts: troca no-js -> js e carrega carrinho.js e revelar.js
+    (defer). O scroll suave (gsap + ScrollTrigger + ScrollSmoother +
+    movimento.js) e carregado condicionalmente pelo snippet
+    'carregar-movimento': so em desktop com mouse. No celular so o
+    movimento.js e baixado, poupando ~131 KB de JS e devolvendo a
+    rolagem nativa.
   - {{ content_for_header }}: scripts obrigatorios do Shopify.
 
   NO <body> temos:
@@ -41,6 +44,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="theme-color" content="{{ settings.color_dark_background | default: '#0D0D0D' }}">
     <link rel="canonical" href="{{ canonical_url }}">
+
+    {%- comment -%}
+      A CDN da Shopify serve fontes, imagens e os assets do tema. O
+      preconnect abre a conexao (DNS + TCP + TLS) em paralelo com o
+      parse do HTML, em vez de so quando o primeiro arquivo e pedido.
+      No 4G isso corta algumas centenas de ms do primeiro render.
+    {%- endcomment -%}
+    <link rel="preconnect" href="https://cdn.shopify.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.shopify.com">
 
     {%- if settings.favicon != blank -%}
       <link rel="icon" type="image/png" href="{{ settings.favicon | image_url: width: 32, height: 32 }}">
@@ -77,13 +89,12 @@
     <script src="{{ 'revelar.js' | asset_url }}" defer="defer"></script>
     {%- comment -%}
       Scroll suave: GSAP + ScrollTrigger + ScrollSmoother (vendorizados
-      em assets/, sem CDN externo). Todos defer — a ordem de execução é
-      a do HTML, então movimento.js já encontra as três libs carregadas.
+      em assets/, sem CDN externo). NAO sao mais carregados aqui: o
+      snippet abaixo decide em tempo de execucao. Desktop com mouse
+      recebe tudo; celular e tablet recebem so o movimento.js e ficam
+      com a rolagem nativa. Ver snippets/carregar-movimento.liquid.
     {%- endcomment -%}
-    <script src="{{ 'gsap.min.js' | asset_url }}" defer="defer"></script>
-    <script src="{{ 'ScrollTrigger.min.js' | asset_url }}" defer="defer"></script>
-    <script src="{{ 'ScrollSmoother.min.js' | asset_url }}" defer="defer"></script>
-    <script src="{{ 'movimento.js' | asset_url }}" defer="defer"></script>
+    {% render 'carregar-movimento' %}
 
     {{ content_for_header }}
   </head>

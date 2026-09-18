@@ -852,6 +852,50 @@
     .header__mobile-item { opacity: 1; }
     .header--hidden { transform: none; }
   }
+
+  /* ==========================================================
+     PERFORMANCE NO TOQUE — sem backdrop-filter
+     ==========================================================
+     backdrop-filter é o efeito mais caro do tema no celular.
+     Ele obriga o navegador a copiar o que está ATRÁS do elemento,
+     desfocar num blur de 20-24px e recompor — e a header é fixa,
+     então isso acontecia A CADA FRAME DE ROLAGEM, com a página
+     inteira passando por baixo. Em GPU de celular custa dezenas de
+     ms por frame: é o que fazia a rolagem "engasgar" e o menu
+     abrir aos pedaços.
+
+     A troca: fundos opacos (mais escuros, já que não há mais o
+     desfoque para dar contraste). Visualmente é quase o mesmo
+     vidro; a header continua translúcida no topo e sólida ao rolar.
+     No desktop nada muda — o vidro real continua lá.
+     ========================================================== */
+  @media (max-width: 1000px), (pointer: coarse) {
+    .header__glass,
+    .header__submenu,
+    .header__search-panel,
+    .header__scrim,
+    .header__mobile-nav {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    .header--scrolled .header__glass { background-color: rgba(10, 10, 12, 0.94); }
+    .header__submenu,
+    .header__search-panel { background-color: rgba(14, 14, 18, 0.97); }
+    .header__scrim { background-color: rgba(0, 0, 0, 0.72); }
+    .header__mobile-nav { background-color: rgba(12, 12, 15, 0.985); }
+
+    /* will-change permanente reserva uma camada de GPU pela vida
+       toda da página. A header só anda em transform quando esconde
+       ou reaparece — o navegador promove a camada nesse momento. O
+       .header__progress mantém o dele: aquele sim é reescrito a
+       cada frame de rolagem. */
+    .header { will-change: auto; }
+
+    /* A sombra de 40px de raio do drawer é repintada durante toda a
+       animação de entrada. Um traço de 1px entrega a mesma
+       separação por um custo próximo de zero. */
+    .header__mobile-nav { box-shadow: none; }
+  }
 </style>
 
 <script>
@@ -870,6 +914,26 @@
     var lastY = window.scrollY || 0;
     var state = { scrolled: null, hidden: false };
     var ticking = false;
+
+    /*
+      Altura rolável em cache.
+
+      Antes, update() lia document.documentElement.scrollHeight a cada
+      frame de rolagem para calcular o fio de progresso. scrollHeight é
+      uma propriedade de LAYOUT: lê-la obriga o navegador a recalcular
+      o layout ali, de forma síncrona, antes de responder — um reflow
+      forçado por frame, com a página inteira no cálculo. É invisível
+      no desktop e é exatamente o tipo de coisa que faz a rolagem
+      "engasgar" no celular.
+
+      A altura da página só muda quando algo muda de tamanho: resize,
+      imagem lazy que carrega, fonte que troca, section recriada no
+      editor. Então medimos nesses momentos, não durante a rolagem.
+    */
+    var alturaRolavel = 0;
+    function medirAltura() {
+      alturaRolavel = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    }
 
     /* Algo aberto/focado na header? Então ela não pode sumir. */
     var canHover = window.matchMedia('(hover: hover)').matches;
@@ -910,8 +974,7 @@
       if (Math.abs(diff) > DELTA || y <= HIDE_AFTER) lastY = y;
 
       if (progress) {
-        var max = document.documentElement.scrollHeight - window.innerHeight;
-        var ratio = max > 0 ? Math.min(1, y / max) : 0;
+        var ratio = alturaRolavel > 0 ? Math.min(1, y / alturaRolavel) : 0;
         progress.style.transform = 'scaleX(' + ratio.toFixed(4) + ')';
       }
     }
@@ -923,9 +986,31 @@
       }
     }
 
+    /* Debounce: numa grade de coleção dezenas de imagens lazy
+       terminam quase juntas, e cada medição custa um reflow. Uma
+       medição depois da última basta. */
+    var remedirTimer = null;
+    function remedir() {
+      window.clearTimeout(remedirTimer);
+      remedirTimer = window.setTimeout(function () {
+        medirAltura();
+        onScroll();
+      }, 150);
+    }
+
     window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+    window.addEventListener('resize', remedir);
+    /* Imagem lazy que carrega e fonte que troca mudam a altura da
+       página — e com ela a escala do fio de progresso. */
+    window.addEventListener('load', remedir);
+    document.addEventListener('load', function (event) {
+      if (event.target && event.target.tagName === 'IMG') remedir();
+    }, true);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(remedir);
+    document.addEventListener('shopify:section:load', remedir);
+    document.addEventListener('shopify:section:unload', remedir);
     header.addEventListener('focusin', function () { setHidden(false); });
+    medirAltura();
     update();
 
     /* Busca: foco direto no campo; fecha com Esc ou clique fora. */

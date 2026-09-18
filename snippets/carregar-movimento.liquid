@@ -1,0 +1,127 @@
+{%- comment -%}
+  ============================================================
+  carregar-movimento.liquid — carregador condicional do GSAP
+  ============================================================
+
+  O PROBLEMA QUE RESOLVE:
+  O tema carregava gsap.min.js + ScrollTrigger + ScrollSmoother
+  (~131 KB) em TODA pagina, inclusive no celular. No mobile isso
+  custava caro duas vezes:
+
+  1. Download + parse + execucao de 131 KB de JS na thread
+     principal, antes de qualquer interacao.
+  2. O ScrollSmoother substitui a rolagem nativa por um transform
+     controlado em JS. No desktop isso e suave; no toque ele briga
+     com o scroll com inercia do sistema, forca o repaint da pagina
+     inteira a cada frame e quebra o esconde/mostra da barra de
+     endereco. E a causa numero 1 de "travar no mobile".
+
+  O QUE FAZ AGORA:
+  - Desktop com mouse (pointer: fine e >= 1001px — o mesmo
+    breakpoint que o CSS do tema usa), sem prefers-reduced-motion
+    e sem economia de dados:
+    carrega gsap + ScrollTrigger + ScrollSmoother + movimento.js,
+    exatamente como antes. Nada muda na experiencia.
+  - Celular / tablet / qualquer tela de toque:
+    carrega SO o movimento.js (9 KB), que ja degrada sozinho
+    (ancoras suaves nativas, sem smoother, sem parallax).
+    Economia: ~131 KB de JS e a rolagem volta a ser a nativa.
+
+  ORDEM DE EXECUCAO:
+  Os scripts sao injetados de uma vez com async = false. O
+  navegador baixa os quatro em paralelo mas EXECUTA na ordem de
+  insercao — entao movimento.js sempre encontra as libs prontas.
+
+  window.CODReady(fn):
+  Substitui o DOMContentLoaded nas sections que dependem do GSAP.
+  Chama fn() quando o DOM esta pronto E a decisao de carregar (ou
+  nao) as libs ja foi resolvida. Sem isso, uma section que escuta
+  DOMContentLoaded poderia rodar antes do gsap chegar e cair no
+  fallback sem efeito no desktop.
+
+  html.motion-full / html.motion-lite:
+  Gancho de CSS para quem precisar saber qual modo esta ativo.
+{%- endcomment -%}
+<script>
+  (function () {
+    'use strict';
+
+    var doc = document;
+    var root = doc.documentElement;
+
+    function mq(query) {
+      return !!(window.matchMedia && window.matchMedia(query).matches);
+    }
+
+    // Economia de dados / rede fraca: nunca vale 131 KB de enfeite.
+    var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    var economico = !!(conn && (conn.saveData || /(^|-)(2g|slow-2g)$/.test(conn.effectiveType || '')));
+
+    // Ponteiro fino + tela grande = desktop com mouse. Celular e
+    // tablet tem pointer: coarse e ficam de fora.
+    var completo =
+      mq('(min-width: 1001px)') &&
+      mq('(pointer: fine)') &&
+      !mq('(prefers-reduced-motion: reduce)') &&
+      !economico;
+
+    root.classList.add(completo ? 'motion-full' : 'motion-lite');
+
+    var fila = completo
+      ? [
+          {{ 'gsap.min.js' | asset_url | json }},
+          {{ 'ScrollTrigger.min.js' | asset_url | json }},
+          {{ 'ScrollSmoother.min.js' | asset_url | json }},
+          {{ 'movimento.js' | asset_url | json }}
+        ]
+      : [{{ 'movimento.js' | asset_url | json }}];
+
+    /* ---------------------------------------------------------
+       CODReady: DOM pronto + scripts resolvidos.
+    --------------------------------------------------------- */
+    var scriptsProntos = false;
+    var pendentes = [];
+
+    function domPronto() {
+      return doc.readyState === 'interactive' || doc.readyState === 'complete';
+    }
+
+    function despejar() {
+      if (!scriptsProntos || !domPronto()) return;
+      while (pendentes.length) {
+        try { pendentes.shift()(); } catch (e) {}
+      }
+    }
+
+    window.CODReady = function (fn) {
+      if (typeof fn !== 'function') return;
+      if (scriptsProntos && domPronto()) { fn(); return; }
+      pendentes.push(fn);
+    };
+
+    doc.addEventListener('DOMContentLoaded', despejar);
+
+    /* ---------------------------------------------------------
+       Injecao: todos de uma vez, async = false preserva a ordem
+       de EXECUCAO mesmo com download paralelo.
+    --------------------------------------------------------- */
+    var restantes = fila.length;
+
+    function contar() {
+      restantes -= 1;
+      if (restantes > 0) return;
+      scriptsProntos = true;
+      root.classList.add('motion-loaded');
+      despejar();
+    }
+
+    fila.forEach(function (src) {
+      var s = doc.createElement('script');
+      s.src = src;
+      s.async = false;
+      s.onload = contar;
+      s.onerror = contar; // uma lib que falha nao pode travar a section
+      doc.head.appendChild(s);
+    });
+  })();
+</script>
