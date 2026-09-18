@@ -13,9 +13,13 @@
     (.product-grid, .card-product__*), texto rico (.rte).
 
   OBSERVACOES:
-  Todas as cores e raios usam variaveis CSS do tema com fallback
-  (ex: var(--color-accent, #000)), definidas em
-  snippets/css-variables.liquid.
+  Todas as cores vem dos tokens semanticos definidos em
+  snippets/css-variables.liquid (--color-background, --color-surface,
+  --color-text-*, --color-border, --color-accent, --color-button-*).
+  Nenhum hexadecimal e declarado aqui: trocar a paleta e feito
+  apenas nos tokens.
+  A tipografia vem dos tokens --font-ui-family / --font-display-family,
+  --font-weight-*, --leading-* e --tracking-*, tambem em css-variables.
   Breakpoint mobile em 1000px. Alvos interativos respeitam o
   minimo de 44px (WCAG 2.5.5).
 */
@@ -40,8 +44,8 @@
   left: 0;
   z-index: 9999;
   padding: 12px 20px;
-  color: var(--color-accent-text, #fff);
-  background-color: var(--color-accent, #000);
+  color: var(--color-button-primary-text);
+  background-color: var(--color-button-primary-background);
   border-radius: 0 0 var(--buttons-radius, 4px) 0;
   transition: top 0.15s ease;
 }
@@ -58,7 +62,7 @@ select:focus-visible,
 textarea:focus-visible,
 summary:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid var(--color-accent, #000);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
@@ -70,10 +74,39 @@ summary:focus-visible,
 /* Page width container */
 .page-width {
   width: 100%;
-  max-width: var(--page-width, 1200px);
+  max-width: var(--page-width, 1440px);
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 var(--page-gutter, 24px);
   box-sizing: border-box;
+}
+
+/* ==========================================================
+   Header fixa
+   ==========================================================
+   O fixed vai no WRAPPER da section (.section-header, gerado pelo
+   Shopify via "class" no schema), nao no <header> interno. Motivo:
+   o Shopify envolve cada section num <div class="shopify-section
+   ...">, e qualquer position:sticky/fixed no elemento interno fica
+   preso a esse wrapper — que tem a altura exata da header, ou seja,
+   zero espaco para percorrer. Era por isso que ela rolava embora.
+
+   Como a header sai do fluxo, o <main> reserva o espaco dela. */
+.section-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
+}
+
+.content-for-layout {
+  padding-top: var(--header-height);
+}
+
+/* Ritmo vertical padrao das secoes editoriais */
+.section-space {
+  padding-top: var(--space-section);
+  padding-bottom: var(--space-section);
 }
 
 /* Shared button */
@@ -84,30 +117,53 @@ button.button {
   justify-content: center;
   min-height: 44px;
   padding: 12px 24px;
-  font-family: var(--font-heading-family);
+  font-family: var(--font-ui-family);
   font-size: var(--f2);
-  color: var(--color-accent-text, #fff);
-  background-color: var(--color-accent, #000);
-  border: 1px solid var(--color-accent, #000);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-ui);
+  letter-spacing: var(--tracking-normal);
+  color: var(--color-button-primary-text);
+  background-color: var(--color-button-primary-background);
+  border: 1px solid var(--color-button-primary-background);
   border-radius: var(--buttons-radius, 4px);
   cursor: pointer;
   text-decoration: none;
-  transition: opacity 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .button:hover {
-  opacity: 0.85;
+  color: var(--color-button-primary-text-hover);
+  background-color: var(--color-button-primary-background-hover);
+  border-color: var(--color-button-primary-background-hover);
 }
 
+/* Variante de acento — para UM CTA por página, no máximo.
+   Existe para casos como "entrar no clube"; não é o botão padrão. */
+.button--accent,
+.button--accent:hover {
+  color: var(--color-text-on-accent);
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.button--accent:hover { filter: brightness(1.08); }
+
 .button--secondary {
-  color: var(--color-text, #000);
-  background-color: transparent;
-  border-color: var(--color-border, #c2c2c2);
+  color: var(--color-button-secondary-text);
+  background-color: var(--color-button-secondary-background);
+  border-color: var(--color-button-secondary-border);
+}
+
+.button--secondary:hover {
+  color: var(--color-button-secondary-text);
+  background-color: var(--color-button-secondary-background-hover);
+  border-color: var(--color-button-secondary-border-hover);
 }
 
 .button[disabled],
 .button[aria-disabled="true"] {
-  opacity: 0.5;
+  color: var(--color-text-disabled);
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
   cursor: not-allowed;
 }
 
@@ -118,19 +174,35 @@ textarea.field__input {
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
-  font-family: var(--font-body-family);
+  font-family: var(--font-ui-family);
   font-size: var(--f2);
-  color: var(--color-text, #000);
-  background-color: var(--color-background, #fff);
-  border: 1px solid var(--color-border, #c2c2c2);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--leading-ui);
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--inputs-radius, 4px);
   box-sizing: border-box;
+}
+
+.field__input::placeholder,
+textarea.field__input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.field__input:focus,
+.select__select:focus,
+textarea.field__input:focus {
+  border-color: var(--color-border-strong);
 }
 
 .field__label {
   display: block;
   margin-bottom: 6px;
+  font-family: var(--font-ui-family);
   font-size: var(--f1);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--leading-ui);
 }
 
 /* Minimum touch target for interactive icons (WCAG 2.5.5) */
@@ -140,6 +212,67 @@ textarea.field__input {
   justify-content: center;
   min-width: 44px;
   min-height: 44px;
+}
+
+/* Eyebrow — microcopy de secao (label pequeno, uppercase, tracking).
+   Em ouro: e o ponto onde o acento entra em toda seccao da home,
+   custando uma linha de texto e nenhum volume. */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-ui-family);
+  font-size: var(--f0);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-accent-readable);
+}
+/* Fio de ouro antes do label — detalhe de acabamento, 1px */
+.eyebrow::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.7;
+}
+
+/* Link com seta — CTA discreto, a seta e quem se move no hover */
+.arrow-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-ui-family);
+  font-size: var(--f0);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: opacity 200ms ease;
+}
+.arrow-link svg {
+  width: 14px;
+  height: 14px;
+  color: var(--color-accent-readable);
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.arrow-link:hover svg,
+.arrow-link:focus-visible svg { transform: translateX(4px); }
+
+/* A seta dentro de .button tambem acompanha o hover */
+.button svg { width: 14px; height: 14px; margin-left: 10px; transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1); }
+.button:hover svg { transform: translateX(4px); }
+
+/* Scroll reveal — so age quando ha JS; sem JS o conteudo ja nasce visivel */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 520ms cubic-bezier(0.22, 1, 0.36, 1), transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.js [data-reveal].is-revealed {
+  opacity: 1;
+  transform: none;
 }
 
 /* Product grid */
@@ -161,12 +294,13 @@ textarea.field__input {
 
 /* Product card */
 .card-product__link { text-decoration: none; color: inherit; display: block; }
+.card-product__media-wrap { position: relative; }
 .card-product__media {
   position: relative;
   width: 100%;
   overflow: hidden;
-  border-radius: var(--media-radius, 8px);
-  background-color: var(--color-background-contrast, #f2f3f8);
+  border-radius: var(--media-radius, 0);
+  background-color: var(--color-surface);
 }
 .card-product__image {
   position: absolute;
@@ -175,8 +309,65 @@ textarea.field__input {
   height: 100%;
   object-fit: cover;
 }
-.card-product__image--secondary { opacity: 0; transition: opacity 0.25s ease; }
+.card-product__image {
+  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 400ms ease;
+}
+.card-product__image--secondary { opacity: 0; }
 .card-product:hover .card-product__image--secondary { opacity: 1; }
+/* Zoom de 2% — perceptivel como vida, nunca como efeito */
+.card-product:hover .card-product__image { transform: scale(1.02); }
+
+/* Swatches de cor — so aparecem quando o produto tem swatch real */
+.card-product__swatches {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  list-style: none;
+  padding: 0;
+}
+.card-product__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-strong);
+  background-size: cover;
+  background-position: center;
+}
+.card-product__swatch-more { font-size: var(--f0); color: var(--color-text-muted); }
+
+/* Quick add — discreto, aparece no hover no desktop e fica sempre
+   visivel no toque, onde hover nao existe */
+.card-product__actions { position: absolute; right: 10px; bottom: 10px; z-index: 2; }
+.card-product__quick-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: var(--f3);
+  line-height: 1;
+  color: var(--color-text-primary);
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--buttons-radius, 6px);
+  cursor: pointer;
+  text-decoration: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 240ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1), background-color 200ms ease, color 200ms ease;
+}
+.card-product:hover .card-product__quick-add,
+.card-product__quick-add:focus-visible { opacity: 1; transform: none; }
+.card-product__quick-add:hover {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+@media (hover: none) {
+  .card-product__quick-add { opacity: 1; transform: none; }
+}
 .card-product__badge {
   position: absolute;
   top: 10px;
@@ -184,17 +375,43 @@ textarea.field__input {
   padding: 3px 8px;
   font-size: var(--f0, 0.7rem);
   text-transform: uppercase;
-  color: var(--color-accent-text, #fff);
-  background-color: var(--color-sale, #1cb744);
-  border-radius: 4px;
+  letter-spacing: var(--tracking-label);
+  color: var(--color-text-on-accent);
+  background-color: var(--color-accent);
+  border-radius: 2px;
 }
-.card-product__badge--sold-out { background-color: var(--color-border, #c2c2c2); color: var(--color-text, #000); }
-.card-product__info { padding: 12px 4px; }
-.card-product__vendor { display: block; font-size: var(--f0); opacity: 0.6; margin-bottom: 4px; }
-.card-product__title { font-size: var(--f2); font-weight: normal; margin-bottom: 6px; }
-.price--card { font-size: var(--f2); }
+.card-product__badge--sold-out {
+  color: var(--color-text-secondary);
+  background-color: var(--color-surface-elevated);
+}
+.card-product__info { padding: 16px 0 0; }
+.card-product__vendor { display: block; font-size: var(--f0); text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 4px; }
+.card-product__title {
+  font-family: var(--font-ui-family);
+  font-size: var(--f2);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--leading-ui);
+  letter-spacing: var(--tracking-normal);
+  color: var(--color-text-primary);
+  margin-bottom: 6px;
+}
+.price--card { font-size: var(--f2); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); }
 
 /* Rich text content (RTE) shared styles */
-.rte a { color: var(--color-accent); }
+.rte a { color: var(--color-accent-readable); }
 .rte img { max-width: 100%; height: auto; border-radius: var(--media-radius); }
 .rte ul, .rte ol { padding-left: 1.5em; }
+
+
+/* Respeita quem pediu menos movimento no sistema operacional */
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal],
+  .card-product__image,
+  .card-product__quick-add,
+  .arrow-link svg,
+  .button svg {
+    transition-duration: 0.01ms !important;
+  }
+  .js [data-reveal] { opacity: 1; transform: none; }
+  .card-product:hover .card-product__image { transform: none; }
+}

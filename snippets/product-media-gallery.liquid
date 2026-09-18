@@ -47,6 +47,7 @@
   .product__info { width: 45%; }
   .product__vendor {
     font-size: var(--f1);
+    text-transform: uppercase;
     color: var(--color-text);
     opacity: 0.7;
     margin-bottom: 8px;
@@ -55,12 +56,25 @@
     font-size: var(--f6);
     margin-bottom: 16px;
   }
+  .product__option-name,
+  .product__unit-price,
+  .product__tax {
+    font-family: var(--font-ui-family);
+    line-height: var(--leading-ui);
+  }
   .product__price { margin-bottom: 20px; }
   .product__unit-price,
   .product__tax { font-size: var(--f1); opacity: 0.7; margin-top: 6px; }
-  .product__description { margin: 24px 0; line-height: 1.6; }
+  .product__description { margin: 24px 0; line-height: var(--leading-body); }
   .product__option { border: 0; padding: 0; margin: 0 0 20px; }
-  .product__option-name { display: block; font-size: var(--f1); margin-bottom: 8px; }
+  .product__option-name {
+    display: block;
+    font-size: var(--f1);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
   .product__swatch {
     display: inline-flex;
     align-items: center;
@@ -94,12 +108,16 @@
     width: 44px; height: 44px;
     background: none; border: none; cursor: pointer;
     font-size: var(--f3);
+    font-family: var(--font-ui-family);
   }
   .quantity__input {
     width: 56px; height: 44px;
     text-align: center; border: none;
     -moz-appearance: textfield;
+    font-family: var(--font-ui-family);
     font-size: var(--f2);
+    font-weight: var(--font-weight-medium);
+    font-variant-numeric: tabular-nums;
   }
   .quantity__input::-webkit-outer-spin-button,
   .quantity__input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -110,13 +128,14 @@
 
   .price { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: var(--f5); }
   .price__compare { opacity: 0.6; font-size: var(--f3); }
-  .price__sale { color: var(--color-sale); }
+  .price__sale { color: var(--color-text-primary); }
   .price__badge {
     font-size: var(--f0);
     padding: 2px 8px;
-    color: var(--color-accent-text);
-    background-color: var(--color-sale);
-    border-radius: 4px;
+    letter-spacing: var(--tracking-label);
+    color: var(--color-text-on-accent);
+    background-color: var(--color-accent);
+    border-radius: 2px;
     text-transform: uppercase;
   }
 

@@ -15,11 +15,16 @@
   - Open Graph / JSON-LD e demais tags via {% render 'meta-tags' %}.
   - CSS: index.css (ponto de entrada) + css-variables (variaveis
     do tema geradas pelas settings).
-  - Scripts: troca no-js -> js e carrega carrinho.js (defer).
+  - Scripts: troca no-js -> js e carrega carrinho.js e revelar.js
+    (ambos defer).
   - {{ content_for_header }}: scripts obrigatorios do Shopify.
 
   NO <body> temos:
-  - Skip link de acessibilidade e snippets globais (alerta, carrinho).
+  - Skip link de acessibilidade, snippet global de alertas e a
+    section 'cart-drawer' (fixa, fora do fluxo — precisa ser uma
+    section ESTÁTICA do layout para a Section Rendering API do
+    Shopify conseguir devolver o HTML dela em /cart/add.js e
+    /cart/change.js sem reload).
   - Section groups do topo (header-group) e rodape (footer-group),
     editaveis pelo lojista no editor de temas.
   - {{ content_for_layout }}: aqui entra o conteudo especifico de
@@ -31,7 +36,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-    <meta name="theme-color" content="{{ settings.color_accent }}">
+    <meta name="theme-color" content="{{ settings.color_dark_background | default: '#0D0D0D' }}">
     <link rel="canonical" href="{{ canonical_url }}">
 
     {%- if settings.favicon != blank -%}
@@ -57,6 +62,7 @@
 
     <script>document.documentElement.className = document.documentElement.className.replace('no-js', 'js');</script>
     <script src="{{ 'carrinho.js' | asset_url }}" defer="defer"></script>
+    <script src="{{ 'revelar.js' | asset_url }}" defer="defer"></script>
 
     {{ content_for_header }}
   </head>
@@ -67,9 +73,9 @@
     </a>
 
     {% render 'alerta' %}
-    {% render 'carrinho' %}
 
     {% sections 'header-group' %}
+    {% section 'cart-drawer' %}
 
     <main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
       {{ content_for_layout }}

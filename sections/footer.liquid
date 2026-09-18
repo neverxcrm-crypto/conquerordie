@@ -6,8 +6,8 @@
   O QUE FAZ:
   Renderiza o rodapé da loja em duas faixas: a superior com blocks
   configuráveis (marca, menu, texto e newsletter) e a inferior com
-  seletor de localização, ícones de pagamento, redes sociais e o
-  copyright/crédito.
+  seletor de localização, ícones de pagamento, redes sociais,
+  políticas da loja e o copyright/crédito.
 
   ONDE É USADA:
   No layout (layout/theme.liquid), como footer presente em todas
@@ -15,23 +15,32 @@
 
   PRINCIPAIS PARTES:
   - footer__top: loop de section.blocks (case block.type) montando
-    cada bloco — 'brand' (logo ou nome + texto), 'menu' (heading +
-    link_list), 'text' (heading + richtext) e 'newsletter' (heading
-    + snippet 'newsletter-form').
-  - footer__bottom: seletor de localização (snippet
-    'localization-form'), ícones de pagamento gerados de
+    cada bloco — 'brand' (logo ou nome + texto/manifesto), 'menu'
+    (heading + link_list — use vários para agrupar Shop/Suporte/
+    Legal), 'text' (heading + richtext) e 'newsletter' (heading +
+    snippet 'newsletter-form'). Blocos 'menu' e 'text' viram um
+    <details> acessível: no mobile funcionam como accordion; a
+    partir de 1001px o CSS força a exibição aberta (ver <style>).
+  - footer__bottom: ícones de pagamento gerados de
     shop.enabled_payment_types, redes sociais (Instagram/Facebook/
-    LinkedIn a partir dos settings globais social_*_link) e o
-    copyright com o crédito da base (link lecdt.com).
+    LinkedIn a partir dos settings globais social_*_link), links
+    de políticas da loja (shop.policies — só aparecem se a loja
+    tiver a política configurada) e o copyright com o crédito da
+    base (link lecdt.com).
 
   OBSERVAÇÕES:
   - Ícones de pagamento saem automaticamente das formas de
     pagamento habilitadas na loja (payment_type_svg_tag).
-  - Toggles no schema: show_social, show_payment_icons e
-    enable_localization.
+  - Toggles no schema: show_social e show_payment_icons.
+  - Loja só no Brasil: não há seletor de país/idioma/moeda.
   - Links de redes sociais vêm dos settings globais do tema
-    (settings.social_*_link), não do schema desta section.
-  - Ícones de redes vêm do snippet 'icon'.
+    (settings.social_*_link — Instagram, TikTok, YouTube, X,
+    Facebook, LinkedIn), não do schema desta section. Cada ícone só
+    aparece se o link estiver preenchido.
+  - Links de políticas (Termos, Privacidade, Reembolso, Envio) vêm
+    de shop.policies — objeto nativo do Shopify — e não são
+    inventados: só renderizam se a loja configurou a política.
+  - Ícones de redes/UI vêm do snippet 'icon'.
 {%- endcomment -%}
 <footer class="footer" data-section-id="{{ section.id }}">
   <div class="footer__top page-width">
@@ -46,23 +55,26 @@
                 | image_tag:
                   class: 'footer__logo',
                   widths: '150, 300, 400',
-                  width: 150,
-                  height: 150 | divided_by: block.settings.logo.aspect_ratio,
+                  width: 160,
+                  height: 160 | divided_by: block.settings.logo.aspect_ratio,
                   alt: shop.name | escape
               }}
             {%- else -%}
               <p class="footer__brand-name">{{ shop.name }}</p>
             {%- endif -%}
             {%- if block.settings.text != blank -%}
-              <div class="footer__text rte">{{ block.settings.text }}</div>
+              <div class="footer__text footer__statement rte">{{ block.settings.text }}</div>
             {%- endif -%}
           </div>
 
         {%- when 'menu' -%}
-          <div class="footer__block footer__block--menu" {{ block.shopify_attributes }}>
-            {%- if block.settings.heading != blank -%}
-              <h2 class="footer__heading">{{ block.settings.heading | escape }}</h2>
-            {%- endif -%}
+          <details class="footer__block footer__block--menu footer__accordion" open {{ block.shopify_attributes }}>
+            <summary class="footer__accordion-toggle">
+              {%- if block.settings.heading != blank -%}
+                <h2 class="footer__heading">{{ block.settings.heading | escape }}</h2>
+              {%- endif -%}
+              <span class="footer__accordion-icon">{% render 'icon', name: 'chevron' %}</span>
+            </summary>
             {%- if block.settings.menu != blank -%}
               <ul class="footer__menu" role="list">
                 {%- for link in block.settings.menu.links -%}
@@ -70,17 +82,20 @@
                 {%- endfor -%}
               </ul>
             {%- endif -%}
-          </div>
+          </details>
 
         {%- when 'text' -%}
-          <div class="footer__block footer__block--text" {{ block.shopify_attributes }}>
-            {%- if block.settings.heading != blank -%}
-              <h2 class="footer__heading">{{ block.settings.heading | escape }}</h2>
-            {%- endif -%}
+          <details class="footer__block footer__block--text footer__accordion" open {{ block.shopify_attributes }}>
+            <summary class="footer__accordion-toggle">
+              {%- if block.settings.heading != blank -%}
+                <h2 class="footer__heading">{{ block.settings.heading | escape }}</h2>
+              {%- endif -%}
+              <span class="footer__accordion-icon">{% render 'icon', name: 'chevron' %}</span>
+            </summary>
             {%- if block.settings.text != blank -%}
               <div class="footer__text rte">{{ block.settings.text }}</div>
             {%- endif -%}
-          </div>
+          </details>
 
         {%- when 'newsletter' -%}
           <div class="footer__block footer__block--newsletter" {{ block.shopify_attributes }}>
@@ -95,13 +110,6 @@
 
   <div class="footer__bottom page-width">
     <div class="footer__bottom-left">
-      {%- if section.settings.enable_localization -%}
-        {% render 'localization-form',
-          section_id: section.id,
-          show_country: true,
-          show_language: true
-        %}
-      {%- endif -%}
       {%- if section.settings.show_payment_icons and shop.enabled_payment_types.size > 0 -%}
         <ul class="footer__payment" role="list" aria-label="{{ 'sections.footer.payment' | t }}">
           {%- for type in shop.enabled_payment_types -%}
@@ -120,41 +128,140 @@
           {%- if settings.social_facebook_link != blank -%}
             <li><a href="{{ settings.social_facebook_link }}" aria-label="Facebook" rel="noopener" target="_blank">{% render 'icon', name: 'facebook' %}</a></li>
           {%- endif -%}
+          {%- if settings.social_tiktok_link != blank -%}
+            <li><a href="{{ settings.social_tiktok_link }}" aria-label="TikTok" rel="noopener" target="_blank">{% render 'icon', name: 'tiktok' %}</a></li>
+          {%- endif -%}
+          {%- if settings.social_youtube_link != blank -%}
+            <li><a href="{{ settings.social_youtube_link }}" aria-label="YouTube" rel="noopener" target="_blank">{% render 'icon', name: 'youtube' %}</a></li>
+          {%- endif -%}
+          {%- if settings.social_x_link != blank -%}
+            <li><a href="{{ settings.social_x_link }}" aria-label="X" rel="noopener" target="_blank">{% render 'icon', name: 'x' %}</a></li>
+          {%- endif -%}
           {%- if settings.social_linkedin_link != blank -%}
             <li><a href="{{ settings.social_linkedin_link }}" aria-label="LinkedIn" rel="noopener" target="_blank">{% render 'icon', name: 'linkedin' %}</a></li>
           {%- endif -%}
         </ul>
       {%- endif -%}
+
       <p class="footer__copyright">
         &copy; {{ 'now' | date: '%Y' }} {{ shop.name }}. {{ 'sections.footer.rights' | t }}
         <span class="footer__credit">
           {{ 'sections.footer.base_by_html' | t: link: 'https://lecdt.com' }}
         </span>
       </p>
+
+      {%- assign has_policy = false -%}
+      {%- if shop.policies.privacy_policy.url != blank
+        or shop.policies.terms_of_service.url != blank
+        or shop.policies.refund_policy.url != blank
+        or shop.policies.shipping_policy.url != blank
+      -%}
+        {%- assign has_policy = true -%}
+      {%- endif -%}
+      {%- if has_policy -%}
+        <ul class="footer__legal" role="list">
+          {%- if shop.policies.terms_of_service.url != blank -%}
+            <li><a href="{{ shop.policies.terms_of_service.url }}">{{ shop.policies.terms_of_service.title }}</a></li>
+          {%- endif -%}
+          {%- if shop.policies.privacy_policy.url != blank -%}
+            <li><a href="{{ shop.policies.privacy_policy.url }}">{{ shop.policies.privacy_policy.title }}</a></li>
+          {%- endif -%}
+          {%- if shop.policies.refund_policy.url != blank -%}
+            <li><a href="{{ shop.policies.refund_policy.url }}">{{ shop.policies.refund_policy.title }}</a></li>
+          {%- endif -%}
+          {%- if shop.policies.shipping_policy.url != blank -%}
+            <li><a href="{{ shop.policies.shipping_policy.url }}">{{ shop.policies.shipping_policy.title }}</a></li>
+          {%- endif -%}
+        </ul>
+      {%- endif -%}
     </div>
   </div>
 </footer>
 
 <style>
+  /* ==========================================================
+     Footer — editorial, preto absoluto, respirado. A profundidade
+     vem das superfícies internas (campos, blocos) e do fio de ouro
+     acima da faixa inferior, nunca de clarear o fundo.
+     ========================================================== */
   .footer {
-    background-color: var(--color-background-contrast);
-    color: var(--color-text-contrast);
-    margin-top: var(--spacing-sections);
+    /* Preto absoluto, igual ao header. A separação entre rodapé e
+       página vem do fio de ouro e do espaço, não de clarear o fundo. */
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+    margin-top: 0;
   }
   .footer__top {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 40px;
-    padding-top: 48px;
+    grid-template-columns: minmax(220px, 1.3fr) repeat(auto-fit, minmax(160px, 1fr));
+    gap: 48px;
+    padding-top: 64px;
     padding-bottom: 48px;
   }
-  .footer__logo { display: block; height: auto; margin-bottom: 16px; }
-  .footer__brand-name { font-family: var(--font-heading-family); font-size: var(--f4); margin-bottom: 12px; }
-  .footer__heading { font-size: var(--f2); margin-bottom: 16px; }
+
+  /* Marca / manifesto */
+  .footer__logo { display: block; height: auto; margin-bottom: 20px; }
+  .footer__brand-name {
+    font-size: var(--f4);
+    margin-bottom: 20px;
+  }
+  .footer__statement {
+    color: var(--color-text-secondary);
+    max-width: 40ch;
+  }
+
+  /* Headings + accordion (aberto por padrao; vira toggle so no mobile) */
+  .footer__heading {
+    font-size: var(--f1);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-label);
+    margin: 0;
+  }
+  .footer__accordion-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    list-style: none;
+    cursor: default;
+    margin-bottom: 16px;
+  }
+  .footer__accordion-toggle::-webkit-details-marker,
+  .footer__accordion-toggle::marker { display: none; content: ''; }
+  .footer__accordion-icon { display: none; color: var(--color-text-muted); transition: transform 200ms ease; }
+
   .footer__menu { list-style: none; margin: 0; padding: 0; }
-  .footer__link { display: inline-block; padding: 6px 0; color: inherit; text-decoration: none; font-size: var(--f1); }
-  .footer__link:hover { text-decoration: underline; }
-  .footer__text { font-size: var(--f1); line-height: 1.6; }
+  .footer__link {
+    display: inline-block;
+    padding: 6px 0;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    font-size: var(--f1);
+    transition: color 200ms ease;
+  }
+  .footer__link:hover { color: var(--color-text-primary); text-decoration: underline; }
+  .footer__text { font-size: var(--f1); line-height: var(--leading-body); color: var(--color-text-secondary); }
+
+  /* Newsletter — faixa horizontal, sem card destacado */
+  .footer__block--newsletter { align-self: start; }
+  .footer__block--newsletter .newsletter-form__field .field__input {
+    background-color: transparent;
+    border-width: 0 0 1px 0;
+    border-radius: 0;
+    padding-left: 0;
+  }
+  .footer__block--newsletter .newsletter-form__button {
+    background-color: transparent;
+    color: var(--color-text-primary);
+    border-color: var(--color-border-strong);
+  }
+  .footer__block--newsletter .newsletter-form__button:hover {
+    background-color: var(--color-text-primary);
+    color: var(--color-background);
+  }
+
+  /* Rodape inferior — discreto, com divisor sutil */
   .footer__bottom {
     display: flex;
     align-items: center;
@@ -162,21 +269,52 @@
     flex-wrap: wrap;
     gap: 16px;
     padding-top: 24px;
-    padding-bottom: 24px;
-    border-top: 1px solid var(--color-border);
+    padding-bottom: 32px;
+    /* Fio de ouro a 55% de opacidade: fecha o rodapé com acabamento,
+       sem acender uma linha dourada gritante na largura toda. */
+    border-top: 1px solid var(--color-border-accent);
   }
   .footer__bottom-left,
   .footer__bottom-right { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
   .footer__payment { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
   .footer__payment-icon { width: 38px; height: 24px; }
-  .footer__social { display: flex; gap: 12px; list-style: none; margin: 0; padding: 0; }
-  .footer__social a { color: inherit; display: inline-flex; }
-  .footer__copyright { font-size: var(--f0); }
+  .footer__social { display: flex; gap: 16px; list-style: none; margin: 0; padding: 0; }
+  .footer__social a {
+    color: var(--color-text-secondary);
+    display: inline-flex;
+    transition: color 200ms ease, transform 200ms ease;
+  }
+  .footer__social a:hover { color: var(--color-text-primary); transform: translateY(-2px); }
+  .footer__social svg { width: 18px; height: 18px; }
+
+  .footer__legal { display: flex; gap: 16px; list-style: none; margin: 0; padding: 0; }
+  .footer__legal a {
+    font-size: var(--f0);
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color 200ms ease;
+  }
+  .footer__legal a:hover { color: var(--color-text-primary); text-decoration: underline; }
+
+  .footer__copyright { font-size: var(--f0); color: var(--color-text-muted); }
   .footer__credit a { color: inherit; text-decoration: underline; }
-  .footer__credit a:hover { color: var(--color-accent); }
+  .footer__credit a:hover { color: var(--color-accent-readable); }
 
   @media screen and (max-width: 1000px) {
+    .footer__top { grid-template-columns: 1fr; gap: 0; padding-top: 40px; }
+    .footer__block { padding: 20px 0; border-top: 1px solid var(--color-border); }
+    .footer__block--brand { border-top: none; padding-top: 0; }
+    .footer__accordion-toggle { cursor: pointer; margin-bottom: 0; }
+    .footer__accordion[open] .footer__accordion-toggle { margin-bottom: 16px; }
+    .footer__accordion-icon { display: inline-flex; }
+    .footer__accordion[open] .footer__accordion-icon { transform: rotate(180deg); }
     .footer__bottom { flex-direction: column; align-items: flex-start; }
+  }
+
+  /* A partir de 1001px, os accordions ficam sempre visiveis —
+     o <details> continua funcional apenas como marcacao semantica. */
+  @media screen and (min-width: 1001px) {
+    .footer__accordion > *:not(summary) { display: block !important; }
   }
 </style>
 
@@ -220,8 +358,7 @@
   ],
   "settings": [
     { "type": "checkbox", "id": "show_social", "default": true, "label": "t:sections.footer.settings.show_social.label" },
-    { "type": "checkbox", "id": "show_payment_icons", "default": true, "label": "t:sections.footer.settings.show_payment_icons.label" },
-    { "type": "checkbox", "id": "enable_localization", "default": true, "label": "t:sections.footer.settings.enable_localization.label" }
+    { "type": "checkbox", "id": "show_payment_icons", "default": true, "label": "t:sections.footer.settings.show_payment_icons.label" }
   ],
   "presets": [
     {

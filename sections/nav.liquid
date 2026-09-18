@@ -1,39 +1,10 @@
 {%- comment -%}
   ============================================================
-  NAV / HEADER — cabeçalho do site
+  NAV / HEADER — Versão Otimizada (UI/UX Elite)
   ============================================================
-
-  O QUE FAZ:
-  Monta o cabeçalho da loja: logo, navegação de múltiplos níveis
-  (menu com submenus e sub-submenus), busca, link de conta,
-  contador do carrinho e seletores de localização (país/moeda e
-  idioma). Inclui menu mobile com botão hambúrguer.
-
-  ONDE É USADA:
-  No layout (layout/theme.liquid), como header fixo presente em
-  todas as páginas. É uma section de grupo/header do tema.
-
-  PRINCIPAIS PARTES:
-  - Logo: usa settings.logo (imagem) ou, se vazio, o nome da loja
-    (shop.name) como texto.
-  - header__nav: percorre section.settings.menu.links montando o
-    menu desktop com até 3 níveis (link > child > grandchild).
-  - header__actions: busca (details com painel), conta (só se
-    customer_accounts_enabled) e carrinho com contador
-    data-cart-count baseado em cart.item_count.
-  - Localização: renderiza o snippet 'localization-form' conforme
-    os settings enable_country_selector / enable_language_selector.
-  - header__mobile-nav: menu alternativo para telas <= 1000px,
-    aberto/fechado pelo <script> que alterna aria-expanded/hidden.
-
-  OBSERVAÇÕES:
-  - Ícones vêm do snippet 'icon' (search, account, cart, etc.).
-  - O menu é definido no setting menu (link_list, default
-    "main-menu"); submenus só aparecem se o link tiver filhos.
-  - Estilos e o JS do toggle mobile ficam inline neste arquivo.
 {%- endcomment -%}
-<header class="header page-width" data-section-id="{{ section.id }}" data-scroll-header>
-  <div class="header__inner">
+<header class="header" data-section-id="{{ section.id }}">
+  <div class="header__inner page-width">
     <button
       type="button"
       class="header__menu-toggle tap-target"
@@ -70,7 +41,7 @@
         {%- for link in section.settings.menu.links -%}
           <li class="header__menu-item {% if link.links != blank %}header__menu-item--has-dropdown{% endif %}">
             <a href="{{ link.url }}" class="header__menu-link" {% if link.current %}aria-current="page"{% endif %}>
-              {{ link.title | escape }}
+              <span class="header__menu-link-text">{{ link.title | escape }}</span>
             </a>
             {%- if link.links != blank -%}
               <ul class="header__submenu" role="list">
@@ -106,7 +77,7 @@
               value="{{ search.terms | escape }}"
               placeholder="{{ 'general.search.placeholder' | t }}"
               aria-label="{{ 'general.search.search' | t }}"
-              class="field__input"
+              class="field__input header__search-input"
             >
             <button type="submit" class="visually-hidden">{{ 'general.search.submit' | t }}</button>
           </form>
@@ -119,35 +90,41 @@
         </a>
       {%- endif -%}
 
-      <a href="{{ routes.cart_url }}" class="header__action-button header__cart tap-target" aria-label="{{ 'templates.cart.cart' | t }}">
+      <a
+        href="{{ routes.cart_url }}"
+        class="header__action-button header__cart tap-target"
+        aria-label="{{ 'templates.cart.cart' | t }}"
+        data-cart-open
+      >
         {% render 'icon', name: 'cart' %}
-        <span class="header__cart-count" data-cart-count>{{ cart.item_count }}</span>
+        <span class="header__cart-count" data-cart-count {% if cart.item_count == 0 %}hidden{% endif %}>{{ cart.item_count }}</span>
       </a>
     </div>
   </div>
-
-  {%- if section.settings.enable_country_selector or section.settings.enable_language_selector -%}
-    <div class="header__localization">
-      {% render 'localization-form',
-        section_id: section.id,
-        show_country: section.settings.enable_country_selector,
-        show_language: section.settings.enable_language_selector
-      %}
-    </div>
-  {%- endif -%}
 </header>
 
-<div class="header__mobile-nav" id="MobileNav-{{ section.id }}" hidden>
+<div class="header__scrim" data-mobile-scrim hidden></div>
+
+<div class="header__mobile-nav" id="MobileNav-{{ section.id }}" role="dialog" aria-modal="true" aria-label="{{ 'sections.header.menu' | t }}" hidden>
   <ul class="header__mobile-menu" role="list">
     {%- for link in section.settings.menu.links -%}
-      <li>
-        <a href="{{ link.url }}" class="header__mobile-link">{{ link.title | escape }}</a>
+      <li class="header__mobile-item" style="--item-index: {{ forloop.index }};">
         {%- if link.links != blank -%}
-          <ul role="list" class="header__mobile-submenu">
-            {%- for child in link.links -%}
-              <li><a href="{{ child.url }}" class="header__mobile-link header__mobile-link--child">{{ child.title | escape }}</a></li>
-            {%- endfor -%}
-          </ul>
+          <details class="header__mobile-details">
+            <summary class="header__mobile-link header__mobile-link--summary">
+              <span>{{ link.title | escape }}</span>
+              <span class="header__mobile-chevron">
+                <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+            </summary>
+            <ul role="list" class="header__mobile-submenu">
+              {%- for child in link.links -%}
+                <li><a href="{{ child.url }}" class="header__mobile-link header__mobile-link--child">{{ child.title | escape }}</a></li>
+              {%- endfor -%}
+            </ul>
+          </details>
+        {%- else -%}
+          <a href="{{ link.url }}" class="header__mobile-link" {% if link.current %}aria-current="page"{% endif %}>{{ link.title | escape }}</a>
         {%- endif -%}
       </li>
     {%- endfor -%}
@@ -155,173 +132,325 @@
 </div>
 
 <style>
+  /* Base Header & Efeito de Transição Avançado */
+  .header {
+    position: relative;
+    z-index: 3;
+    background-color: var(--color-background);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition:
+      background-color 450ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 450ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 450ms cubic-bezier(0.16, 1, 0.3, 1),
+      backdrop-filter 450ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Glassmorphism de Alta Definição com Brilho Especular */
+  .header--scrolled {
+    background-color: var(--color-overlay, rgba(12, 12, 15, 0.72));
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 
+      0 16px 36px -10px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .header--scrolled { background-color: var(--color-background); }
+  }
+
   .header__inner {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 20px;
-    padding: 16px 0;
+    gap: 24px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    transition: padding 450ms cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .header {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    transition: background-color 0.45s ease, box-shadow 0.45s ease, backdrop-filter 0.45s ease;
+
+  .header--scrolled .header__inner {
+    padding-top: 12px;
+    padding-bottom: 12px;
   }
-  .header::before {
-    content: '';
-    position: absolute;
-    z-index: -1;
-    inset: 0 calc((var(--page-width) - 100vw) / 2);
-    background: color-mix(in srgb, var(--color-background) 86%, transparent);
-    opacity: 0;
-    transition: opacity 0.45s ease, background 0.45s ease;
-    pointer-events: none;
+
+  .header__logo-image,
+  .header__logo-text {
+    display: block;
+    transform-origin: left center;
+    transition: transform 450ms cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .header[data-scrolled='true'] {
-    background-color: color-mix(in srgb, var(--color-background) 72%, transparent);
-    box-shadow: 0 12px 36px rgb(0 0 0 / 10%);
-    backdrop-filter: blur(18px) saturate(135%);
-    -webkit-backdrop-filter: blur(18px) saturate(135%);
-  }
-  .header[data-scrolled='true']::before { opacity: 1; }
+
   .header__logo-link {
     position: relative;
     isolation: isolate;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex: 0 0 auto;
     padding: 5px 9px;
     color: var(--color-text);
     text-decoration: none;
-    transition: transform 0.45s cubic-bezier(.22, 1, .36, 1), filter 0.45s ease;
+    transition: transform 450ms cubic-bezier(0.16, 1, 0.3, 1), filter 450ms ease;
   }
   .header__logo-link:hover { transform: translateY(-1px); }
   .header__logo-aura {
     position: absolute;
     z-index: -1;
-    width: 112%;
-    height: 145%;
+    width: 122%;
+    height: 155%;
     border-radius: 50%;
-    background: radial-gradient(ellipse, rgb(214 166 64 / 68%) 0%, rgb(214 166 64 / 22%) 38%, transparent 72%);
+    background: radial-gradient(ellipse, rgb(214 166 64 / 72%) 0%, rgb(214 166 64 / 24%) 38%, transparent 72%);
     opacity: 0;
-    filter: blur(9px);
-    transform: scale(.65);
-    transition: opacity 0.55s ease, transform 0.55s cubic-bezier(.22, 1, .36, 1);
+    filter: blur(10px);
+    transform: scale(.62);
+    transition: opacity 550ms ease, transform 550ms cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: none;
   }
-  .header[data-scrolled='true'] .header__logo-aura {
+  .header--scrolled .header__logo-aura {
     opacity: 1;
     transform: scale(1);
   }
+
   .header__logo-image {
-    display: block;
+    max-height: 38px;
     width: auto;
-    max-width: min(220px, 28vw);
     height: auto;
-    filter: drop-shadow(0 2px 9px rgb(0 0 0 / 16%));
-    transition: filter 0.45s ease, transform 0.45s ease;
+    filter: drop-shadow(0 2px 9px rgb(0 0 0 / 18%));
+    transition: transform 450ms cubic-bezier(0.16, 1, 0.3, 1), filter 450ms ease;
   }
-  .header[data-scrolled='true'] .header__logo-image {
-    filter: drop-shadow(0 3px 12px rgb(214 166 64 / 42%));
+
+  .header__logo-text { 
+    font-size: var(--f3); 
+    font-weight: var(--font-weight-bold, 700);
+    letter-spacing: -0.02em;
+    line-height: 32px; 
   }
-  .header__logo-text { font-family: var(--font-heading-family); font-size: var(--f4); }
-  .header__nav { flex: 1; }
+
+  .header--scrolled .header__logo-image,
+  .header--scrolled .header__logo-text {
+    transform: scale(0.88);
+  }
+  .header--scrolled .header__logo-image {
+    filter: drop-shadow(0 3px 13px rgb(214 166 64 / 46%));
+  }
+
+  /* Desktop Menu Interativo */
+  .header__nav { flex: 1; display: flex; justify-content: center; }
   .header__menu {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 36px;
     margin: 0;
     padding: 0;
     list-style: none;
   }
   .header__menu-item { position: relative; }
-  .header__menu-link,
-  .header__submenu-link {
-    font-family: var(--font-heading-family);
-    font-size: var(--f2);
+
+  .header__menu-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 0;
+    font-family: var(--font-ui-family);
+    font-size: var(--f1);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--leading-ui);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
     color: var(--color-text);
     text-decoration: none;
-    padding: 8px 0;
-    display: inline-block;
-    transition: color 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0.8;
+    transition: opacity 250ms ease, transform 250ms ease;
   }
+
+  .header__menu-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 2px;
+    width: 100%;
+    height: 2px;
+    background-color: var(--color-text);
+    transform: scaleX(0);
+    transform-origin: right center;
+    transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-radius: 2px;
+  }
+
   .header__menu-link:hover,
-  .header__menu-link:focus-visible { color: var(--color-accent); transform: translateY(-1px); }
+  .header__menu-link:focus-visible {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+
+  .header__menu-link:hover::after,
+  .header__menu-link:focus-visible::after {
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+
+  .header__menu-link[aria-current='page'] { 
+    opacity: 1; 
+    font-weight: var(--font-weight-semibold, 600);
+  }
+
+  .header__menu-link[aria-current='page']::after {
+    transform: scaleX(1);
+    background-color: var(--color-accent);
+    height: 2px;
+  }
+
+  /* Dropdown Flutuante Otimizado */
   .header__submenu {
     position: absolute;
-    top: 100%;
-    left: 0;
-    min-width: 200px;
+    top: calc(100% + 8px);
+    left: -12px;
+    min-width: 220px;
     margin: 0;
-    padding: 8px 0;
+    padding: 10px;
     list-style: none;
-    background-color: var(--color-background);
-    border: 1px solid var(--color-border);
-    border-radius: var(--inputs-radius);
+    background-color: var(--color-surface, rgba(20, 20, 24, 0.95));
+    border: 1px solid var(--color-border-strong, rgba(255, 255, 255, 0.1));
+    border-radius: calc(var(--inputs-radius) + 4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(16px);
     opacity: 0;
     visibility: hidden;
-    transform: translateY(6px);
-    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+    transform: translateY(10px) scale(0.98);
+    transition: opacity 220ms ease, transform 220ms cubic-bezier(0.16, 1, 0.3, 1), visibility 220ms;
     z-index: 20;
   }
-  .header__submenu--nested { top: 0; left: 100%; }
+
+  .header__submenu--nested { top: -10px; left: calc(100% + 8px); }
+
   .header__menu-item--has-dropdown:hover > .header__submenu,
   .header__menu-item--has-dropdown:focus-within > .header__submenu,
   .header__submenu-item--has-dropdown:hover > .header__submenu,
   .header__submenu-item--has-dropdown:focus-within > .header__submenu {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
+
   .header__submenu-item { position: relative; }
-  .header__submenu-link { padding: 6px 16px; width: 100%; }
+  .header__submenu-link {
+    display: block;
+    padding: 10px 14px;
+    width: 100%;
+    font-size: var(--f1);
+    color: var(--color-text);
+    text-decoration: none;
+    border-radius: var(--inputs-radius);
+    opacity: 0.85;
+    transition: opacity 200ms ease, background-color 200ms ease, transform 200ms ease;
+  }
+
+  .header__submenu-link:hover { 
+    opacity: 1; 
+    background-color: var(--color-surface-elevated, rgba(255, 255, 255, 0.08)); 
+    transform: translateX(4px);
+  }
+
+  /* Botões de Ação & Animações */
   .header__actions { display: flex; align-items: center; gap: 8px; }
   .header__action-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     position: relative;
+    width: 40px;
+    height: 40px;
     color: var(--color-text);
-    background: none;
+    background: transparent;
     border: none;
+    border-radius: 50%;
     cursor: pointer;
     text-decoration: none;
-    transition: color 0.3s ease, transform 0.3s ease;
+    opacity: 0.85;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 200ms ease, background-color 200ms ease, transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
+
   .header__action-button:hover,
-  .header__action-button:focus-visible { color: var(--color-accent); transform: translateY(-1px); }
-  .header__action-button svg { width: 22px; height: 22px; }
+  .header__action-button:focus-visible {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.06);
+    transform: scale(1.12);
+  }
+
+  .header__action-button:active {
+    transform: scale(0.92);
+  }
+
   .header__cart-count {
     position: absolute;
-    top: 2px;
-    right: 2px;
+    top: 4px;
+    right: 4px;
     min-width: 18px;
     height: 18px;
-    padding: 0 4px;
-    font-size: 11px;
+    padding: 0 5px;
+    font-family: var(--font-ui-family);
+    font-size: 10px;
+    font-weight: 700;
     line-height: 18px;
     text-align: center;
-    color: var(--color-accent-text);
-    background-color: var(--color-accent);
+    color: var(--color-text-on-accent, #fff);
+    background-color: var(--color-accent, #0071e3);
     border-radius: 9px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    animation: cartPulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
   }
+
+  @keyframes cartPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+  }
+
+  /* Painel de Busca Animado */
   .header__search { position: relative; }
-  .header__search summary { list-style: none; }
+  .header__search summary { list-style: none; cursor: pointer; }
   .header__search summary::-webkit-details-marker { display: none; }
+  .header__search[open] .header__search-panel {
+    animation: searchExpand 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes searchExpand {
+    from { opacity: 0; transform: translateY(8px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
   .header__search-panel {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 12px);
     right: 0;
     width: 320px;
     max-width: 90vw;
-    padding: 12px;
-    background-color: var(--color-background);
-    border: 1px solid var(--color-border);
-    border-radius: var(--inputs-radius);
+    padding: 8px;
+    background-color: var(--color-surface, #1c1c1e);
+    border: 1px solid var(--color-border-strong, rgba(255, 255, 255, 0.12));
+    border-radius: calc(var(--inputs-radius) + 4px);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
     z-index: 20;
   }
+
+  .header__search-input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: var(--inputs-radius);
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid transparent;
+    color: var(--color-text);
+    outline: none;
+    transition: border-color 200ms ease, background-color 200ms ease;
+  }
+
+  .header__search-input:focus {
+    border-color: var(--color-accent);
+    background-color: transparent;
+  }
+
+  /* Mobile Hamburguer Transição Morfólogica */
   .header__menu-toggle { display: none; background: none; border: none; }
   .header__burger,
   .header__burger::before,
@@ -330,59 +459,197 @@
     width: 22px;
     height: 2px;
     background-color: var(--color-text);
-    transition: transform 0.2s ease;
+    border-radius: 2px;
+    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), top 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease;
   }
   .header__burger { position: relative; }
   .header__burger::before { content: ''; position: absolute; top: -7px; }
   .header__burger::after { content: ''; position: absolute; top: 7px; }
-  .header__mobile-nav {
-    padding: 16px 20px;
-    border-top: 1px solid var(--color-border);
+  .header__menu-toggle[aria-expanded='true'] .header__burger { background-color: transparent; }
+  .header__menu-toggle[aria-expanded='true'] .header__burger::before { top: 0; transform: rotate(45deg); }
+  .header__menu-toggle[aria-expanded='true'] .header__burger::after { top: 0; transform: rotate(-45deg); }
+
+  /* Mobile Drawer & Acordeões */
+  .header__scrim {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    z-index: 1;
+    transition: opacity 350ms ease;
   }
-  .header__mobile-menu, .header__mobile-submenu { list-style: none; margin: 0; padding: 0; }
-  .header__mobile-link { display: block; padding: 12px 0; font-size: var(--f3); color: var(--color-text); text-decoration: none; }
-  .header__mobile-link--child { padding-left: 16px; font-size: var(--f2); opacity: 0.8; }
-  .header__localization { padding: 8px 0; }
+  .header__scrim.is-open { opacity: 1; }
+
+  .header__mobile-nav {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: min(86vw, 380px);
+    overflow-y: auto;
+    background-color: var(--color-background);
+    border-left: 1px solid var(--color-border);
+    padding: calc(var(--header-height) + 24px) 24px 40px;
+    z-index: 2;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1), opacity 400ms ease;
+  }
+
+  .header__mobile-nav.is-open { transform: translateX(0); opacity: 1; }
+
+  .header__mobile-menu { list-style: none; margin: 0; padding: 0; }
+  
+  /* Staggered animation dos itens do mobile */
+  .header__mobile-nav.is-open .header__mobile-item {
+    animation: mobileItemFadeIn 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(var(--item-index, 1) * 40ms);
+  }
+
+  @keyframes mobileItemFadeIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .header__mobile-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    font-size: var(--f3);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text);
+    text-decoration: none;
+    border-bottom: 1px solid var(--color-border);
+    transition: color 200ms ease;
+  }
+
+  .header__mobile-details summary {
+    list-style: none;
+    cursor: pointer;
+  }
+  .header__mobile-details summary::-webkit-details-marker { display: none; }
+
+  .header__mobile-chevron {
+    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .header__mobile-details[open] .header__mobile-chevron {
+    transform: rotate(180deg);
+  }
+
+  .header__mobile-submenu {
+    list-style: none;
+    padding: 0 0 8px 16px;
+    margin: 0;
+  }
+
+  .header__mobile-link--child {
+    padding: 10px 0;
+    font-size: var(--f2);
+    color: var(--color-text-secondary);
+    border-bottom: none;
+  }
 
   @media screen and (max-width: 1000px) {
     .header__nav { display: none; }
-    .header__menu-toggle { display: inline-flex; }
-    .header__inner { justify-content: space-between; }
+    .header__menu-toggle { display: inline-flex; align-items: center; justify-content: center; }
+    .header__inner { padding-top: 14px; padding-bottom: 14px; }
+    .header--scrolled .header__inner { padding-top: 10px; padding-bottom: 10px; }
+    .header__logo-image { max-height: 32px; }
     .header__logo-link { margin: 0 auto; }
-    .header__logo-image { max-width: min(190px, 48vw); }
-    .header__inner { padding: 12px 0; }
   }
+
   @media screen and (min-width: 1001px) {
-    .header__mobile-nav { display: none !important; }
+    .header__scrim, .header__mobile-nav { display: none !important; }
   }
+
   @media (prefers-reduced-motion: reduce) {
-    .header,
-    .header::before,
-    .header__logo-link,
-    .header__logo-aura,
-    .header__logo-image,
-    .header__menu-link,
-    .header__action-button { transition: none; }
+    .header, .header__inner, .header__logo-image, .header__logo-text,
+    .header__logo-link, .header__logo-aura, .header__menu-link, .header__action-button, .header__scrim,
+    .header__mobile-nav, .header__cart-count {
+      transition-duration: 0.01ms !important;
+      animation: none !important;
+    }
   }
 </style>
 
 <script>
   (function () {
-    var section = document.querySelector('.header[data-section-id="{{ section.id }}"]');
-    if (!section) return;
-    var scrollThreshold = 18;
-    var updateScrollState = function () {
-      section.setAttribute('data-scrolled', window.scrollY > scrollThreshold ? 'true' : 'false');
-    };
-    updateScrollState();
-    window.addEventListener('scroll', updateScrollState, { passive: true });
-    var toggle = section.querySelector('.header__menu-toggle');
-    var nav = document.getElementById('MobileNav-{{ section.id }}');
-    if (toggle && nav) {
+    var header = document.querySelector('.header[data-section-id="{{ section.id }}"]');
+    if (!header) return;
+
+    var ENTER_AT = 20;
+    var EXIT_AT = 8;
+    var ticking = false;
+    var isScrolled = false;
+
+    function applyScrollState() {
+      var y = window.scrollY || document.documentElement.scrollTop;
+      if (!isScrolled && y > ENTER_AT) {
+        isScrolled = true;
+        header.classList.add('header--scrolled');
+      } else if (isScrolled && y < EXIT_AT) {
+        isScrolled = false;
+        header.classList.remove('header--scrolled');
+      }
+      ticking = false;
+    }
+
+    function onScroll() {
+      if (!ticking) {
+        window.requestAnimationFrame(applyScrollState);
+        ticking = true;
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    applyScrollState();
+
+    /* ---- Drawer mobile ---- */
+    var toggle = header.querySelector('.header__menu-toggle');
+    var drawer = document.getElementById('MobileNav-{{ section.id }}');
+    var scrim = document.querySelector('.header__scrim');
+    var closeTimer = null;
+
+    function openDrawer() {
+      if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
+      drawer.hidden = false;
+      scrim.hidden = false;
+      document.body.classList.add('bloquear');
+      window.requestAnimationFrame(function () {
+        drawer.classList.add('is-open');
+        scrim.classList.add('is-open');
+      });
+      toggle.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeDrawer() {
+      drawer.classList.remove('is-open');
+      scrim.classList.remove('is-open');
+      var cartDrawer = document.getElementById('CartDrawer');
+      if (!cartDrawer || !cartDrawer.classList.contains('is-open')) {
+        document.body.classList.remove('bloquear');
+      }
+      toggle.setAttribute('aria-expanded', 'false');
+      closeTimer = setTimeout(function () {
+        drawer.hidden = true;
+        scrim.hidden = true;
+      }, 400);
+    }
+
+    if (toggle && drawer && scrim) {
       toggle.addEventListener('click', function () {
         var open = toggle.getAttribute('aria-expanded') === 'true';
-        toggle.setAttribute('aria-expanded', String(!open));
-        nav.hidden = open;
+        if (open) { closeDrawer(); } else { openDrawer(); }
+      });
+      scrim.addEventListener('click', closeDrawer);
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
+          closeDrawer();
+          toggle.focus();
+        }
       });
     }
   })();
@@ -398,22 +665,6 @@
       "id": "menu",
       "default": "main-menu",
       "label": "t:sections.header.settings.menu.label"
-    },
-    {
-      "type": "header",
-      "content": "t:sections.header.settings.header__localization.content"
-    },
-    {
-      "type": "checkbox",
-      "id": "enable_country_selector",
-      "default": true,
-      "label": "t:sections.header.settings.enable_country_selector.label"
-    },
-    {
-      "type": "checkbox",
-      "id": "enable_language_selector",
-      "default": true,
-      "label": "t:sections.header.settings.enable_language_selector.label"
     }
   ]
 }

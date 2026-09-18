@@ -1,0 +1,133 @@
+{%- comment -%}
+  ============================================================
+  cart-bump-product — card do order bump no cart drawer
+  ============================================================
+
+  O QUE FAZ:
+  Renderiza UM produto pequeno com imagem, nome, preço (real —
+  com compare_at_price riscado se existir no admin) e um botão de
+  adicionar. Usado tanto pelo bump manual (renderizado no servidor)
+  quanto pelo bump automático (montado pelo JS a partir do JSON de
+  /recommendations/products.json, com os mesmos campos).
+
+  COMO USAR:
+  {% render 'cart-bump-product', product: product %}
+
+  PARÂMETROS:
+  - product: objeto product completo (não variant).
+
+  OBSERVAÇÕES:
+  - Se o produto tiver mais de uma variante, o botão vira link para
+    a PDP: o bump não decide tamanho/cor pelo cliente.
+  - O preço é o preço real do produto no Shopify — nunca um valor
+    inventado no schema da section.
+{%- endcomment -%}
+{%- liquid
+  assign variant = product.selected_or_first_available_variant
+  assign single_variant = false
+  if product.variants.size == 1
+    assign single_variant = true
+  endif
+-%}
+<div class="cart-bump-product">
+  <a href="{{ product.url }}" class="cart-bump-product__media" tabindex="-1" aria-hidden="true">
+    {%- if product.featured_media -%}
+      {{
+        product.featured_media
+        | image_url: width: 200
+        | image_tag:
+          loading: 'lazy',
+          widths: '100, 200',
+          sizes: '72px',
+          class: 'cart-bump-product__image',
+          alt: product.featured_media.alt | default: product.title | escape
+      }}
+    {%- endif -%}
+  </a>
+
+  <div class="cart-bump-product__body">
+    <a href="{{ product.url }}" class="cart-bump-product__name">{{ product.title | escape }}</a>
+    <span class="cart-bump-product__price">
+      {%- if variant.compare_at_price > variant.price -%}
+        <s class="cart-bump-product__price-compare">{{ variant.compare_at_price | money }}</s>
+      {%- endif -%}
+      {{ variant.price | money }}
+    </span>
+  </div>
+
+  {%- if single_variant and product.available -%}
+    <button
+      type="button"
+      class="cart-bump-product__add"
+      data-cart-bump-add
+      data-variant-id="{{ variant.id }}"
+      aria-label="{{ 'products.product.add_to_cart' | t }} — {{ product.title | escape }}"
+    >+</button>
+  {%- else -%}
+    <a
+      href="{{ product.url }}"
+      class="cart-bump-product__add"
+      aria-label="{{ 'products.product.choose_options' | t }} — {{ product.title | escape }}"
+    >+</a>
+  {%- endif -%}
+</div>
+
+<style>
+  .cart-bump-product {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    align-items: center;
+    gap: 14px;
+  }
+  .cart-bump-product__media { display: block; background-color: var(--color-background); }
+  .cart-bump-product__image { display: block; width: 100%; height: auto; }
+  .cart-bump-product__body { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .cart-bump-product__name {
+    font-family: var(--font-ui-family);
+    font-size: var(--f1);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cart-bump-product__name:hover { text-decoration: underline; }
+  .cart-bump-product__price {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-secondary);
+  }
+  .cart-bump-product__price-compare {
+    font-weight: var(--font-weight-regular);
+    color: var(--color-text-muted);
+  }
+  .cart-bump-product__add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    font-size: var(--f3);
+    line-height: 1;
+    color: var(--color-text-primary);
+    background: none;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--buttons-radius, 6px);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease;
+  }
+  .cart-bump-product__add:hover {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-text-on-accent);
+  }
+  .cart-bump-product__add[data-busy='true'] { opacity: 0.5; pointer-events: none; }
+</style>

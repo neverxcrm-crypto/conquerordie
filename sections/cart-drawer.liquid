@@ -1,0 +1,729 @@
+{%- comment -%}
+  ============================================================
+  CART DRAWER — carrinho lateral
+  ============================================================
+
+  O QUE FAZ:
+  Carrinho em painel lateral, renderizado como SECTION justamente
+  para poder ser re-renderizado pela Section Rendering API do
+  Shopify: cada operação de carrinho (add / change / remove) devolve
+  o HTML novo desta section na MESMA requisição, e o JS só troca o
+  conteúdo. Nenhum reload, nenhuma segunda chamada a /cart.js.
+
+  ONDE É USADA:
+  layout/theme.liquid, via {% section 'cart-drawer' %} — precisa ser
+  section estática no layout para a Section Rendering API alcançá-la.
+
+  ESTRUTURA (3 regiões, ver <style>):
+    HEADER            fixo    — título, contagem, fechar
+    PROGRESSO FRETE   fixo    — é status, fica sempre visível
+    ITENS + BUMP      rola    — só esta região tem overflow
+    RESUMO + CTA      fixo    — o "finalizar" nunca sai da tela
+  Isso é deliberado: com 8 itens no carrinho o botão de checkout
+  continua acessível sem rolar.
+
+  O QUE NÃO É RE-RENDERIZADO:
+  A raiz [data-cart-drawer] e a região aria-live sobrevivem à troca
+  de conteúdo — a raiz porque guarda a classe .is-open, e a live
+  region porque recriá-la faria o leitor de tela reanunciar tudo.
+
+  ORDER BUMP (setting bump_mode):
+  - off      — nada.
+  - manual   — produto escolhido no theme editor.
+  - auto     — recomendação complementar real do Shopify, buscada
+               pelo JS em /recommendations/products (section
+               'cart-recommendations') a partir do 1º item do
+               carrinho. Sem recomendação configurada na loja, o
+               bloco simplesmente não aparece.
+
+  SOBRE PREÇO DO BUMP:
+  Mostra o preço REAL do produto. Se houver compare_at_price
+  cadastrado no admin, aparece o preço antigo riscado. Não existe
+  setting de "desconto" fictício: um preço inventado aqui não
+  chegaria no checkout e viraria promessa quebrada.
+
+  DADOS REAIS APENAS:
+  Formas de pagamento vêm de shop.enabled_payment_types. Não há
+  contador, escassez inventada ou "X pessoas vendo" em lugar nenhum.
+{%- endcomment -%}
+{%- liquid
+  assign threshold = section.settings.free_shipping_threshold | times: 100 | round
+  assign show_progress = false
+  if section.settings.show_free_shipping and threshold > 0
+    assign show_progress = true
+    assign remaining = threshold | minus: cart.total_price
+    if remaining <= 0
+      assign goal_reached = true
+      assign progress = 100
+    else
+      assign goal_reached = false
+      assign progress = cart.total_price | times: 100 | divided_by: threshold
+      assign remaining_money = remaining | money
+    endif
+  endif
+
+  assign bump_product = null
+  if section.settings.bump_mode == 'manual' and section.settings.bump_product != blank
+    assign bump_product = all_products[section.settings.bump_product]
+  endif
+
+  comment
+    O bump não pode oferecer o que já está no carrinho.
+  endcomment
+  if bump_product
+    for item in cart.items
+      if item.product_id == bump_product.id
+        assign bump_product = null
+        break
+      endif
+    endfor
+  endif
+
+  assign trust_blocks = section.blocks | where: 'type', 'trust'
+-%}
+
+<div
+  id="CartDrawer"
+  class="cart-drawer"
+  data-cart-drawer
+  data-cart-type="{{ settings.cart_type }}"
+  data-bump-mode="{{ section.settings.bump_mode }}"
+  data-added-message="{{ 'sections.cart.item_added' | t | escape }}"
+  data-removed-message="{{ 'sections.cart.item_removed' | t | escape }}"
+  data-error-message="{{ 'sections.cart.cart_error' | t | escape }}"
+  {% if cart.items.size > 0 %}data-bump-product-id="{{ cart.items.first.product_id }}"{% endif %}
+>
+  {%- comment -%} Persistente: recriar isso reanunciaria a cada update. {%- endcomment -%}
+  <p class="visually-hidden" role="status" aria-live="polite" data-cart-status></p>
+
+  <div data-cart-drawer-inner>
+    <div class="cart-drawer__scrim" data-cart-close tabindex="-1"></div>
+
+    <aside
+      class="cart-drawer__panel scheme-dark"
+      role="dialog"
+      aria-modal="true"
+      aria-label="{{ 'sections.cart.title' | t }}"
+      data-cart-panel
+    >
+      <header class="cart-drawer__header">
+        <h2 class="cart-drawer__title">
+          {{ 'sections.cart.title' | t }}
+          {%- if cart.item_count > 0 -%}
+            <span class="cart-drawer__count">
+              {{- 'sections.cart.item_count' | t: count: cart.item_count -}}
+            </span>
+          {%- endif -%}
+        </h2>
+        <button type="button" class="cart-drawer__close tap-target" data-cart-close aria-label="{{ 'sections.cart.close' | t }}">
+          {% render 'icon', name: 'close' %}
+        </button>
+      </header>
+
+      {%- if cart.item_count == 0 -%}
+        {%- comment -%} Vazio: editorial, não uma tela de erro. {%- endcomment -%}
+        <div class="cart-drawer__empty">
+          <p class="cart-drawer__empty-title">{{ 'sections.cart.empty' | t }}</p>
+          {%- if section.settings.empty_text != blank -%}
+            <p class="cart-drawer__empty-text">{{ section.settings.empty_text | escape }}</p>
+          {%- endif -%}
+          <a href="{{ section.settings.empty_link | default: routes.all_products_collection_url }}" class="button cart-drawer__empty-cta">
+            {{ section.settings.empty_button_label | default: 'general.continue_shopping' | t }}
+            {% render 'icon', name: 'arrow-right' %}
+          </a>
+
+          {%- liquid
+            assign empty_collection = collections[section.settings.empty_collection]
+            assign empty_products = empty_collection.products
+          -%}
+          {%- if empty_products.size > 0 -%}
+            <div class="cart-drawer__suggestions">
+              <p class="eyebrow">{{ 'sections.cart.suggestions' | t }}</p>
+              <ul class="cart-drawer__suggestion-list" role="list">
+                {%- for product in empty_products limit: 2 -%}
+                  <li class="cart-drawer__suggestion">
+                    <a href="{{ product.url }}" class="cart-drawer__suggestion-link">
+                      {%- if product.featured_media -%}
+                        {{
+                          product.featured_media
+                          | image_url: width: 200
+                          | image_tag:
+                            loading: 'lazy',
+                            widths: '100, 200',
+                            sizes: '64px',
+                            class: 'cart-drawer__suggestion-image',
+                            alt: product.featured_media.alt | default: product.title | escape
+                        }}
+                      {%- endif -%}
+                      <span class="cart-drawer__suggestion-copy">
+                        <span class="cart-drawer__suggestion-title">{{ product.title | escape }}</span>
+                        <span class="cart-drawer__suggestion-price">{{ product.price | money }}</span>
+                      </span>
+                    </a>
+                  </li>
+                {%- endfor -%}
+              </ul>
+            </div>
+          {%- endif -%}
+        </div>
+      {%- else -%}
+        {%- if show_progress -%}
+          <div class="cart-drawer__progress {% if goal_reached %}is-reached{% endif %}">
+            <p class="cart-drawer__progress-label">
+              {%- if goal_reached -%}
+                <span class="cart-drawer__progress-check" aria-hidden="true">✓</span>
+                {{ 'sections.cart.free_shipping_reached' | t }}
+              {%- else -%}
+                {{ 'sections.cart.free_shipping_remaining_html' | t: amount: remaining_money }}
+              {%- endif -%}
+            </p>
+            <div
+              class="cart-drawer__progress-track"
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="{{ progress }}"
+            >
+              <span class="cart-drawer__progress-bar" style="width: {{ progress }}%;"></span>
+            </div>
+          </div>
+        {%- endif -%}
+
+        {%- comment -%} Única região com overflow (ver <style>). {%- endcomment -%}
+        <div class="cart-drawer__scroll" data-cart-scroll>
+          <ul class="cart-drawer__items" role="list">
+            {%- for item in cart.items -%}
+              <li class="cart-item-drawer" data-cart-line="{{ forloop.index }}">
+                <a href="{{ item.url }}" class="cart-item-drawer__media" tabindex="-1" aria-hidden="true">
+                  {%- if item.image -%}
+                    {{
+                      item.image
+                      | image_url: width: 300
+                      | image_tag:
+                        loading: 'lazy',
+                        widths: '100, 200, 300',
+                        sizes: '88px',
+                        class: 'cart-item-drawer__image',
+                        alt: item.image.alt | escape
+                    }}
+                  {%- endif -%}
+                </a>
+
+                <div class="cart-item-drawer__body">
+                  <div class="cart-item-drawer__top">
+                    <a href="{{ item.url }}" class="cart-item-drawer__name">{{ item.product.title | escape }}</a>
+                    <span class="cart-item-drawer__price">{{ item.final_line_price | money }}</span>
+                  </div>
+
+                  {%- unless item.product.has_only_default_variant -%}
+                    <p class="cart-item-drawer__variant">
+                      {%- for option in item.options_with_values -%}
+                        {{- option.value | escape -}}{%- unless forloop.last %} / {% endunless -%}
+                      {%- endfor -%}
+                    </p>
+                  {%- endunless -%}
+
+                  {%- if item.line_level_discount_allocations.size > 0 -%}
+                    <ul class="cart-item-drawer__discounts" role="list">
+                      {%- for discount in item.line_level_discount_allocations -%}
+                        <li>{{ discount.discount_application.title | escape }} (−{{ discount.amount | money }})</li>
+                      {%- endfor -%}
+                    </ul>
+                  {%- endif -%}
+
+                  <div class="cart-item-drawer__actions">
+                    <div class="quantity-drawer">
+                      <button
+                        type="button"
+                        class="quantity-drawer__button"
+                        data-cart-change="{{ forloop.index }}"
+                        data-cart-quantity="{{ item.quantity | minus: 1 }}"
+                        aria-label="{{ 'sections.cart.decrease' | t: title: item.product.title }}"
+                      >−</button>
+                      <span class="quantity-drawer__value" aria-live="off">{{ item.quantity }}</span>
+                      <button
+                        type="button"
+                        class="quantity-drawer__button"
+                        data-cart-change="{{ forloop.index }}"
+                        data-cart-quantity="{{ item.quantity | plus: 1 }}"
+                        aria-label="{{ 'sections.cart.increase' | t: title: item.product.title }}"
+                      >+</button>
+                    </div>
+
+                    <button
+                      type="button"
+                      class="cart-item-drawer__remove"
+                      data-cart-change="{{ forloop.index }}"
+                      data-cart-quantity="0"
+                      aria-label="{{ 'sections.cart.remove_title' | t: title: item.product.title }}"
+                    >{{ 'sections.cart.remove' | t }}</button>
+                  </div>
+                </div>
+              </li>
+            {%- endfor -%}
+          </ul>
+
+          {%- comment -%}
+            Order bump. No modo 'auto' o slot nasce vazio e o JS
+            preenche com a recomendação real; sem recomendação, o
+            slot continua vazio e nada é exibido.
+          {%- endcomment -%}
+          {%- if section.settings.bump_mode == 'manual' and bump_product -%}
+            <div class="cart-bump" data-cart-bump>
+              <p class="eyebrow">{{ section.settings.bump_title | default: 'sections.cart.bump_title' | t }}</p>
+              {%- if section.settings.bump_text != blank -%}
+                <p class="cart-bump__intro">{{ section.settings.bump_text | escape }}</p>
+              {%- endif -%}
+              {% render 'cart-bump-product', product: bump_product %}
+            </div>
+          {%- elsif section.settings.bump_mode == 'auto' -%}
+            <div class="cart-bump" data-cart-bump hidden>
+              <p class="eyebrow">{{ section.settings.bump_title | default: 'sections.cart.bump_title' | t }}</p>
+              {%- if section.settings.bump_text != blank -%}
+                <p class="cart-bump__intro">{{ section.settings.bump_text | escape }}</p>
+              {%- endif -%}
+              <div data-cart-bump-slot></div>
+            </div>
+          {%- endif -%}
+        </div>
+
+        <footer class="cart-drawer__footer">
+          {%- if cart.cart_level_discount_applications.size > 0 -%}
+            <ul class="cart-drawer__discounts" role="list">
+              {%- for discount in cart.cart_level_discount_applications -%}
+                <li>{{ discount.title | escape }} (−{{ discount.total_allocated_amount | money }})</li>
+              {%- endfor -%}
+            </ul>
+          {%- endif -%}
+
+          <div class="cart-drawer__totals">
+            <span class="cart-drawer__totals-label">{{ 'sections.cart.subtotal' | t }}</span>
+            <span class="cart-drawer__totals-value">{{ cart.total_price | money }}</span>
+          </div>
+          <p class="cart-drawer__tax-note">{{ 'sections.cart.taxes_and_shipping_at_checkout' | t }}</p>
+
+          <form action="{{ routes.cart_url }}" method="post" novalidate>
+            <button type="submit" name="checkout" class="button cart-drawer__checkout">
+              {{ 'sections.cart.checkout' | t }}
+              {% render 'icon', name: 'arrow-right' %}
+            </button>
+          </form>
+
+          {%- if shop.enabled_payment_types.size > 0 -%}
+            <div class="cart-drawer__payment">
+              <span class="cart-drawer__payment-label">{{ 'sections.cart.secure_payment' | t }}</span>
+              <ul class="cart-drawer__payment-icons" role="list" aria-label="{{ 'sections.footer.payment' | t }}">
+                {%- for type in shop.enabled_payment_types limit: 6 -%}
+                  <li>{{ type | payment_type_svg_tag: class: 'cart-drawer__payment-icon' }}</li>
+                {%- endfor -%}
+              </ul>
+            </div>
+          {%- endif -%}
+
+          {%- if trust_blocks.size > 0 -%}
+            <ul class="cart-drawer__trust" role="list">
+              {%- for block in trust_blocks -%}
+                {%- if block.settings.text != blank -%}
+                  <li {{ block.shopify_attributes }}>{{ block.settings.text | escape }}</li>
+                {%- endif -%}
+              {%- endfor -%}
+            </ul>
+          {%- endif -%}
+        </footer>
+      {%- endif -%}
+    </aside>
+  </div>
+</div>
+
+<style>
+  /* ==========================================================
+     Raiz: cobre o viewport, mas so intercepta cliques aberta.
+     ========================================================== */
+  .cart-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .cart-drawer.is-open { visibility: visible; pointer-events: auto; }
+
+  .cart-drawer__scrim {
+    position: absolute;
+    inset: 0;
+    background-color: var(--color-scrim);
+    opacity: 0;
+    transition: opacity 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .cart-drawer.is-open .cart-drawer__scrim { opacity: 1; }
+
+  .cart-drawer__panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: min(100%, 460px);
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-background);
+    border-left: 1px solid var(--color-border);
+    transform: translateX(100%);
+    transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .cart-drawer.is-open .cart-drawer__panel { transform: none; }
+
+  /* ---- Header (fixo) ---- */
+  .cart-drawer__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px var(--space-block, 28px);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+  }
+  .cart-drawer__title {
+    font-family: var(--font-ui-family);
+    font-size: var(--f1);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    margin: 0;
+  }
+  .cart-drawer__count { color: var(--color-text-muted); font-weight: var(--font-weight-regular); }
+  .cart-drawer__count::before { content: ' · '; }
+  .cart-drawer__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: color 200ms ease;
+  }
+  .cart-drawer__close:hover { color: var(--color-text-primary); }
+  .cart-drawer__close svg { width: 18px; height: 18px; }
+
+  /* ---- Progresso de frete (fixo, e status) ---- */
+  .cart-drawer__progress {
+    padding: 18px var(--space-block, 28px);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+  }
+  .cart-drawer__progress-label {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    margin: 0 0 10px;
+  }
+  .cart-drawer__progress.is-reached .cart-drawer__progress-label { color: var(--color-accent-readable); }
+  .cart-drawer__progress-check { margin-right: 6px; }
+  .cart-drawer__progress-track {
+    height: 2px;
+    background-color: var(--color-border-strong);
+    overflow: hidden;
+  }
+  .cart-drawer__progress-bar {
+    display: block;
+    height: 100%;
+    background-color: var(--color-accent);
+    transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* ---- Itens + bump: a UNICA regiao que rola ---- */
+  .cart-drawer__scroll {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cart-drawer__items { list-style: none; margin: 0; padding: 0; }
+
+  .cart-item-drawer {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: 16px;
+    padding: 20px var(--space-block, 28px);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .cart-item-drawer__media { display: block; background-color: var(--color-surface); }
+  .cart-item-drawer__image { display: block; width: 100%; height: auto; }
+  .cart-item-drawer__body { min-width: 0; }
+  .cart-item-drawer__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .cart-item-drawer__name {
+    font-family: var(--font-ui-family);
+    font-size: var(--f1);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--leading-ui);
+    color: var(--color-text-primary);
+    text-decoration: none;
+  }
+  .cart-item-drawer__name:hover { text-decoration: underline; }
+  .cart-item-drawer__price {
+    font-family: var(--font-ui-family);
+    font-size: var(--f1);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .cart-item-drawer__variant {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin: 6px 0 0;
+  }
+  .cart-item-drawer__discounts {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+    font-size: var(--f0);
+    color: var(--color-accent-readable);
+  }
+  .cart-item-drawer__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .quantity-drawer {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--inputs-radius, 6px);
+  }
+  .quantity-drawer__button {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    font-family: var(--font-ui-family);
+    font-size: var(--f2);
+    line-height: 1;
+    cursor: pointer;
+    transition: color 200ms ease;
+  }
+  .quantity-drawer__button:hover { color: var(--color-text-primary); }
+  .quantity-drawer__value {
+    min-width: 28px;
+    text-align: center;
+    font-family: var(--font-ui-family);
+    font-size: var(--f1);
+    font-variant-numeric: tabular-nums;
+  }
+  .cart-item-drawer__remove {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: color 200ms ease;
+  }
+  .cart-item-drawer__remove:hover { color: var(--color-text-primary); }
+
+  /* ---- Order bump: pequeno, ignoravel, sem pressao ---- */
+  .cart-bump {
+    padding: 20px var(--space-block, 28px);
+    background-color: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .cart-bump__intro {
+    font-size: var(--f1);
+    color: var(--color-text-secondary);
+    margin: 10px 0 16px;
+  }
+
+  /* ---- Resumo + CTA (fixos) ---- */
+  .cart-drawer__footer {
+    flex-shrink: 0;
+    padding: 20px var(--space-block, 28px) calc(20px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--color-border);
+    background-color: var(--color-background);
+  }
+  .cart-drawer__discounts {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+    font-size: var(--f0);
+    color: var(--color-accent-readable);
+  }
+  .cart-drawer__totals {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .cart-drawer__totals-label {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+  }
+  .cart-drawer__totals-value {
+    font-family: var(--font-ui-family);
+    font-size: var(--f4);
+    font-weight: var(--font-weight-semibold);
+    font-variant-numeric: tabular-nums;
+  }
+  .cart-drawer__tax-note {
+    font-size: var(--f0);
+    color: var(--color-text-muted);
+    margin: 4px 0 16px;
+  }
+  .cart-drawer__checkout { width: 100%; }
+
+  .cart-drawer__payment {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+  .cart-drawer__payment-label {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+  .cart-drawer__payment-icons { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
+  .cart-drawer__payment-icon { width: 30px; height: 20px; }
+
+  .cart-drawer__trust {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0;
+  }
+  .cart-drawer__trust li {
+    font-size: var(--f0);
+    color: var(--color-text-muted);
+  }
+  .cart-drawer__trust li::before { content: '✓ '; color: var(--color-accent-readable); }
+
+  /* ---- Vazio ---- */
+  .cart-drawer__empty {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: var(--space-block, 28px);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .cart-drawer__empty-title {
+    font-family: var(--font-display-family);
+    font-size: var(--f5);
+    line-height: var(--leading-heading);
+    letter-spacing: var(--tracking-heading);
+    margin: 8px 0 10px;
+  }
+  .cart-drawer__empty-text {
+    font-size: var(--f1);
+    color: var(--color-text-secondary);
+    margin: 0 0 24px;
+    max-width: 30ch;
+  }
+  .cart-drawer__empty-cta { align-self: stretch; }
+  .cart-drawer__suggestions { margin-top: auto; padding-top: 40px; width: 100%; }
+  .cart-drawer__suggestions .eyebrow { margin-bottom: 14px; }
+  .cart-drawer__suggestion-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .cart-drawer__suggestion-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .cart-drawer__suggestion-image { width: 64px; height: auto; display: block; background-color: var(--color-surface); }
+  .cart-drawer__suggestion-copy { display: flex; flex-direction: column; gap: 2px; }
+  .cart-drawer__suggestion-title { font-size: var(--f1); font-weight: var(--font-weight-medium); }
+  .cart-drawer__suggestion-price { font-size: var(--f0); color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+  .cart-drawer__suggestion-link:hover .cart-drawer__suggestion-title { text-decoration: underline; }
+
+  /* Estado ocupado: feedback de que algo esta acontecendo, sem spinner */
+  .cart-drawer[data-busy='true'] .cart-drawer__scroll { opacity: 0.55; transition: opacity 160ms ease; }
+  .cart-drawer[data-busy='true'] .cart-drawer__panel { cursor: progress; }
+
+  @media screen and (max-width: 749px) {
+    /* Largura total; o painel usa a altura real do viewport para o
+       CTA nao ficar atras da barra do navegador. */
+    .cart-drawer__panel {
+      width: 100%;
+      height: 100dvh;
+      border-left: none;
+    }
+    .cart-drawer__header,
+    .cart-drawer__progress,
+    .cart-item-drawer,
+    .cart-bump,
+    .cart-drawer__footer,
+    .cart-drawer__empty { --space-block: 20px; }
+    .cart-item-drawer { grid-template-columns: 76px 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cart-drawer__panel,
+    .cart-drawer__scrim,
+    .cart-drawer__progress-bar { transition-duration: 0.01ms !important; }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "t:sections.cart_drawer.name",
+  "settings": [
+    { "type": "header", "content": "t:sections.cart_drawer.settings.header__shipping.content" },
+    { "type": "checkbox", "id": "show_free_shipping", "default": true, "label": "t:sections.cart_drawer.settings.show_free_shipping.label" },
+    { "type": "number", "id": "free_shipping_threshold", "default": 399, "label": "t:sections.cart_drawer.settings.free_shipping_threshold.label", "info": "t:sections.cart_drawer.settings.free_shipping_threshold.info" },
+    { "type": "header", "content": "t:sections.cart_drawer.settings.header__bump.content" },
+    { "type": "paragraph", "content": "t:sections.cart_drawer.settings.paragraph__bump.content" },
+    {
+      "type": "select",
+      "id": "bump_mode",
+      "options": [
+        { "value": "off", "label": "t:sections.cart_drawer.settings.bump_mode.options__1.label" },
+        { "value": "auto", "label": "t:sections.cart_drawer.settings.bump_mode.options__2.label" },
+        { "value": "manual", "label": "t:sections.cart_drawer.settings.bump_mode.options__3.label" }
+      ],
+      "default": "auto",
+      "label": "t:sections.cart_drawer.settings.bump_mode.label"
+    },
+    { "type": "product", "id": "bump_product", "label": "t:sections.cart_drawer.settings.bump_product.label", "info": "t:sections.cart_drawer.settings.bump_product.info" },
+    { "type": "text", "id": "bump_title", "label": "t:sections.cart_drawer.settings.bump_title.label" },
+    { "type": "text", "id": "bump_text", "label": "t:sections.cart_drawer.settings.bump_text.label" },
+    { "type": "header", "content": "t:sections.cart_drawer.settings.header__empty.content" },
+    { "type": "text", "id": "empty_text", "label": "t:sections.cart_drawer.settings.empty_text.label" },
+    { "type": "text", "id": "empty_button_label", "label": "t:sections.cart_drawer.settings.empty_button_label.label" },
+    { "type": "url", "id": "empty_link", "label": "t:sections.cart_drawer.settings.empty_link.label" },
+    { "type": "collection", "id": "empty_collection", "label": "t:sections.cart_drawer.settings.empty_collection.label", "info": "t:sections.cart_drawer.settings.empty_collection.info" }
+  ],
+  "blocks": [
+    {
+      "type": "trust",
+      "name": "t:sections.cart_drawer.blocks.trust.name",
+      "limit": 4,
+      "settings": [
+        { "type": "text", "id": "text", "label": "t:sections.cart_drawer.blocks.trust.settings.text.label" }
+      ]
+    }
+  ]
+}
+{% endschema %}

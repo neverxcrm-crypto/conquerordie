@@ -12,6 +12,8 @@
   Seção reutilizável (tem preset) — comum na home.
 
   PRINCIPAIS PARTES:
+  - Cabeçalho editorial: eyebrow + título + link "ver todos" (texto
+    com seta, não botão — o CTA da seção é o produto, não o link).
   - collection = collections[section.settings.collection]
   - render 'card-product': card de cada produto
   - Placeholders (product-1 + título fake) quando coleção vazia
@@ -28,14 +30,20 @@
   assign total_products = collection.all_products_count | plus: 0
 -%}
 <div class="featured-collection page-width" data-section-id="{{ section.id }}" style="--grid-columns: {{ section.settings.columns_desktop }};">
-  <div class="featured-collection__header">
-    {%- if section.settings.heading != blank -%}
-      <h2 class="featured-collection__heading">{{ section.settings.heading | escape }}</h2>
-    {%- endif -%}
+  <div class="featured-collection__header" data-reveal>
+    <div class="featured-collection__titles">
+      {%- if section.settings.eyebrow != blank -%}
+        <p class="eyebrow featured-collection__eyebrow">{{ section.settings.eyebrow | escape }}</p>
+      {%- endif -%}
+      {%- if section.settings.heading != blank -%}
+        <h2 class="featured-collection__heading">{{ section.settings.heading | escape }}</h2>
+      {%- endif -%}
+    </div>
     {%- if section.settings.show_view_all and total_products > limit -%}
-      <a href="{{ collection.url }}" class="featured-collection__view-all button button--secondary"
+      <a href="{{ collection.url }}" class="arrow-link featured-collection__view-all"
          aria-label="{{ 'sections.featured_collection.view_all_label' | t: collection_name: collection.title }}">
         {{ 'sections.featured_collection.view_all' | t }}
+        {% render 'icon', name: 'arrow-right' %}
       </a>
     {%- endif -%}
   </div>
@@ -43,7 +51,7 @@
   {%- if collection.products.size > 0 -%}
     <ul class="product-grid" role="list">
       {%- for product in collection.products limit: limit -%}
-        <li>{% render 'card-product', card_product: product %}</li>
+        <li data-reveal>{% render 'card-product', card_product: product %}</li>
       {%- endfor -%}
     </ul>
   {%- else -%}
@@ -61,10 +69,27 @@
 </div>
 
 <style>
-  .featured-collection { padding-top: var(--spacing-sections); padding-bottom: var(--spacing-sections); }
-  .featured-collection__header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-  .featured-collection__heading { font-size: var(--f6); }
+  .featured-collection {
+    padding-top: var(--space-section);
+    padding-bottom: var(--space-section);
+    background-color: var(--color-background);
+  }
+  .featured-collection__header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: var(--space-block);
+    flex-wrap: wrap;
+  }
+  .featured-collection__eyebrow { margin-bottom: 12px; }
+  .featured-collection__heading { font-size: var(--f6); margin: 0; }
+  .featured-collection__view-all { padding-bottom: 6px; }
   .product-grid { --grid-columns: 4; }
+
+  @media screen and (max-width: 1000px) {
+    .featured-collection__header { align-items: flex-start; flex-direction: column; gap: 16px; }
+  }
 </style>
 
 {% schema %}
@@ -72,6 +97,7 @@
   "name": "t:sections.featured_collection.name",
   "tag": "section",
   "settings": [
+    { "type": "text", "id": "eyebrow", "label": "t:sections.featured_collection.settings.eyebrow.label" },
     { "type": "text", "id": "heading", "default": "Featured collection", "label": "t:sections.featured_collection.settings.heading.label" },
     { "type": "collection", "id": "collection", "label": "t:sections.featured_collection.settings.collection.label" },
     { "type": "range", "id": "products_to_show", "min": 2, "max": 12, "step": 1, "default": 4, "label": "t:sections.featured_collection.settings.products_to_show.label" },

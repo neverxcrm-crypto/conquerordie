@@ -4,10 +4,16 @@
   ============================================================
 
   O QUE FAZ:
-  Ponto central para regras de fonte. Por padrao as fontes vem da
-  biblioteca do Shopify, carregadas pelas configuracoes de
-  font_picker do tema (veja snippets/css-variables.liquid), que
-  geram as variaveis --font-heading-family e --font-body-family.
+  Ponto central para regras de fonte. As fontes vem da biblioteca do
+  Shopify (WOFF2, servidas pelo CDN da Shopify) e sao carregadas pelos
+  dois font_picker do tema em snippets/css-variables.liquid:
+
+  - settings.type_display_font -> --font-display-family (serif editorial)
+  - settings.type_body_font    -> --font-ui-family (sans de interface)
+
+  Os @font-face sao emitidos la via filtro font_face com
+  font-display: swap. Somente os pesos realmente usados sao
+  carregados: Display 400/700 e UI 400/500/600/700.
 
   OBSERVACOES:
   Adicione regras @font-face aqui apenas se for empacotar suas

@@ -221,7 +221,7 @@
     align-items: flex-start;
     gap: 12px;
     padding-bottom: 16px;
-    border-bottom: 1px solid var(--color-border, #c2c2c2);
+    border-bottom: 1px solid var(--color-border);
   }
   #shopify-section-{{ section.id }} .collection__filter {
     position: relative;
@@ -230,7 +230,7 @@
     cursor: pointer;
     padding: 8px 12px;
     font-size: var(--f2);
-    border: 1px solid var(--color-border, #c2c2c2);
+    border: 1px solid var(--color-border);
     border-radius: var(--inputs-radius, 4px);
     list-style: none;
     user-select: none;
@@ -241,9 +241,9 @@
   #shopify-section-{{ section.id }} .collection__filter-content {
     margin-top: 8px;
     padding: 12px;
-    border: 1px solid var(--color-border, #c2c2c2);
+    border: 1px solid var(--color-border);
     border-radius: var(--inputs-radius, 4px);
-    background-color: var(--color-background, #fff);
+    background-color: var(--color-background);
   }
   #shopify-section-{{ section.id }} .collection__filter-values {
     list-style: none;
@@ -330,17 +330,17 @@
     min-height: 40px;
     padding: 0 8px;
     font-size: var(--f2);
-    color: var(--color-text, #000);
+    color: var(--color-text-primary);
     text-decoration: none;
     border: 1px solid transparent;
     border-radius: var(--inputs-radius, 4px);
   }
   #shopify-section-{{ section.id }} a.pagination__item:hover {
-    border-color: var(--color-border, #c2c2c2);
+    border-color: var(--color-border);
   }
   #shopify-section-{{ section.id }} .pagination__item--current {
-    border-color: var(--color-accent, #000);
-    font-weight: bold;
+    border-color: var(--color-accent);
+    font-weight: var(--font-weight-semibold);
   }
   @media screen and (max-width: 1000px) {
     #shopify-section-{{ section.id }} .collection__toolbar-bar {
