@@ -1,0 +1,162 @@
+{%- comment -%}
+  ============================================================
+  ANNOUNCEMENT BAR / CARROSSEL DE AVISOS
+  ============================================================
+{%- endcomment -%}
+
+{%- if section.blocks.size > 0 -%}
+  <div 
+    class="announcement-bar" 
+    data-section-id="{{ section.id }}"
+    style="
+      --announcement-bg: {{ section.settings.bg_color }};
+      --announcement-text: {{ section.settings.text_color }};
+    "
+  >
+    <div class="announcement-bar__slider page-width" data-announcement-slider>
+      {%- for block in section.blocks -%}
+        <div 
+          class="announcement-bar__item {% if forloop.first %}is-active{% endif %}" 
+          data-announcement-item
+          {{ block.shopify_attributes }}
+        >
+          {%- if block.settings.link != blank -%}
+            <a href="{{ block.settings.link }}" class="announcement-bar__link">
+              <span>{{ block.settings.text | escape }}</span>
+            </a>
+          {%- else -%}
+            <span>{{ block.settings.text | escape }}</span>
+          {%- endif -%}
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+
+  <style>
+    .announcement-bar {
+      background-color: var(--announcement-bg, #000000);
+      color: var(--announcement-text, #ffffff);
+      padding: 10px 0;
+      font-size: 0.825rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+      z-index: 101;
+    }
+
+    .announcement-bar__slider {
+      display: grid;
+      place-items: center;
+      min-height: 20px;
+    }
+
+    .announcement-bar__item {
+      grid-area: 1 / 1;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(6px);
+      transition: opacity 400ms ease, transform 400ms ease, visibility 400ms;
+    }
+
+    .announcement-bar__item.is-active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .announcement-bar__link {
+      color: inherit;
+      text-decoration: none;
+      transition: opacity 200ms ease;
+    }
+
+    .announcement-bar__link:hover {
+      opacity: 0.8;
+      text-decoration: underline;
+    }
+  </style>
+
+  {%- if section.blocks.size > 1 -%}
+    <script>
+      (function () {
+        var root = document.querySelector('.announcement-bar[data-section-id="{{ section.id }}"]');
+        if (!root) return;
+
+        var items = Array.prototype.slice.call(root.querySelectorAll('[data-announcement-item]'));
+        var index = 0;
+        var interval = {{ section.settings.speed | times: 1000 }};
+
+        function nextItem() {
+          items[index].classList.remove('is-active');
+          index = (index + 1) % items.length;
+          items[index].classList.add('is-active');
+        }
+
+        setInterval(nextItem, interval);
+      })();
+    </script>
+  {%- endif -%}
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Barra de Anúncios",
+  "class": "section-announcement-bar",
+  "settings": [
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Cor do Fundo",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Cor do Texto",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "speed",
+      "min": 2,
+      "max": 10,
+      "step": 1,
+      "unit": "s",
+      "label": "Tempo de Transição (segundos)",
+      "default": 4
+    }
+  ],
+  "blocks": [
+    {
+      "type": "announcement",
+      "name": "Aviso",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Texto do Aviso",
+          "default": "Frete Grátis para todo o Brasil em compras acima de R$ 299"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link do Aviso (Opcional)"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Barra de Anúncios",
+      "blocks": [
+        { "type": "announcement", "settings": { "text": "Frete Grátis para todo o Brasil" } },
+        { "type": "announcement", "settings": { "text": "Parcele em até 10x sem juros" } },
+        { "type": "announcement", "settings": { "text": "Primeira troca grátis" } }
+      ]
+    }
+  ]
+}
+{% endschema %}
