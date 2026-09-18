@@ -85,7 +85,7 @@
       </details>
 
       {%- if shop.customer_accounts_enabled -%}
-        <a href="{{ routes.account_url }}" class="header__action-button tap-target" aria-label="{{ 'customer.account.title' | t }}">
+        <a href="{{ routes.account_url }}" class="header__action-button header__account tap-target" aria-label="{{ 'customer.account.title' | t }}">
           {% render 'icon', name: 'account' %}
         </a>
       {%- endif -%}
@@ -145,15 +145,6 @@
       backdrop-filter 450ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* Estado intermediário: evita o salto visual direto para o glass. */
-  .header--transitioning {
-    background-color: rgba(18, 18, 22, 0.32);
-    border-bottom-color: rgba(255, 255, 255, 0.07);
-    box-shadow: 0 8px 24px -16px rgba(0, 0, 0, 0.28);
-    backdrop-filter: blur(8px) saturate(112%);
-    -webkit-backdrop-filter: blur(8px) saturate(112%);
-  }
-
   /* Glassmorphism de Alta Definição com Brilho Especular */
   .header--scrolled {
     background-color: var(--color-overlay, rgba(12, 12, 15, 0.72));
@@ -176,7 +167,8 @@
     gap: 24px;
     padding-top: 18px;
     padding-bottom: 18px;
-    transition: padding 450ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: padding 520ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: padding;
   }
 
   .header--scrolled .header__inner {
@@ -200,7 +192,7 @@
     padding: 5px 9px;
     color: var(--color-text);
     text-decoration: none;
-    transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1), filter 600ms ease;
+    transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1), filter 520ms ease;
   }
   .header__logo-link:hover { transform: translateY(-1px); }
   .header__logo-aura {
@@ -213,7 +205,7 @@
     opacity: 0;
     filter: blur(14px);
     transform: scale(.62);
-    transition: opacity 700ms ease, transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 520ms ease, transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
     pointer-events: none;
   }
   .header--scrolled .header__logo-aura {
@@ -564,7 +556,14 @@
   @media screen and (max-width: 1000px) {
     .header__nav { display: none; }
     .header__menu-toggle { display: inline-flex; align-items: center; justify-content: center; }
-    .header__inner { position: relative; padding-top: 14px; padding-bottom: 14px; }
+    .header__inner {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      padding-top: 14px;
+      padding-bottom: 14px;
+    }
     .header--scrolled .header__inner { padding-top: 10px; padding-bottom: 10px; }
     .header__logo-image { max-height: 32px; }
     .header__logo-link {
@@ -574,7 +573,21 @@
       transform: translateX(-50%);
     }
     .header__logo-link:hover { transform: translateX(-50%); }
-    .header__actions { margin-left: auto; }
+    .header__menu-toggle { grid-column: 1; justify-self: start; }
+    .header__actions {
+      grid-column: 3;
+      justify-self: end;
+      gap: 2px;
+      margin-left: 0;
+    }
+    .header__account {
+      position: absolute;
+      left: 44px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .header__account:hover,
+    .header__account:focus-visible { transform: translateY(-50%); }
   }
 
   @media screen and (min-width: 1001px) {
@@ -600,27 +613,15 @@
     var EXIT_AT = 8;
     var ticking = false;
     var isScrolled = false;
-    var transitionTimer = null;
-    var TRANSITION_MS = 260;
-
-    function transitionTo(scrolled) {
-      if (transitionTimer) window.clearTimeout(transitionTimer);
-      header.classList.add('header--transitioning');
-      transitionTimer = window.setTimeout(function () {
-        header.classList.toggle('header--scrolled', scrolled);
-        header.classList.remove('header--transitioning');
-        transitionTimer = null;
-      }, TRANSITION_MS);
-    }
 
     function applyScrollState() {
       var y = window.scrollY || document.documentElement.scrollTop;
       if (!isScrolled && y > ENTER_AT) {
         isScrolled = true;
-        transitionTo(true);
+        header.classList.add('header--scrolled');
       } else if (isScrolled && y < EXIT_AT) {
         isScrolled = false;
-        transitionTo(false);
+        header.classList.remove('header--scrolled');
       }
       ticking = false;
     }
