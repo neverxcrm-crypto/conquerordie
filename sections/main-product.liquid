@@ -1,0 +1,308 @@
+{%- comment -%}
+  ============================================================
+  MAIN PRODUCT — página nativa de produto (Shopify OS 2.0)
+  ============================================================
+
+  O QUE FAZ:
+  Renderiza a página completa de um produto: galeria de mídias
+  (imagem, vídeo, vídeo externo e modelo 3D), seletor de variantes
+  e o formulário nativo de adicionar ao carrinho. O conteúdo é
+  montado por blocks configuráveis no editor de temas.
+
+  ONDE É USADA:
+  No template de produto (templates/product.json), como section
+  principal da página de produto.
+
+  PRINCIPAIS PARTES:
+  - product__media-wrapper: percorre product.media e monta cada
+    mídia conforme o media_type (image/video/external_video/model).
+  - {% form 'product' %}: form nativo com input hidden da variante
+    selecionada (current_variant) que dispara o add-to-cart.
+  - Loop de section.blocks (case block.type) que renderiza cada
+    parte: vendor, title, price, description, variant_picker,
+    quantity, buy_buttons, share, custom_liquid e blocos de app.
+  - variant_picker: gera swatches por opção e um <script
+    data-variant-json> com os dados das variantes (id, options,
+    available, mídia e HTML do preço) consumido pelo JS.
+  - Renders finais: 'product-media-gallery' e
+    'product-variant-selection' cuidam da interatividade (troca
+    de mídia ao selecionar variante, etc.).
+
+  OBSERVAÇÕES:
+  - A lógica JS de galeria/seleção de variante vive nos snippets
+    renderizados no fim do arquivo, não aqui.
+  - buy_buttons tem setting show_dynamic_checkout para exibir os
+    botões de checkout dinâmico (payment_button).
+  - Preço usa o snippet 'price'; ajuste lá para mudar formatação.
+{%- endcomment -%}
+
+{%- liquid
+  assign product_form_id = 'product-form-' | append: section.id
+  assign current_variant = product.selected_or_first_available_variant
+-%}
+
+<section class="product page-width" data-section-id="{{ section.id }}">
+  <div class="product__media-wrapper">
+    {%- if product.featured_media != blank -%}
+      <div class="product__media-list" id="ProductMedia-{{ section.id }}">
+        {%- for media in product.media -%}
+          <div class="product__media-item" data-media-id="{{ media.id }}">
+            {%- case media.media_type -%}
+              {%- when 'image' -%}
+                {{
+                  media
+                  | image_url: width: 1920
+                  | image_tag:
+                    loading: 'lazy',
+                    sizes: '(min-width: 1000px) 55vw, 100vw',
+                    widths: '360, 540, 720, 900, 1080, 1440, 1920',
+                    alt: media.alt | default: product.title | escape
+                }}
+              {%- when 'external_video' -%}
+                {{ media | external_video_tag }}
+              {%- when 'video' -%}
+                {{ media | video_tag: controls: true, image_size: '1920x' }}
+              {%- when 'model' -%}
+                {{ media | model_viewer_tag }}
+              {%- else -%}
+                {{ media | media_tag }}
+            {%- endcase -%}
+          </div>
+        {%- endfor -%}
+      </div>
+    {%- else -%}
+      <div class="product__media-item product__media-placeholder">
+        {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
+      </div>
+    {%- endif -%}
+  </div>
+
+  <div class="product__info">
+    {%- form 'product',
+      product,
+      id: product_form_id,
+      class: 'product__form',
+      novalidate: 'novalidate',
+      data-type: 'add-to-cart-form'
+    -%}
+      <input
+        type="hidden"
+        name="id"
+        value="{{ current_variant.id }}"
+        {% if current_variant.available == false %}disabled{% endif %}
+        class="product-variant-id"
+      >
+
+      {%- for block in section.blocks -%}
+        {%- case block.type -%}
+          {%- when '@app' -%}
+            {% render block %}
+
+          {%- when 'vendor' -%}
+            {%- if product.vendor != blank -%}
+              <p class="product__vendor" {{ block.shopify_attributes }}>{{ product.vendor }}</p>
+            {%- endif -%}
+
+          {%- when 'title' -%}
+            <h1 class="product__title" {{ block.shopify_attributes }}>{{ product.title | escape }}</h1>
+
+          {%- when 'price' -%}
+            <div class="product__price" {{ block.shopify_attributes }}>
+              {% render 'price', product: product, use_variant: true, show_compare: true %}
+              {%- if current_variant.unit_price_measurement -%}
+                <div class="product__unit-price">
+                  {{ current_variant.unit_price | money }}
+                  <span aria-hidden="true">/</span>
+                  {%- if current_variant.unit_price_measurement.reference_value != 1 -%}
+                    {{ current_variant.unit_price_measurement.reference_value }}
+                  {%- endif -%}
+                  {{ current_variant.unit_price_measurement.reference_unit }}
+                </div>
+              {%- endif -%}
+              {%- if cart.taxes_included or shop.shipping_policy.body != blank -%}
+                <div class="product__tax caption">
+                  {%- if cart.taxes_included -%}
+                    {{ 'products.product.include_taxes' | t }}
+                  {%- endif -%}
+                  {%- if shop.shipping_policy.body != blank -%}
+                    {{ 'products.product.shipping_policy_html' | t: link: shop.shipping_policy.url }}
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+            </div>
+
+          {%- when 'description' -%}
+            {%- if product.description != blank -%}
+              <div class="product__description rte" {{ block.shopify_attributes }}>
+                {{ product.description }}
+              </div>
+            {%- endif -%}
+
+          {%- when 'variant_picker' -%}
+            {%- unless product.has_only_default_variant -%}
+              <div class="product__variants" {{ block.shopify_attributes }}>
+                {%- for option in product.options_with_values -%}
+                  <fieldset class="product__option">
+                    <legend class="product__option-name">{{ option.name }}</legend>
+                    {%- for value in option.values -%}
+                      {%- liquid
+                        assign option_disabled = true
+                        for variant in product.variants
+                          if variant.available and variant.options[forloop.parentloop.index0] == value
+                            assign option_disabled = false
+                            break
+                          endif
+                        endfor
+                      -%}
+                      <label class="product__swatch {% if option.selected_value == value %}is-selected{% endif %} {% if option_disabled %}is-unavailable{% endif %}">
+                        <input
+                          type="radio"
+                          name="{{ option.name }}"
+                          value="{{ value | escape }}"
+                          class="visually-hidden"
+                          {% if option.selected_value == value %}checked{% endif %}
+                          data-option-index="{{ forloop.parentloop.index0 }}"
+                        >
+                        {%- if value.swatch.image -%}
+                          <span class="product__swatch-media" style="background-image:url({{ value.swatch.image | image_url: width: 100 }})"></span>
+                        {%- elsif value.swatch.color -%}
+                          <span class="product__swatch-color" style="background-color:{{ value.swatch.color }}"></span>
+                        {%- else -%}
+                          <span class="product__swatch-label">{{ value }}</span>
+                        {%- endif -%}
+                      </label>
+                    {%- endfor -%}
+                  </fieldset>
+                {%- endfor -%}
+              </div>
+
+              <script type="application/json" data-variant-json>
+                [
+                  {%- for variant in product.variants -%}
+                    {
+                      "id": {{ variant.id | json }},
+                      "options": {{ variant.options | json }},
+                      "available": {{ variant.available | json }},
+                      "featured_media_id": {{ variant.featured_media.id | json }},
+                      "price_html": {%- capture variant_price_html -%}{% render 'price', product: variant, use_variant: false, show_compare: true %}{%- endcapture -%}{{ variant_price_html | strip_newlines | json }}
+                    }{%- unless forloop.last -%},{%- endunless -%}
+                  {%- endfor -%}
+                ]
+              </script>
+            {%- endunless -%}
+
+          {%- when 'quantity' -%}
+            <div class="product__quantity" {{ block.shopify_attributes }}>
+              <label class="field__label" for="Quantity-{{ section.id }}">
+                {{ 'products.product.quantity.label' | t }}
+              </label>
+              <div class="quantity-selector">
+                <button type="button" class="quantity__button" name="minus" aria-label="{{ 'products.product.quantity.decrease' | t: product: product.title | escape }}">&minus;</button>
+                <input
+                  class="quantity__input"
+                  type="number"
+                  name="quantity"
+                  id="Quantity-{{ section.id }}"
+                  min="1"
+                  value="1"
+                  aria-label="{{ 'products.product.quantity.input_label' | t: product: product.title | escape }}"
+                >
+                <button type="button" class="quantity__button" name="plus" aria-label="{{ 'products.product.quantity.increase' | t: product: product.title | escape }}">&plus;</button>
+              </div>
+            </div>
+
+          {%- when 'buy_buttons' -%}
+            <div class="product__buy-buttons" {{ block.shopify_attributes }}>
+              <button
+                type="submit"
+                name="add"
+                class="button product__add-to-cart"
+                {% if current_variant.available == false %}disabled{% endif %}
+              >
+                <span>
+                  {%- if current_variant.available -%}
+                    {{ 'products.product.add_to_cart' | t }}
+                  {%- else -%}
+                    {{ 'products.product.sold_out' | t }}
+                  {%- endif -%}
+                </span>
+              </button>
+              {%- if block.settings.show_dynamic_checkout -%}
+                {{ form | payment_button }}
+              {%- endif -%}
+            </div>
+
+          {%- when 'share' -%}
+            <div class="product__share" {{ block.shopify_attributes }}>
+              {% render 'share-button', share_link: product.url, share_title: product.title %}
+            </div>
+
+          {%- when 'custom_liquid' -%}
+            <div {{ block.shopify_attributes }}>{{ block.settings.custom_liquid }}</div>
+        {%- endcase -%}
+      {%- endfor -%}
+    {%- endform -%}
+  </div>
+</section>
+
+{% render 'product-media-gallery', section_id: section.id %}
+{% render 'product-variant-selection', section_id: section.id, product_form_id: product_form_id %}
+
+{% schema %}
+{
+  "name": "t:sections.main_product.name",
+  "tag": "section",
+  "class": "section-main-product",
+  "blocks": [
+    { "type": "@app" },
+    { "type": "vendor", "name": "t:sections.main_product.blocks.vendor.name", "limit": 1 },
+    { "type": "title", "name": "t:sections.main_product.blocks.title.name", "limit": 1 },
+    { "type": "price", "name": "t:sections.main_product.blocks.price.name", "limit": 1 },
+    { "type": "variant_picker", "name": "t:sections.main_product.blocks.variant_picker.name", "limit": 1 },
+    { "type": "quantity", "name": "t:sections.main_product.blocks.quantity.name", "limit": 1 },
+    {
+      "type": "buy_buttons",
+      "name": "t:sections.main_product.blocks.buy_buttons.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_dynamic_checkout",
+          "default": true,
+          "label": "t:sections.main_product.blocks.buy_buttons.settings.show_dynamic_checkout.label",
+          "info": "t:sections.main_product.blocks.buy_buttons.settings.show_dynamic_checkout.info"
+        }
+      ]
+    },
+    { "type": "description", "name": "t:sections.main_product.blocks.description.name", "limit": 1 },
+    { "type": "share", "name": "t:sections.main_product.blocks.share.name", "limit": 1 },
+    {
+      "type": "custom_liquid",
+      "name": "t:sections.main_product.blocks.custom_liquid.name",
+      "settings": [
+        {
+          "type": "liquid",
+          "id": "custom_liquid",
+          "label": "t:sections.main_product.blocks.custom_liquid.settings.custom_liquid.label"
+        }
+      ]
+    }
+  ],
+  "settings": [],
+  "presets": [
+    {
+      "name": "t:sections.main_product.name",
+      "blocks": [
+        { "type": "vendor" },
+        { "type": "title" },
+        { "type": "price" },
+        { "type": "variant_picker" },
+        { "type": "quantity" },
+        { "type": "buy_buttons" },
+        { "type": "description" },
+        { "type": "share" }
+      ]
+    }
+  ]
+}
+{% endschema %}

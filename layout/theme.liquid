@@ -1,0 +1,80 @@
+{%- comment -%}
+  ============================================================
+  theme.liquid — Moldura (layout) de todas as paginas do tema
+  ============================================================
+
+  O QUE FAZ:
+  Este e o layout padrao que envolve TODA pagina da loja (home,
+  produto, colecao, carrinho, etc.). Define a estrutura HTML base.
+
+  NO <head> temos:
+  - Meta tags basicas, viewport e theme-color.
+  - SEO: <title> dinamico (com tags/pagina/nome da loja),
+    meta description, URL canonica.
+  - Favicon e apple-touch-icon (config settings.favicon).
+  - Open Graph / JSON-LD e demais tags via {% render 'meta-tags' %}.
+  - CSS: index.css (ponto de entrada) + css-variables (variaveis
+    do tema geradas pelas settings).
+  - Scripts: troca no-js -> js e carrega carrinho.js (defer).
+  - {{ content_for_header }}: scripts obrigatorios do Shopify.
+
+  NO <body> temos:
+  - Skip link de acessibilidade e snippets globais (alerta, carrinho).
+  - Section groups do topo (header-group) e rodape (footer-group),
+    editaveis pelo lojista no editor de temas.
+  - {{ content_for_layout }}: aqui entra o conteudo especifico de
+    cada template/pagina, dentro do <main id="MainContent">.
+{%- endcomment -%}
+<!doctype html>
+<html class="no-js" lang="{{ request.locale.iso_code }}">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="{{ settings.color_accent }}">
+    <link rel="canonical" href="{{ canonical_url }}">
+
+    {%- if settings.favicon != blank -%}
+      <link rel="icon" type="image/png" href="{{ settings.favicon | image_url: width: 32, height: 32 }}">
+      <link rel="apple-touch-icon" href="{{ settings.favicon | image_url: width: 180, height: 180 }}">
+    {%- endif -%}
+
+    <title>
+      {{ page_title }}
+      {%- if current_tags %} &ndash; {{ 'general.meta.tags' | t: tags: current_tags | join: ', ' }}{% endif -%}
+      {%- if current_page != 1 %} &ndash; {{ 'general.meta.page' | t: page: current_page }}{% endif -%}
+      {%- unless page_title contains shop.name %} &ndash; {{ shop.name }}{% endunless -%}
+    </title>
+
+    {%- if page_description -%}
+      <meta name="description" content="{{ page_description | escape }}">
+    {%- endif -%}
+
+    {% render 'meta-tags' %}
+
+    {{ 'index.css' | asset_url | stylesheet_tag }}
+    {% render 'css-variables' %}
+
+    <script>document.documentElement.className = document.documentElement.className.replace('no-js', 'js');</script>
+    <script src="{{ 'carrinho.js' | asset_url }}" defer="defer"></script>
+
+    {{ content_for_header }}
+  </head>
+
+  <body class="template-{{ request.page_type | handle }}">
+    <a class="skip-to-content-link visually-hidden" href="#MainContent">
+      {{ 'accessibility.skip_to_text' | t }}
+    </a>
+
+    {% render 'alerta' %}
+    {% render 'carrinho' %}
+
+    {% sections 'header-group' %}
+
+    <main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
+      {{ content_for_layout }}
+    </main>
+
+    {% sections 'footer-group' %}
+  </body>
+</html>

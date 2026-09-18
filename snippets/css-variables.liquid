@@ -1,0 +1,97 @@
+{%- comment -%}
+  ============================================================
+  css-variables — variáveis CSS globais do tema
+  ============================================================
+
+  O QUE FAZ:
+  Gera as CSS custom properties (:root) a partir das settings do tema:
+  cores, tipografia (com @font-face), escala de fonte fluida (--f0..--f8)
+  e tokens de layout (largura da página, radius, espaçamento).
+  Também define estilos base de body e headings.
+
+  COMO USAR:
+  {% render 'css-variables' %}
+  Renderize uma única vez, dentro do <head> em theme.liquid.
+
+  PARÂMETROS:
+  Nenhum — lê tudo de settings (settings.color_*, settings.type_*, etc).
+
+  OBSERVAÇÕES:
+  Mantém aliases retrocompatíveis (--cor-marca, --cor-verde, --bold...)
+  usados por seções antigas. Se remover, quebra o CSS dessas seções.
+{%- endcomment -%}
+{%- liquid
+  assign header_font = settings.type_header_font
+  assign body_font = settings.type_body_font
+  assign header_font_bold = header_font | font_modify: 'weight', 'bold'
+  assign body_font_bold = body_font | font_modify: 'weight', 'bold'
+-%}
+<style>
+  {{ header_font | font_face: font_display: 'swap' }}
+  {{ header_font_bold | font_face: font_display: 'swap' }}
+  {{ body_font | font_face: font_display: 'swap' }}
+  {{ body_font_bold | font_face: font_display: 'swap' }}
+
+  :root {
+    /* Colors */
+    --cor-branco: #ffffff;
+    --cor-preto: #000000;
+    --color-background: {{ settings.color_background }};
+    --color-text: {{ settings.color_text }};
+    --color-background-contrast: {{ settings.color_background_contrast }};
+    --color-text-contrast: {{ settings.color_text_contrast }};
+    --color-accent: {{ settings.color_accent }};
+    --color-accent-text: {{ settings.color_accent_text }};
+    --color-sale: {{ settings.color_sale }};
+    --color-border: {{ settings.color_border }};
+
+    /* Backwards-compatible aliases used by existing sections */
+    --cor-gelo: {{ settings.color_background_contrast }};
+    --cor-cinza: {{ settings.color_border }};
+    --cor-marca: {{ settings.color_accent }};
+    --cor-verde: {{ settings.color_sale }};
+
+    /* Typography */
+    --font-heading-family: {{ header_font.family }}, {{ header_font.fallback_families }};
+    --font-heading-weight: {{ header_font.weight }};
+    --font-body-family: {{ body_font.family }}, {{ body_font.fallback_families }};
+    --font-body-weight: {{ body_font.weight }};
+    --font-heading-scale: {{ settings.heading_scale | divided_by: 100.0 }};
+    --font-body-scale: {{ settings.body_scale | divided_by: 100.0 }};
+
+    /* Backwards-compatible font aliases */
+    --estilo: var(--font-heading-family);
+    --bold: var(--font-body-family);
+    --light: var(--font-body-family);
+
+    /* Fluid type scale */
+    --f0: clamp(0.5rem, 1vw, 0.7rem);
+    --f1: clamp(0.7rem, 1vw, 0.9rem);
+    --f2: clamp(0.9rem, 1vw, 1.1rem);
+    --f3: clamp(1.1rem, 1vw, 1.3rem);
+    --f4: clamp(1.3rem, 1vw, 1.5rem);
+    --f5: clamp(1.5rem, 1vw, 1.8rem);
+    --f6: clamp(1.8rem, 1vw, 2.2rem);
+    --f7: clamp(2.2rem, 1vw, 2.5rem);
+    --f8: clamp(3rem, 1vw, 4rem);
+
+    /* Layout */
+    --page-width: {{ settings.page_width }}px;
+    --spacing-sections: {{ settings.spacing_sections }}px;
+    --buttons-radius: {{ settings.buttons_radius }}px;
+    --inputs-radius: {{ settings.inputs_radius }}px;
+    --media-radius: {{ settings.media_radius }}px;
+  }
+
+  body {
+    font-family: var(--font-body-family);
+    font-weight: var(--font-body-weight);
+    color: var(--color-text);
+    background-color: var(--color-background);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading-family);
+    font-weight: var(--font-heading-weight);
+  }
+</style>

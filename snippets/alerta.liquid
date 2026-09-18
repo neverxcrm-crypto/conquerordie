@@ -1,0 +1,267 @@
+{%- comment -%}
+  ============================================================
+  alerta — notificação global (toast) de sucesso/erro
+  ============================================================
+
+  O QUE FAZ:
+  Renderiza o toast global fixo no canto da tela (HTML + CSS + JS) e expõe
+  as funções globais mostrarAlerta() e fecharAlerta() no window. Suporta
+  tipo positivo/negativo, auto-fechamento e fechar com ESC.
+
+  COMO USAR:
+  {% render 'alerta' %}   (inclua uma vez no layout, ex: theme.liquid)
+  No JS da loja, dispare:
+    mostrarAlerta('Produto adicionado!', 'positivo')
+    mostrarAlerta('Algo deu errado', 'negativo', 5000)
+
+  PARÂMETROS:
+  Nenhum — renderizado diretamente. A interação é via funções JS globais:
+  - mostrarAlerta(mensagem, tipo = 'positivo', duracao = 4000)
+  - fecharAlerta()
+
+  OBSERVAÇÕES:
+  duracao em ms; use 0 para não fechar sozinho. Usa as variáveis de cor
+  --cor-verde, --cor-marca e --cor-branco (definidas em css-variables).
+{%- endcomment -%}
+<div id="alerta" class="alerta-global">
+  <div class="conteudo">
+    <div class="icone"></div>
+    <div class="mensagem"></div>
+    <button class="fechar" onclick="fecharAlerta()">&times;</button>
+  </div>
+</div>
+
+<style>
+  .alerta-global {
+    position: fixed;
+    top: 50px;
+    right: 20px;
+    z-index: 10001;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(100%);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    max-width: 400px;
+    width: 90%;
+  }
+
+  .alerta-global.visivel {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+  }
+
+  .alerta-global .conteudo {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .alerta-global.positivo .conteudo {
+    background: linear-gradient(135deg, var(--cor-verde), #20bf6b);
+    color: var(--cor-branco);
+  }
+
+  .alerta-global.negativo .conteudo {
+    background: linear-gradient(135deg, var(--cor-marca), #ff4757);
+    color: var(--cor-branco);
+  }
+
+  .alerta-global .conteudo::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.8s ease;
+  }
+
+  .alerta-global.visivel .conteudo::before {
+    left: 100%;
+  }
+
+  .alerta-global .icone {
+    width: 24px;
+    height: 24px;
+    margin-right: 15px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+  }
+
+  .alerta-global.positivo .icone::before {
+    content: '✓';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    font-family: var(--bold);
+    font-size: var(--f2);
+    font-weight: bold;
+  }
+
+  .alerta-global.negativo .icone::before {
+    content: '⚠';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    font-family: var(--bold);
+    font-size: var(--f2);
+    font-weight: bold;
+  }
+
+  .alerta-global .mensagem {
+    flex: 1;
+    font-family: var(--bold);
+    font-size: var(--f2);
+    line-height: 1.4;
+    position: relative;
+    z-index: 2;
+  }
+
+  .alerta-global .fechar {
+    width: 30px;
+    height: 30px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    color: var(--cor-branco);
+    font-family: var(--bold);
+    font-size: var(--f4);
+    cursor: pointer;
+    margin-left: 15px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+    transition: all 0.3s ease;
+  }
+
+  .alerta-global .fechar:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+  }
+
+  /* Animação de entrada */
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  /* Animação de saída */
+  @keyframes slideOut {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+
+  /* Responsivo */
+  @media (max-width: 768px) {
+    .alerta-global {
+      top: 10px;
+      right: 10px;
+      left: 10px;
+      width: auto;
+      max-width: none;
+    }
+
+    .alerta-global .conteudo {
+      padding: 15px;
+    }
+
+    .alerta-global .mensagem {
+      font-size: var(--f1);
+    }
+  }
+</style>
+
+<script>
+  let alertaTimeout;
+
+  function mostrarAlerta(mensagem, tipo = 'positivo', duracao = 4000) {
+    const alerta = document.getElementById('alerta');
+    const mensagemEl = alerta.querySelector('.mensagem');
+
+    // Limpar timeout anterior se existir
+    if (alertaTimeout) {
+      clearTimeout(alertaTimeout);
+    }
+
+    // Fechar alerta atual se estiver visível
+    if (alerta.classList.contains('visivel')) {
+      fecharAlerta();
+      // Aguardar a animação de fechamento antes de mostrar o novo
+      setTimeout(() => {
+        exibirNovoAlerta(alerta, mensagemEl, mensagem, tipo, duracao);
+      }, 400);
+    } else {
+      exibirNovoAlerta(alerta, mensagemEl, mensagem, tipo, duracao);
+    }
+  }
+
+  function exibirNovoAlerta(alerta, mensagemEl, mensagem, tipo, duracao) {
+    // Definir conteúdo
+    mensagemEl.textContent = mensagem;
+
+    // Remover classes anteriores
+    alerta.classList.remove('positivo', 'negativo');
+
+    // Adicionar classe do tipo
+    alerta.classList.add(tipo);
+
+    // Mostrar alerta
+    alerta.classList.add('visivel');
+
+    // Auto-fechar após a duração especificada
+    if (duracao > 0) {
+      alertaTimeout = setTimeout(() => {
+        fecharAlerta();
+      }, duracao);
+    }
+  }
+
+  function fecharAlerta() {
+    const alerta = document.getElementById('alerta');
+    alerta.classList.remove('visivel');
+
+    // Limpar timeout se existir
+    if (alertaTimeout) {
+      clearTimeout(alertaTimeout);
+      alertaTimeout = null;
+    }
+  }
+
+  // Fechar com tecla ESC
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      fecharAlerta();
+    }
+  });
+
+  // Tornar função global
+  window.mostrarAlerta = mostrarAlerta;
+  window.fecharAlerta = fecharAlerta;
+</script>

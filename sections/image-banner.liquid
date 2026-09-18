@@ -1,0 +1,166 @@
+{%- comment -%}
+  ============================================================
+  IMAGE BANNER — banner hero com imagem de fundo
+  ============================================================
+
+  O QUE FAZ:
+  Banner de destaque com imagem full-width ao fundo e conteúdo por
+  cima: título, texto e até dois botões. Altura e alinhamento do
+  texto são configuráveis. Tem overlay escuro para legibilidade.
+
+  ONDE É USADA:
+  Seção reutilizável (tem preset) — típica no topo da home.
+
+  PRINCIPAIS PARTES:
+  - Imagem eager + fetchpriority high (é o hero, carrega primeiro)
+  - Placeholder SVG quando não há imagem selecionada
+  - Blocks: heading, text, button (cada um limit 1)
+  - Settings: image, height (small/medium/large), text_alignment
+  - Botão secundário aparece se button_label_2 preenchido
+
+  OBSERVAÇÕES:
+  Textos usam text-shadow para contraste sobre a imagem.
+  No mobile, alinhamentos left/right viram center.
+{%- endcomment -%}
+<div class="image-banner image-banner--{{ section.settings.height }}" data-section-id="{{ section.id }}">
+  {%- if section.settings.image != blank -%}
+    {{
+      section.settings.image
+      | image_url: width: 3000
+      | image_tag:
+        loading: 'eager',
+        fetchpriority: 'high',
+        class: 'image-banner__image',
+        widths: '600, 900, 1200, 1600, 2000, 3000',
+        sizes: '100vw',
+        alt: section.settings.image.alt | default: section.settings.heading | escape
+    }}
+  {%- else -%}
+    <div class="image-banner__image image-banner__placeholder">
+      {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
+    </div>
+  {%- endif -%}
+
+  <div class="image-banner__content image-banner__content--{{ section.settings.text_alignment }}">
+    <div class="image-banner__box page-width">
+      {%- for block in section.blocks -%}
+        {%- case block.type -%}
+          {%- when 'heading' -%}
+            <h2 class="image-banner__heading" {{ block.shopify_attributes }}>{{ block.settings.heading | escape }}</h2>
+          {%- when 'text' -%}
+            <div class="image-banner__text rte" {{ block.shopify_attributes }}>{{ block.settings.text }}</div>
+          {%- when 'button' -%}
+            <div class="image-banner__buttons" {{ block.shopify_attributes }}>
+              {%- if block.settings.button_label != blank -%}
+                <a href="{{ block.settings.button_link | default: '#' }}" class="button">{{ block.settings.button_label | escape }}</a>
+              {%- endif -%}
+              {%- if block.settings.button_label_2 != blank -%}
+                <a href="{{ block.settings.button_link_2 | default: '#' }}" class="button button--secondary">{{ block.settings.button_label_2 | escape }}</a>
+              {%- endif -%}
+            </div>
+        {%- endcase -%}
+      {%- endfor -%}
+    </div>
+  </div>
+</div>
+
+<style>
+  .image-banner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+  .image-banner--small { min-height: 40vh; }
+  .image-banner--medium { min-height: 60vh; }
+  .image-banner--large { min-height: 85vh; }
+  .image-banner__image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .image-banner__content { position: relative; width: 100%; z-index: 2; }
+  .image-banner__content--left { text-align: left; }
+  .image-banner__content--center { text-align: center; }
+  .image-banner__content--center .image-banner__box { margin: 0 auto; }
+  .image-banner__content--right { text-align: right; }
+  .image-banner__box { max-width: 640px; padding: 40px 20px; }
+  .image-banner__content--right .image-banner__box { margin-left: auto; }
+  .image-banner__heading { font-size: var(--f8); color: var(--color-background); margin-bottom: 16px; text-shadow: 0 2px 12px rgba(0,0,0,0.35); }
+  .image-banner__text { font-size: var(--f3); color: var(--color-background); margin-bottom: 24px; text-shadow: 0 2px 12px rgba(0,0,0,0.35); }
+  .image-banner__buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+  .image-banner__content--center .image-banner__buttons { justify-content: center; }
+  .image-banner::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.15); z-index: 1; }
+
+  @media screen and (max-width: 1000px) {
+    .image-banner__heading { font-size: var(--f6); }
+    .image-banner__content--right, .image-banner__content--left { text-align: center; }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "t:sections.image_banner.name",
+  "tag": "section",
+  "settings": [
+    { "type": "image_picker", "id": "image", "label": "t:sections.image_banner.settings.image.label" },
+    {
+      "type": "select",
+      "id": "height",
+      "options": [
+        { "value": "small", "label": "t:sections.image_banner.settings.height.options__1.label" },
+        { "value": "medium", "label": "t:sections.image_banner.settings.height.options__2.label" },
+        { "value": "large", "label": "t:sections.image_banner.settings.height.options__3.label" }
+      ],
+      "default": "large",
+      "label": "t:sections.image_banner.settings.height.label"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "options": [
+        { "value": "left", "label": "t:sections.image_banner.settings.text_alignment.options__1.label" },
+        { "value": "center", "label": "t:sections.image_banner.settings.text_alignment.options__2.label" },
+        { "value": "right", "label": "t:sections.image_banner.settings.text_alignment.options__3.label" }
+      ],
+      "default": "center",
+      "label": "t:sections.image_banner.settings.text_alignment.label"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "heading",
+      "name": "t:sections.image_banner.blocks.heading.name",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "heading", "default": "Image banner heading", "label": "t:sections.image_banner.blocks.heading.settings.heading.label" }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "t:sections.image_banner.blocks.text.name",
+      "limit": 1,
+      "settings": [
+        { "type": "richtext", "id": "text", "default": "<p>Discover the latest collection.</p>", "label": "t:sections.image_banner.blocks.text.settings.text.label" }
+      ]
+    },
+    {
+      "type": "button",
+      "name": "t:sections.image_banner.blocks.button.name",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "button_label", "default": "Shop now", "label": "t:sections.image_banner.blocks.button.settings.button_label.label" },
+        { "type": "url", "id": "button_link", "label": "t:sections.image_banner.blocks.button.settings.button_link.label" },
+        { "type": "text", "id": "button_label_2", "label": "t:sections.image_banner.blocks.button.settings.button_label_2.label" },
+        { "type": "url", "id": "button_link_2", "label": "t:sections.image_banner.blocks.button.settings.button_link_2.label" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.image_banner.name",
+      "blocks": [
+        { "type": "heading" },
+        { "type": "text" },
+        { "type": "button" }
+      ]
+    }
+  ]
+}
+{% endschema %}

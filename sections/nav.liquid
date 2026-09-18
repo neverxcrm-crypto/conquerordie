@@ -1,0 +1,333 @@
+{%- comment -%}
+  ============================================================
+  NAV / HEADER — cabeçalho do site
+  ============================================================
+
+  O QUE FAZ:
+  Monta o cabeçalho da loja: logo, navegação de múltiplos níveis
+  (menu com submenus e sub-submenus), busca, link de conta,
+  contador do carrinho e seletores de localização (país/moeda e
+  idioma). Inclui menu mobile com botão hambúrguer.
+
+  ONDE É USADA:
+  No layout (layout/theme.liquid), como header fixo presente em
+  todas as páginas. É uma section de grupo/header do tema.
+
+  PRINCIPAIS PARTES:
+  - Logo: usa settings.logo (imagem) ou, se vazio, o nome da loja
+    (shop.name) como texto.
+  - header__nav: percorre section.settings.menu.links montando o
+    menu desktop com até 3 níveis (link > child > grandchild).
+  - header__actions: busca (details com painel), conta (só se
+    customer_accounts_enabled) e carrinho com contador
+    data-cart-count baseado em cart.item_count.
+  - Localização: renderiza o snippet 'localization-form' conforme
+    os settings enable_country_selector / enable_language_selector.
+  - header__mobile-nav: menu alternativo para telas <= 1000px,
+    aberto/fechado pelo <script> que alterna aria-expanded/hidden.
+
+  OBSERVAÇÕES:
+  - Ícones vêm do snippet 'icon' (search, account, cart, etc.).
+  - O menu é definido no setting menu (link_list, default
+    "main-menu"); submenus só aparecem se o link tiver filhos.
+  - Estilos e o JS do toggle mobile ficam inline neste arquivo.
+{%- endcomment -%}
+<header class="header page-width" data-section-id="{{ section.id }}">
+  <div class="header__inner">
+    <button
+      type="button"
+      class="header__menu-toggle tap-target"
+      aria-label="{{ 'sections.header.menu' | t }}"
+      aria-expanded="false"
+      aria-controls="MobileNav-{{ section.id }}"
+    >
+      <span class="header__burger"></span>
+    </button>
+
+    <a href="{{ routes.root_url }}" class="header__logo-link">
+      {%- if settings.logo != blank -%}
+        {%- assign logo_alt = shop.name | escape -%}
+        {%- assign logo_height = settings.logo_width | divided_by: settings.logo.aspect_ratio -%}
+        {{
+          settings.logo
+          | image_url: width: 600
+          | image_tag:
+            class: 'header__logo-image',
+            widths: '150, 300, 450, 600',
+            width: settings.logo_width,
+            height: logo_height,
+            alt: logo_alt,
+            sizes: '(max-width: 1000px) 40vw, 200px'
+        }}
+      {%- else -%}
+        <span class="header__logo-text">{{ shop.name }}</span>
+      {%- endif -%}
+    </a>
+
+    <nav class="header__nav" role="navigation" aria-label="{{ 'sections.header.menu' | t }}">
+      <ul class="header__menu" role="list">
+        {%- for link in section.settings.menu.links -%}
+          <li class="header__menu-item {% if link.links != blank %}header__menu-item--has-dropdown{% endif %}">
+            <a href="{{ link.url }}" class="header__menu-link" {% if link.current %}aria-current="page"{% endif %}>
+              {{ link.title | escape }}
+            </a>
+            {%- if link.links != blank -%}
+              <ul class="header__submenu" role="list">
+                {%- for child in link.links -%}
+                  <li class="header__submenu-item {% if child.links != blank %}header__submenu-item--has-dropdown{% endif %}">
+                    <a href="{{ child.url }}" class="header__submenu-link">{{ child.title | escape }}</a>
+                    {%- if child.links != blank -%}
+                      <ul class="header__submenu header__submenu--nested" role="list">
+                        {%- for grandchild in child.links -%}
+                          <li><a href="{{ grandchild.url }}" class="header__submenu-link">{{ grandchild.title | escape }}</a></li>
+                        {%- endfor -%}
+                      </ul>
+                    {%- endif -%}
+                  </li>
+                {%- endfor -%}
+              </ul>
+            {%- endif -%}
+          </li>
+        {%- endfor -%}
+      </ul>
+    </nav>
+
+    <div class="header__actions">
+      <details class="header__search">
+        <summary class="header__action-button tap-target" aria-label="{{ 'general.search.search' | t }}">
+          {% render 'icon', name: 'search' %}
+        </summary>
+        <div class="header__search-panel">
+          <form action="{{ routes.search_url }}" method="get" role="search" class="header__search-form">
+            <input
+              type="search"
+              name="q"
+              value="{{ search.terms | escape }}"
+              placeholder="{{ 'general.search.placeholder' | t }}"
+              aria-label="{{ 'general.search.search' | t }}"
+              class="field__input"
+            >
+            <button type="submit" class="visually-hidden">{{ 'general.search.submit' | t }}</button>
+          </form>
+        </div>
+      </details>
+
+      {%- if shop.customer_accounts_enabled -%}
+        <a href="{{ routes.account_url }}" class="header__action-button tap-target" aria-label="{{ 'customer.account.title' | t }}">
+          {% render 'icon', name: 'account' %}
+        </a>
+      {%- endif -%}
+
+      <a href="{{ routes.cart_url }}" class="header__action-button header__cart tap-target" aria-label="{{ 'templates.cart.cart' | t }}">
+        {% render 'icon', name: 'cart' %}
+        <span class="header__cart-count" data-cart-count>{{ cart.item_count }}</span>
+      </a>
+    </div>
+  </div>
+
+  {%- if section.settings.enable_country_selector or section.settings.enable_language_selector -%}
+    <div class="header__localization">
+      {% render 'localization-form',
+        section_id: section.id,
+        show_country: section.settings.enable_country_selector,
+        show_language: section.settings.enable_language_selector
+      %}
+    </div>
+  {%- endif -%}
+</header>
+
+<div class="header__mobile-nav" id="MobileNav-{{ section.id }}" hidden>
+  <ul class="header__mobile-menu" role="list">
+    {%- for link in section.settings.menu.links -%}
+      <li>
+        <a href="{{ link.url }}" class="header__mobile-link">{{ link.title | escape }}</a>
+        {%- if link.links != blank -%}
+          <ul role="list" class="header__mobile-submenu">
+            {%- for child in link.links -%}
+              <li><a href="{{ child.url }}" class="header__mobile-link header__mobile-link--child">{{ child.title | escape }}</a></li>
+            {%- endfor -%}
+          </ul>
+        {%- endif -%}
+      </li>
+    {%- endfor -%}
+  </ul>
+</div>
+
+<style>
+  .header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 16px 0;
+  }
+  .header__logo-image { display: block; height: auto; }
+  .header__logo-text { font-family: var(--font-heading-family); font-size: var(--f4); }
+  .header__nav { flex: 1; }
+  .header__menu {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .header__menu-item { position: relative; }
+  .header__menu-link,
+  .header__submenu-link {
+    font-family: var(--font-heading-family);
+    font-size: var(--f2);
+    color: var(--color-text);
+    text-decoration: none;
+    padding: 8px 0;
+    display: inline-block;
+  }
+  .header__submenu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 200px;
+    margin: 0;
+    padding: 8px 0;
+    list-style: none;
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--inputs-radius);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(6px);
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+    z-index: 20;
+  }
+  .header__submenu--nested { top: 0; left: 100%; }
+  .header__menu-item--has-dropdown:hover > .header__submenu,
+  .header__menu-item--has-dropdown:focus-within > .header__submenu,
+  .header__submenu-item--has-dropdown:hover > .header__submenu,
+  .header__submenu-item--has-dropdown:focus-within > .header__submenu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  .header__submenu-item { position: relative; }
+  .header__submenu-link { padding: 6px 16px; width: 100%; }
+  .header__actions { display: flex; align-items: center; gap: 8px; }
+  .header__action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    color: var(--color-text);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .header__action-button svg { width: 22px; height: 22px; }
+  .header__cart-count {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    font-size: 11px;
+    line-height: 18px;
+    text-align: center;
+    color: var(--color-accent-text);
+    background-color: var(--color-accent);
+    border-radius: 9px;
+  }
+  .header__search { position: relative; }
+  .header__search summary { list-style: none; }
+  .header__search summary::-webkit-details-marker { display: none; }
+  .header__search-panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 320px;
+    max-width: 90vw;
+    padding: 12px;
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--inputs-radius);
+    z-index: 20;
+  }
+  .header__menu-toggle { display: none; background: none; border: none; }
+  .header__burger,
+  .header__burger::before,
+  .header__burger::after {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background-color: var(--color-text);
+    transition: transform 0.2s ease;
+  }
+  .header__burger { position: relative; }
+  .header__burger::before { content: ''; position: absolute; top: -7px; }
+  .header__burger::after { content: ''; position: absolute; top: 7px; }
+  .header__mobile-nav {
+    padding: 16px 20px;
+    border-top: 1px solid var(--color-border);
+  }
+  .header__mobile-menu, .header__mobile-submenu { list-style: none; margin: 0; padding: 0; }
+  .header__mobile-link { display: block; padding: 12px 0; font-size: var(--f3); color: var(--color-text); text-decoration: none; }
+  .header__mobile-link--child { padding-left: 16px; font-size: var(--f2); opacity: 0.8; }
+  .header__localization { padding: 8px 0; }
+
+  @media screen and (max-width: 1000px) {
+    .header__nav { display: none; }
+    .header__menu-toggle { display: inline-flex; }
+    .header__inner { justify-content: space-between; }
+    .header__logo-link { margin: 0 auto; }
+  }
+  @media screen and (min-width: 1001px) {
+    .header__mobile-nav { display: none !important; }
+  }
+</style>
+
+<script>
+  (function () {
+    var section = document.querySelector('.header[data-section-id="{{ section.id }}"]');
+    if (!section) return;
+    var toggle = section.querySelector('.header__menu-toggle');
+    var nav = document.getElementById('MobileNav-{{ section.id }}');
+    if (toggle && nav) {
+      toggle.addEventListener('click', function () {
+        var open = toggle.getAttribute('aria-expanded') === 'true';
+        toggle.setAttribute('aria-expanded', String(!open));
+        nav.hidden = open;
+      });
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "t:sections.header.name",
+  "class": "section-header",
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "menu",
+      "default": "main-menu",
+      "label": "t:sections.header.settings.menu.label"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.header.settings.header__localization.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_country_selector",
+      "default": true,
+      "label": "t:sections.header.settings.enable_country_selector.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_language_selector",
+      "default": true,
+      "label": "t:sections.header.settings.enable_language_selector.label"
+    }
+  ]
+}
+{% endschema %}

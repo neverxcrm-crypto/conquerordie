@@ -1,0 +1,150 @@
+/*
+  ============================================================
+  normalizar.css — Reset e normalizacao entre navegadores
+  ============================================================
+
+  O QUE FAZ:
+  Zera margens, paddings e bordas padrao (reset com box-sizing:
+  border-box em tudo), normaliza comportamento de elementos
+  (botoes, inputs, links, imagens) e esconde scrollbars.
+  Tambem define cor de selecao de texto, rolagem suave e estados
+  de autofill usando as variaveis de cor do tema.
+
+  OBSERVACOES:
+  Depende das variaveis CSS (--cor-branco, --color-accent, etc.)
+  definidas em snippets/css-variables.liquid.
+  Evita highlight de toque no mobile e desativa aparencia nativa
+  de controles de formulario para permitir estilizacao custom.
+*/
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  font-size: 100%;
+  font: inherit;
+  vertical-align: baseline;
+  text-decoration: none;
+}
+html {
+  line-height: 1.15;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  background-color: var(--cor-branco);
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
+  background-color: var(--cor-branco);
+  -webkit-text-size-adjust: none;
+  touch-action: pan-x pan-y;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+* {
+  scrollbar-width: none;
+}
+body.bloquear {
+  overflow: hidden;
+}
+::selection {
+  color: var(--color-accent-text, #ffffff);
+  background-color: var(--color-accent, #ff0033);
+}
+::-moz-selection {
+  color: var(--color-accent-text, #ffffff);
+  background-color: var(--color-accent, #ff0033);
+}
+a,
+img,
+svg,
+button {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -khtml-user-select: none;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
+  -webkit-text-size-adjust: none;
+  -webkit-touch-callout: none;
+  -o-user-select: none;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+button,
+a {
+  cursor: pointer !important;
+}
+a {
+  background-color: transparent;
+  cursor: pointer;
+}
+img {
+  border-style: none;
+}
+button {
+  line-height: 1;
+  margin: 0;
+  -moz-appearance: none !important;
+  -webkit-appearance: button;
+  appearance: button;
+  text-transform: none;
+  overflow: visible;
+  cursor: pointer;
+}
+button * {
+  pointer-events: none;
+}
+input {
+  line-height: 1;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  overflow: visible;
+}
+textarea {
+  line-height: 1;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  overflow: auto;
+}
+[type='button'] {
+  -webkit-appearance: button;
+  appearance: button;
+  cursor: pointer;
+}
+button::-moz-focus-inner,
+[type='button']::-moz-focus-inner {
+  border-style: none;
+}
+[hidden] {
+  display: none;
+  opacity: 0;
+  visibility: hidden;
+}
+input[type='date']::-webkit-inner-spin-button,
+input[type='date']::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 100px var(--cor-escuro-1) inset !important;
+  border: 2px solid transparent !important;
+}
+input:-webkit-autofill {
+  -webkit-text-fill-color: var(--cor-escuro-1) !important;
+}
+input[type='date'] {
+  min-width: calc(100% - 24px);
+}
+b {
+  font-weight: bold !important;
+}
+i {
+  font-style: italic !important;
+}

@@ -1,0 +1,179 @@
+{%- comment -%}
+  ============================================================
+  MAIN BLOG — listagem de artigos do blog
+  ============================================================
+
+  O QUE FAZ:
+  Lista os artigos do blog atual em grid de 3 colunas, cada card com
+  imagem, data, título, resumo (30 palavras) e link "ler mais".
+  Usa paginação nativa configurável por setting.
+
+  ONDE É USADA:
+  Template blog (página de listagem de um blog OS 2.0).
+
+  PRINCIPAIS PARTES:
+  - {%- paginate blog.articles by section.settings.posts_per_page -%}
+  - blog-card: card de cada artigo (imagem opcional + info)
+  - excerpt_or_content: usa o resumo, senão o conteúdo truncado
+  - render 'pagination': navegação entre páginas
+  - Setting: posts_per_page (3 a 24, passo 3)
+
+  OBSERVAÇÕES:
+  No mobile (<=1000px) o grid vira 1 coluna.
+{%- endcomment -%}
+
+<section class="blog page-width" data-section-id="{{ section.id }}">
+  <header class="blog__header">
+    <h1 class="blog__title">{{ blog.title | escape }}</h1>
+  </header>
+
+  {%- paginate blog.articles by section.settings.posts_per_page -%}
+    {%- if blog.articles.size > 0 -%}
+      <div class="blog__grid">
+        {%- for article in blog.articles -%}
+          <article class="blog-card">
+            {%- if article.image -%}
+              <a href="{{ article.url }}" class="blog-card__media">
+                {{
+                  article.image
+                  | image_url: width: 900
+                  | image_tag:
+                    loading: 'lazy',
+                    widths: '300, 450, 600, 900',
+                    sizes: '(min-width: 1000px) 33vw, 100vw',
+                    class: 'blog-card__image',
+                    alt: article.image.alt | default: article.title | escape
+                }}
+              </a>
+            {%- endif -%}
+
+            <div class="blog-card__info">
+              {%- if article.published_at -%}
+                <time class="blog-card__date" datetime="{{ article.published_at | date: '%Y-%m-%d' }}">
+                  {{ article.published_at | date: format: 'date' }}
+                </time>
+              {%- endif -%}
+
+              <h2 class="blog-card__title">
+                <a href="{{ article.url }}">{{ article.title | escape }}</a>
+              </h2>
+
+              {%- if article.excerpt_or_content != blank -%}
+                <div class="blog-card__excerpt rte">
+                  {{ article.excerpt_or_content | strip_html | truncatewords: 30 }}
+                </div>
+              {%- endif -%}
+
+              <a href="{{ article.url }}" class="blog-card__link">
+                {{ 'blogs.article.read_more' | t }}
+              </a>
+            </div>
+          </article>
+        {%- endfor -%}
+      </div>
+
+      {% render 'pagination', paginate: paginate %}
+    {%- endif -%}
+  {%- endpaginate -%}
+</section>
+
+<style>
+  .blog {
+    padding-top: var(--spacing-sections, 40px);
+    padding-bottom: var(--spacing-sections, 40px);
+  }
+
+  .blog__header {
+    margin-bottom: 40px;
+    text-align: center;
+  }
+
+  .blog__title {
+    font-size: var(--f7);
+  }
+
+  .blog__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+  }
+
+  .blog-card__media {
+    display: block;
+    overflow: hidden;
+    border-radius: var(--media-radius, 8px);
+    background-color: var(--color-background-contrast, #f2f3f8);
+  }
+
+  .blog-card__image {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    display: block;
+  }
+
+  .blog-card__info {
+    padding: 16px 4px;
+  }
+
+  .blog-card__date {
+    display: block;
+    margin-bottom: 8px;
+    font-size: var(--f1);
+    opacity: 0.6;
+  }
+
+  .blog-card__title {
+    font-size: var(--f4);
+    line-height: 1.2;
+    margin-bottom: 10px;
+  }
+
+  .blog-card__title a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .blog-card__excerpt {
+    font-size: var(--f2);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .blog-card__link {
+    font-size: var(--f2);
+    color: var(--color-accent);
+    text-decoration: underline;
+  }
+
+  @media screen and (max-width: 1000px) {
+    .blog__grid {
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+
+    .blog__title {
+      font-size: var(--f6);
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "t:sections.main_blog.name",
+  "tag": "section",
+  "class": "section-main-blog",
+  "settings": [
+    {
+      "type": "range",
+      "id": "posts_per_page",
+      "min": 3,
+      "max": 24,
+      "step": 3,
+      "default": 12,
+      "label": "t:sections.main_blog.settings.posts_per_page.label"
+    }
+  ]
+}
+{% endschema %}

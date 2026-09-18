@@ -1,0 +1,81 @@
+{%- comment -%}
+  ============================================================
+  localization-form — seletores de país/moeda e idioma
+  ============================================================
+
+  O QUE FAZ:
+  Renderiza os selects nativos de país/moeda e de idioma usando os forms
+  de 'localization' do Shopify. Cada select faz submit automático ao mudar.
+
+  COMO USAR:
+  {% render 'localization-form', section_id: section.id, show_country: true, show_language: true %}
+
+  PARÂMETROS:
+  - section_id: id da section, usado para gerar ids únicos dos campos.
+  - show_country (bool): exibe o seletor de país/moeda.
+  - show_language (bool): exibe o seletor de idioma.
+
+  OBSERVAÇÕES:
+  Cada seletor só aparece se houver mais de uma opção disponível
+  (available_countries / available_languages > 1). Traz seu próprio <style>.
+{%- endcomment -%}
+<div class="localization">
+  {%- if show_country and localization.available_countries.size > 1 -%}
+    {%- form 'localization', id: 'CountryForm-' | append: section_id, class: 'localization__form' -%}
+      <label class="visually-hidden" for="Country-{{ section_id }}">{{ 'localization.country_label' | t }}</label>
+      <select
+        class="localization__select"
+        name="country_code"
+        id="Country-{{ section_id }}"
+        onchange="this.form.submit()"
+      >
+        {%- for country in localization.available_countries -%}
+          <option
+            value="{{ country.iso_code }}"
+            {% if country.iso_code == localization.country.iso_code %}selected{% endif %}
+          >
+            {{ country.name }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})
+          </option>
+        {%- endfor -%}
+      </select>
+      <input type="hidden" name="return_to" value="{{ request.path }}">
+    {%- endform -%}
+  {%- endif -%}
+
+  {%- if show_language and localization.available_languages.size > 1 -%}
+    {%- form 'localization', id: 'LanguageForm-' | append: section_id, class: 'localization__form' -%}
+      <label class="visually-hidden" for="Language-{{ section_id }}">{{ 'localization.language_label' | t }}</label>
+      <select
+        class="localization__select"
+        name="locale_code"
+        id="Language-{{ section_id }}"
+        onchange="this.form.submit()"
+      >
+        {%- for language in localization.available_languages -%}
+          <option
+            value="{{ language.iso_code }}"
+            lang="{{ language.iso_code }}"
+            {% if language.iso_code == localization.language.iso_code %}selected{% endif %}
+          >
+            {{ language.endonym_name | capitalize }}
+          </option>
+        {%- endfor -%}
+      </select>
+      <input type="hidden" name="return_to" value="{{ request.path }}">
+    {%- endform -%}
+  {%- endif -%}
+</div>
+
+<style>
+  .localization { display: flex; gap: 16px; flex-wrap: wrap; }
+  .localization__select {
+    min-height: 40px;
+    padding: 6px 10px;
+    font-size: var(--f1);
+    color: var(--color-text);
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--inputs-radius);
+    cursor: pointer;
+  }
+</style>

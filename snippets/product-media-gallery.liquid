@@ -1,0 +1,128 @@
+{%- comment -%}
+  ============================================================
+  product-media-gallery — estilos da página de produto
+  ============================================================
+
+  O QUE FAZ:
+  Bloco <style> com todo o CSS da página de produto: galeria de mídia,
+  coluna de informações, título/vendor/preço, swatches de opção, seletor
+  de quantidade, botões de compra e responsividade (breakpoint 1000px).
+
+  COMO USAR:
+  {% render 'product-media-gallery', section_id: section.id %}
+
+  PARÂMETROS:
+  - section_id: id da section (recebido por consistência com a section de
+    produto; o CSS usa classes fixas .product__*).
+
+  OBSERVAÇÕES:
+  É apenas CSS — não gera HTML. As classes casam com a marcação da section
+  main-product e com o snippet product-variant-selection.
+{%- endcomment -%}
+<style>
+  .section-main-product .product {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 40px;
+    padding-top: var(--spacing-sections);
+    padding-bottom: var(--spacing-sections);
+  }
+  .product__media-wrapper { width: 55%; }
+  .product__media-item {
+    width: 100%;
+    margin-bottom: 16px;
+    border-radius: var(--media-radius);
+    overflow: hidden;
+    background-color: var(--color-background-contrast);
+  }
+  .product__media-item img,
+  .product__media-item iframe,
+  .product__media-item video,
+  .product__media-item model-viewer {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .product__info { width: 45%; }
+  .product__vendor {
+    font-size: var(--f1);
+    color: var(--color-text);
+    opacity: 0.7;
+    margin-bottom: 8px;
+  }
+  .product__title {
+    font-size: var(--f6);
+    margin-bottom: 16px;
+  }
+  .product__price { margin-bottom: 20px; }
+  .product__unit-price,
+  .product__tax { font-size: var(--f1); opacity: 0.7; margin-top: 6px; }
+  .product__description { margin: 24px 0; line-height: 1.6; }
+  .product__option { border: 0; padding: 0; margin: 0 0 20px; }
+  .product__option-name { display: block; font-size: var(--f1); margin-bottom: 8px; }
+  .product__swatch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 14px;
+    margin: 0 8px 8px 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--inputs-radius);
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+  }
+  .product__swatch.is-selected { border-color: var(--color-accent); border-width: 2px; }
+  .product__swatch.is-unavailable { opacity: 0.4; }
+  .product__swatch-color,
+  .product__swatch-media {
+    width: 28px; height: 28px; border-radius: 50%;
+    background-size: cover; background-position: center;
+    display: block;
+  }
+  .product__quantity { margin: 20px 0; }
+  .quantity-selector {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--color-border);
+    border-radius: var(--inputs-radius);
+    overflow: hidden;
+  }
+  .quantity__button {
+    width: 44px; height: 44px;
+    background: none; border: none; cursor: pointer;
+    font-size: var(--f3);
+  }
+  .quantity__input {
+    width: 56px; height: 44px;
+    text-align: center; border: none;
+    -moz-appearance: textfield;
+    font-size: var(--f2);
+  }
+  .quantity__input::-webkit-outer-spin-button,
+  .quantity__input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .product__buy-buttons { margin: 24px 0; }
+  .product__add-to-cart { width: 100%; margin-bottom: 12px; }
+  .product__buy-buttons .shopify-payment-button { margin-top: 8px; }
+  .product__share { margin-top: 20px; }
+
+  .price { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: var(--f5); }
+  .price__compare { opacity: 0.6; font-size: var(--f3); }
+  .price__sale { color: var(--color-sale); }
+  .price__badge {
+    font-size: var(--f0);
+    padding: 2px 8px;
+    color: var(--color-accent-text);
+    background-color: var(--color-sale);
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  @media screen and (max-width: 1000px) {
+    .section-main-product .product { flex-direction: column; gap: 24px; }
+    .product__media-wrapper,
+    .product__info { width: 100%; }
+  }
+</style>

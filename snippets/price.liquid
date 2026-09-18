@@ -1,0 +1,65 @@
+{%- comment -%}
+  ============================================================
+  price — exibe preço com opção de preço promocional
+  ============================================================
+
+  O QUE FAZ:
+  Renderiza o preço de um produto ou variante, tratando promoção
+  (compare_at_price riscado + badge "promoção") e o caso de preço variável
+  ("a partir de X").
+
+  COMO USAR:
+  {% render 'price', product: card_product, use_variant: false, show_compare: true, price_class: 'price--card' %}
+
+  PARÂMETROS:
+  - product: objeto product OU variant.
+  - use_variant (bool): se true, usa selected_or_first_available_variant;
+    se passar uma variante direta, mande false.
+  - show_compare (bool): se true, mostra o preço riscado quando em promoção.
+  - price_class: classe CSS extra aplicada no wrapper .price.
+
+  OBSERVAÇÕES:
+  Produtos expõem compare_at_price_max e price_varies; variantes expõem
+  compare_at_price direto. O snippet cobre os dois casos.
+{%- endcomment -%}
+{%- liquid
+  if use_variant
+    assign target = product.selected_or_first_available_variant
+  else
+    assign target = product
+  endif
+
+  # product.compare_at_price_max exists on products; variants expose compare_at_price
+  assign compare_at = target.compare_at_price
+  if compare_at == nil and product.compare_at_price_max
+    assign compare_at = product.compare_at_price_max
+  endif
+
+  assign money_price = target.price | money
+  assign on_sale = false
+  if compare_at and compare_at > target.price
+    assign on_sale = true
+  endif
+
+  assign price_varies = false
+  if product.price_varies and use_variant == false and product.price_min
+    assign price_varies = true
+  endif
+-%}
+<div class="price {% if on_sale %}price--on-sale{% endif %} {{ price_class }}">
+  {%- if price_varies -%}
+    <span class="price__regular">
+      {{ 'products.product.price.from_price_html' | t: price: product.price_min | money }}
+    </span>
+  {%- else -%}
+    {%- if on_sale and show_compare -%}
+      <span class="visually-hidden">{{ 'products.product.price.regular_price' | t }}</span>
+      <s class="price__compare">{{ compare_at | money }}</s>
+      <span class="visually-hidden">{{ 'products.product.price.sale_price' | t }}</span>
+      <span class="price__sale">{{ money_price }}</span>
+      <span class="price__badge">{{ 'products.product.on_sale' | t }}</span>
+    {%- else -%}
+      <span class="price__regular">{{ money_price }}</span>
+    {%- endif -%}
+  {%- endif -%}
+</div>

@@ -1,0 +1,78 @@
+{%- comment -%}
+  ============================================================
+  pagination — navegação de paginação reutilizável
+  ============================================================
+
+  O QUE FAZ:
+  Renderiza a navegação de páginas (anterior, números, próxima) com
+  acessibilidade (aria-label, aria-current). Marca a página atual e
+  mostra reticências/gaps quando houver.
+
+  COMO USAR:
+  {%- paginate collection.products by 12 -%}
+    ...
+    {% render 'pagination', paginate: paginate %}
+  {%- endpaginate -%}
+
+  PARÂMETROS:
+  - paginate: o objeto paginate fornecido pela tag {% paginate %}.
+
+  OBSERVAÇÕES:
+  Só renderiza se paginate.pages > 1. Precisa estar dentro de um bloco
+  {% paginate %} para o objeto existir.
+{%- endcomment -%}
+{%- if paginate.pages > 1 -%}
+  <nav class="pagination" role="navigation" aria-label="{{ 'general.pagination.label' | t }}">
+    <ul class="pagination__list" role="list">
+      {%- if paginate.previous -%}
+        <li>
+          <a
+            href="{{ paginate.previous.url }}"
+            class="pagination__item pagination__item--prev"
+            aria-label="{{ 'general.pagination.previous' | t }}"
+          >
+            <span aria-hidden="true">&larr;</span>
+          </a>
+        </li>
+      {%- endif -%}
+
+      {%- for part in paginate.parts -%}
+        <li>
+          {%- if part.is_link -%}
+            <a
+              href="{{ part.url }}"
+              class="pagination__item"
+              aria-label="{{ 'general.pagination.page' | t: number: part.title }}"
+            >
+              {{- part.title -}}
+            </a>
+          {%- else -%}
+            {%- if part.title == paginate.current_page -%}
+              <span
+                class="pagination__item pagination__item--current"
+                aria-current="page"
+                aria-label="{{ 'general.pagination.page' | t: number: part.title }}"
+              >
+                {{- part.title -}}
+              </span>
+            {%- else -%}
+              <span class="pagination__item pagination__item--gap">{{ part.title }}</span>
+            {%- endif -%}
+          {%- endif -%}
+        </li>
+      {%- endfor -%}
+
+      {%- if paginate.next -%}
+        <li>
+          <a
+            href="{{ paginate.next.url }}"
+            class="pagination__item pagination__item--next"
+            aria-label="{{ 'general.pagination.next' | t }}"
+          >
+            <span aria-hidden="true">&rarr;</span>
+          </a>
+        </li>
+      {%- endif -%}
+    </ul>
+  </nav>
+{%- endif -%}

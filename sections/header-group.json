@@ -1,0 +1,10 @@
+{
+  "type": "header",
+  "name": "t:section_groups.header.name",
+  "sections": {
+    "nav": {
+      "type": "nav"
+    }
+  },
+  "order": ["nav"]
+}

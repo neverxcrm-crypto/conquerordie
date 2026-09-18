@@ -1,0 +1,24 @@
+{%- comment -%}
+  ============================================================
+  carrinho — ponto de montagem do carrinho
+  ============================================================
+
+  O QUE FAZ:
+  Renderiza apenas o elemento raiz (<div id="carrinho">) onde o carrinho
+  (drawer/mini-cart) é montado. A lógica e o conteúdo são injetados por
+  JavaScript externo que procura por #carrinho.
+
+  COMO USAR:
+  {% render 'carrinho' %}
+  Normalmente incluído uma vez no layout (theme.liquid).
+
+  PARÂMETROS:
+  Nenhum — renderizado diretamente.
+
+  OBSERVAÇÕES:
+  Placeholder proposital: o bloco <style> está vazio e o HTML/JS do
+  carrinho vem de fora. Serve de âncora para o script.
+{%- endcomment -%}
+<div id="carrinho"></div>
+
+<style></style>

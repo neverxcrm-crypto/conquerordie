@@ -1,0 +1,83 @@
+{%- comment -%}
+  ============================================================
+  FEATURED COLLECTION — vitrine de produtos de uma coleção
+  ============================================================
+
+  O QUE FAZ:
+  Exibe um título + grade de produtos de UMA coleção escolhida, com
+  quantidade e número de colunas configuráveis. Mostra link "ver
+  tudo" quando a coleção tem mais produtos do que o limite exibido.
+
+  ONDE É USADA:
+  Seção reutilizável (tem preset) — comum na home.
+
+  PRINCIPAIS PARTES:
+  - collection = collections[section.settings.collection]
+  - render 'card-product': card de cada produto
+  - Placeholders (product-1 + título fake) quando coleção vazia
+  - Settings: heading, collection, products_to_show, columns_desktop,
+    show_view_all
+  - Colunas via --grid-columns inline (style no wrapper)
+
+  OBSERVAÇÕES:
+  show_view_all só aparece se total_products > limit exibido.
+{%- endcomment -%}
+{%- liquid
+  assign collection = collections[section.settings.collection]
+  assign limit = section.settings.products_to_show | plus: 0
+  assign total_products = collection.all_products_count | plus: 0
+-%}
+<div class="featured-collection page-width" data-section-id="{{ section.id }}" style="--grid-columns: {{ section.settings.columns_desktop }};">
+  <div class="featured-collection__header">
+    {%- if section.settings.heading != blank -%}
+      <h2 class="featured-collection__heading">{{ section.settings.heading | escape }}</h2>
+    {%- endif -%}
+    {%- if section.settings.show_view_all and total_products > limit -%}
+      <a href="{{ collection.url }}" class="featured-collection__view-all button button--secondary"
+         aria-label="{{ 'sections.featured_collection.view_all_label' | t: collection_name: collection.title }}">
+        {{ 'sections.featured_collection.view_all' | t }}
+      </a>
+    {%- endif -%}
+  </div>
+
+  {%- if collection.products.size > 0 -%}
+    <ul class="product-grid" role="list">
+      {%- for product in collection.products limit: limit -%}
+        <li>{% render 'card-product', card_product: product %}</li>
+      {%- endfor -%}
+    </ul>
+  {%- else -%}
+    <ul class="product-grid" role="list">
+      {%- for i in (1..limit) -%}
+        <li>
+          <div class="card-product">
+            <div class="card-product__media">{{ 'product-1' | placeholder_svg_tag: 'card-product__image placeholder-svg' }}</div>
+            <div class="card-product__info"><h3 class="card-product__title">{{ 'onboarding.product_title' | t }}</h3></div>
+          </div>
+        </li>
+      {%- endfor -%}
+    </ul>
+  {%- endif -%}
+</div>
+
+<style>
+  .featured-collection { padding-top: var(--spacing-sections); padding-bottom: var(--spacing-sections); }
+  .featured-collection__header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .featured-collection__heading { font-size: var(--f6); }
+  .product-grid { --grid-columns: 4; }
+</style>
+
+{% schema %}
+{
+  "name": "t:sections.featured_collection.name",
+  "tag": "section",
+  "settings": [
+    { "type": "text", "id": "heading", "default": "Featured collection", "label": "t:sections.featured_collection.settings.heading.label" },
+    { "type": "collection", "id": "collection", "label": "t:sections.featured_collection.settings.collection.label" },
+    { "type": "range", "id": "products_to_show", "min": 2, "max": 12, "step": 1, "default": 4, "label": "t:sections.featured_collection.settings.products_to_show.label" },
+    { "type": "range", "id": "columns_desktop", "min": 2, "max": 5, "step": 1, "default": 4, "label": "t:sections.featured_collection.settings.columns_desktop.label" },
+    { "type": "checkbox", "id": "show_view_all", "default": true, "label": "t:sections.featured_collection.settings.show_view_all.label" }
+  ],
+  "presets": [{ "name": "t:sections.featured_collection.name" }]
+}
+{% endschema %}

@@ -1,0 +1,16 @@
+/*
+  ============================================================
+  fontes.css — Carregamento de fontes do tema
+  ============================================================
+
+  O QUE FAZ:
+  Ponto central para regras de fonte. Por padrao as fontes vem da
+  biblioteca do Shopify, carregadas pelas configuracoes de
+  font_picker do tema (veja snippets/css-variables.liquid), que
+  geram as variaveis --font-heading-family e --font-body-family.
+
+  OBSERVACOES:
+  Adicione regras @font-face aqui apenas se for empacotar suas
+  proprias fontes web (arquivos .woff2 em assets/). Caso contrario,
+  este arquivo pode ficar vazio e a fonte e controlada pelo admin.
+*/

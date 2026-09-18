@@ -1,0 +1,53 @@
+{%- comment -%}
+  ============================================================
+  share-button — botão de compartilhar (Web Share API)
+  ============================================================
+
+  O QUE FAZ:
+  Renderiza um botão de compartilhamento que usa a Web Share API nativa
+  do navegador. Quando não há suporte, faz fallback copiando o link para
+  a área de transferência e mostra a mensagem "Link copied".
+
+  COMO USAR:
+  {% render 'share-button', share_link: product.url, share_title: product.title %}
+
+  PARÂMETROS:
+  - share_link: caminho a ser compartilhado (concatenado a shop.url).
+  - share_title: título do compartilhamento (referência; o script usa
+    document.title no share nativo).
+
+  OBSERVAÇÕES:
+  Registra o custom element <share-button> uma única vez. A URL final é
+  shop.url + share_link. A mensagem de fallback está em inglês no script.
+{%- endcomment -%}
+<share-button class="share-button" data-share-url="{{ shop.url }}{{ share_link }}">
+  <button type="button" class="share-button__button button button--secondary">
+    {{ 'products.product.share' | t }}
+  </button>
+  <span class="share-button__message" role="status" aria-live="polite" hidden></span>
+</share-button>
+
+<script>
+  if (!customElements.get('share-button')) {
+    customElements.define('share-button', class extends HTMLElement {
+      connectedCallback() {
+        this.url = this.dataset.shareUrl;
+        this.button = this.querySelector('button');
+        this.message = this.querySelector('.share-button__message');
+        this.button.addEventListener('click', () => this.share());
+      }
+      async share() {
+        if (navigator.share) {
+          try { await navigator.share({ url: this.url, title: document.title }); } catch (e) {}
+        } else {
+          try {
+            await navigator.clipboard.writeText(this.url);
+            this.message.hidden = false;
+            this.message.textContent = 'Link copied';
+            setTimeout(() => { this.message.hidden = true; }, 2000);
+          } catch (e) {}
+        }
+      }
+    });
+  }
+</script>

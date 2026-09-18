@@ -1,0 +1,20 @@
+/*
+  ============================================================
+  index.css — Ponto de entrada do CSS do tema
+  ============================================================
+
+  O QUE FAZ:
+  Este é o unico arquivo CSS carregado pelo layout (theme.liquid).
+  Ele importa os demais na ordem correta:
+  1. fontes.css     — carregamento de fontes / @font-face
+  2. normalizar.css — reset e normalizacao entre navegadores
+  3. base.css       — estilos base, utilitarios e componentes compartilhados
+
+  OBSERVACOES:
+  A ordem dos @import importa: fontes primeiro, depois o reset e por
+  ultimo os estilos base (que dependem do reset ja aplicado).
+  Para adicionar CSS global novo, prefira base.css em vez deste arquivo.
+*/
+@import url('./fontes.css');
+@import url('./normalizar.css');
+@import url('./base.css');

@@ -1,0 +1,89 @@
+{%- comment -%}
+  ============================================================
+  RELATED PRODUCTS — produtos relacionados (recomendações)
+  ============================================================
+
+  O QUE FAZ:
+  Exibe produtos relacionados usando a API de recomendações do Shopify.
+  Um web component (<product-recommendations>) busca via fetch os
+  produtos sugeridos e injeta o grid no DOM (lazy, sem lib externa).
+
+  ONDE É USADA:
+  Template product (abaixo da página do produto).
+
+  PRINCIPAIS PARTES:
+  - data-url monta a requisição com section_id, product_id e limit
+  - customElements 'product-recommendations': faz o fetch e injeta o HTML
+  - render 'card-product': card de cada produto recomendado
+  - Settings: enable, heading, products_to_show
+
+  OBSERVAÇÕES:
+  Só renderiza se enable estiver marcado. O grid só aparece quando
+  recommendations.performed e há produtos retornados.
+{%- endcomment -%}
+{%- if section.settings.enable -%}
+  <product-recommendations
+    class="related-products page-width"
+    data-url="{{ routes.product_recommendations_url }}?section_id={{ section.id }}&product_id={{ product.id }}&limit={{ section.settings.products_to_show }}"
+  >
+    {%- if recommendations.performed and recommendations.products_count > 0 -%}
+      <h2 class="related-products__title">{{ section.settings.heading | escape }}</h2>
+      <ul class="product-grid" role="list">
+        {%- for product in recommendations.products -%}
+          <li>{% render 'card-product', card_product: product %}</li>
+        {%- endfor -%}
+      </ul>
+    {%- endif -%}
+  </product-recommendations>
+
+  <script>
+    if (!customElements.get('product-recommendations')) {
+      customElements.define('product-recommendations', class extends HTMLElement {
+        connectedCallback() {
+          var el = this;
+          if (el.querySelector('.product-grid')) return;
+          fetch(el.dataset.url)
+            .then(function (r) { return r.text(); })
+            .then(function (text) {
+              var html = document.createElement('div');
+              html.innerHTML = text;
+              var recos = html.querySelector('product-recommendations');
+              if (recos && recos.innerHTML.trim().length) { el.innerHTML = recos.innerHTML; }
+            })
+            .catch(function (e) { console.error(e); });
+        }
+      });
+    }
+  </script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.related_products.name",
+  "tag": "section",
+  "class": "section-related-products",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enable",
+      "default": true,
+      "label": "t:sections.related_products.settings.enable.label"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "default": "You may also like",
+      "label": "t:sections.related_products.settings.heading.label"
+    },
+    {
+      "type": "range",
+      "id": "products_to_show",
+      "min": 2,
+      "max": 10,
+      "step": 1,
+      "default": 4,
+      "label": "t:sections.related_products.settings.products_to_show.label"
+    }
+  ]
+}
+{% endschema %}

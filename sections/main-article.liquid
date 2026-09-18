@@ -1,0 +1,280 @@
+{%- comment -%}
+  ============================================================
+  MAIN ARTICLE — post do blog com comentários nativos
+  ============================================================
+
+  O QUE FAZ:
+  Renderiza um artigo completo do blog: data, título, autor, imagem
+  destacada, conteúdo (rte) e link de volta ao blog. Exibe também a
+  lista de comentários (paginada de 5 em 5) e o formulário nativo
+  {% form 'new_comment' %} para novos comentários.
+
+  ONDE É USADA:
+  Template article (página de um post individual OS 2.0).
+
+  PRINCIPAIS PARTES:
+  - Cabeçalho + imagem eager (carrega imediato, é o conteúdo principal)
+  - blog.comments_enabled?: só mostra bloco de comentários se ativado
+  - {%- paginate article.comments by 5 -%}: paginação dos comentários
+  - form 'new_comment': trata sucesso, moderação e erros de validação
+  - Campos: nome, email, mensagem (todos required)
+
+  OBSERVAÇÕES:
+  Se blog.moderated? for true, o comentário fica pendente de aprovação
+  e a mensagem de sucesso muda de acordo.
+{%- endcomment -%}
+
+{%- assign comment_form_id = 'CommentForm-' | append: section.id -%}
+
+<article class="article page-width" data-section-id="{{ section.id }}">
+  <header class="article__header">
+    {%- if article.published_at -%}
+      <time class="article__date" datetime="{{ article.published_at | date: '%Y-%m-%d' }}">
+        {{ article.published_at | date: format: 'date' }}
+      </time>
+    {%- endif -%}
+    <h1 class="article__title">{{ article.title | escape }}</h1>
+    {%- if article.author != blank -%}
+      <p class="article__author">{{ article.author | escape }}</p>
+    {%- endif -%}
+  </header>
+
+  {%- if article.image -%}
+    <div class="article__media">
+      {{
+        article.image
+        | image_url: width: 1600
+        | image_tag:
+          loading: 'eager',
+          widths: '540, 720, 900, 1200, 1600',
+          sizes: '(min-width: 1000px) 900px, 100vw',
+          class: 'article__image',
+          alt: article.image.alt | default: article.title | escape
+      }}
+    </div>
+  {%- endif -%}
+
+  {%- if article.content != blank -%}
+    <div class="article__content rte">
+      {{ article.content }}
+    </div>
+  {%- endif -%}
+
+  <footer class="article__footer">
+    <a href="{{ blog.url }}" class="article__back">{{ 'blogs.article.back_to_blog' | t }}</a>
+  </footer>
+
+  {%- if blog.comments_enabled? -%}
+    <div class="article__comments" id="comments">
+      {%- if article.comments_count > 0 -%}
+        <h2 class="article__comments-title">
+          {{ 'blogs.article.comments' | t: count: article.comments_count }}
+        </h2>
+      {%- endif -%}
+
+      {%- paginate article.comments by 5 -%}
+        {%- if article.comments_count > 0 -%}
+          <ul class="article__comment-list" role="list">
+            {%- for comment in article.comments -%}
+              <li class="comment" id="comment-{{ comment.id }}">
+                <div class="comment__body rte">{{ comment.content }}</div>
+                <cite class="comment__meta">
+                  {{ 'blogs.article.comment_meta_html' | t: author: comment.author, date: comment.created_at | date: format: 'date' }}
+                </cite>
+              </li>
+            {%- endfor -%}
+          </ul>
+
+          {% render 'pagination', paginate: paginate %}
+        {%- endif -%}
+      {%- endpaginate -%}
+
+      <h2 class="article__comments-title">{{ 'blogs.article.comment_form_title' | t }}</h2>
+
+      {%- form 'new_comment', article, id: comment_form_id, class: 'comment-form' -%}
+        {%- if form.posted_successfully? -%}
+          <div class="contact__notice contact__notice--success" role="status" tabindex="-1">
+            {%- if blog.moderated? -%}
+              {{ 'blogs.article.success_moderated' | t }}
+            {%- else -%}
+              {{ 'blogs.article.success' | t }}
+            {%- endif -%}
+          </div>
+        {%- elsif form.errors -%}
+          <div class="contact__notice contact__notice--error" role="alert" tabindex="-1">
+            <h3 class="contact__notice-title">{{ 'templates.contact.form.error_heading' | t }}</h3>
+            <ul class="contact__errors" role="list">
+              {%- for field in form.errors -%}
+                <li>{{ form.errors.translated_fields[field] | capitalize }} {{ form.errors.messages[field] }}</li>
+              {%- endfor -%}
+            </ul>
+          </div>
+        {%- endif -%}
+
+        {%- if blog.moderated? and form.posted_successfully? == false -%}
+          <p class="comment-form__note">{{ 'blogs.article.moderated' | t }}</p>
+        {%- endif -%}
+
+        <div class="contact__field">
+          <label class="field__label" for="CommentForm-author-{{ section.id }}">
+            {{ 'blogs.article.name' | t }}
+          </label>
+          <input
+            type="text"
+            class="field__input"
+            id="CommentForm-author-{{ section.id }}"
+            name="comment[author]"
+            value="{{ form.author }}"
+            autocomplete="name"
+            spellcheck="false"
+            required
+          >
+        </div>
+
+        <div class="contact__field">
+          <label class="field__label" for="CommentForm-email-{{ section.id }}">
+            {{ 'blogs.article.email' | t }}
+          </label>
+          <input
+            type="email"
+            class="field__input"
+            id="CommentForm-email-{{ section.id }}"
+            name="comment[email]"
+            value="{{ form.email }}"
+            autocomplete="email"
+            autocapitalize="off"
+            spellcheck="false"
+            required
+          >
+        </div>
+
+        <div class="contact__field">
+          <label class="field__label" for="CommentForm-body-{{ section.id }}">
+            {{ 'blogs.article.message' | t }}
+          </label>
+          <textarea
+            rows="6"
+            class="field__input comment-form__textarea"
+            id="CommentForm-body-{{ section.id }}"
+            name="comment[body]"
+            spellcheck="false"
+            required
+          >{{ form.body }}</textarea>
+        </div>
+
+        <button type="submit" class="button">{{ 'blogs.article.post' | t }}</button>
+      {%- endform -%}
+    </div>
+  {%- endif -%}
+</article>
+
+<style>
+  .article {
+    padding-top: var(--spacing-sections, 40px);
+    padding-bottom: var(--spacing-sections, 40px);
+    max-width: 900px;
+  }
+
+  .article__header {
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  .article__date {
+    display: block;
+    margin-bottom: 12px;
+    font-size: var(--f1);
+    opacity: 0.6;
+  }
+
+  .article__title {
+    font-size: var(--f7);
+    line-height: 1.1;
+  }
+
+  .article__author {
+    margin-top: 10px;
+    font-size: var(--f2);
+    opacity: 0.7;
+  }
+
+  .article__media {
+    margin-bottom: 32px;
+  }
+
+  .article__image {
+    width: 100%;
+    height: auto;
+    border-radius: var(--media-radius, 8px);
+    display: block;
+  }
+
+  .article__content {
+    font-size: var(--f2);
+    line-height: 1.8;
+  }
+
+  .article__footer {
+    margin: 40px 0;
+    padding-top: 24px;
+    border-top: 1px solid var(--color-border, #c2c2c2);
+  }
+
+  .article__back {
+    color: var(--color-accent);
+    text-decoration: underline;
+  }
+
+  .article__comments {
+    margin-top: 24px;
+  }
+
+  .article__comments-title {
+    font-size: var(--f4);
+    margin: 32px 0 20px;
+  }
+
+  .article__comment-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .comment {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--color-border, #c2c2c2);
+  }
+
+  .comment__meta {
+    display: block;
+    margin-top: 8px;
+    font-size: var(--f1);
+    font-style: normal;
+    opacity: 0.6;
+  }
+
+  .comment-form__note {
+    margin-bottom: 16px;
+    font-size: var(--f1);
+    opacity: 0.7;
+  }
+
+  .comment-form__textarea {
+    resize: none;
+  }
+
+  @media screen and (max-width: 1000px) {
+    .article__title {
+      font-size: var(--f6);
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "t:sections.main_article.name",
+  "tag": "section",
+  "class": "section-main-article",
+  "settings": []
+}
+{% endschema %}

@@ -1,0 +1,57 @@
+{%- comment -%}
+  ============================================================
+  newsletter-form — formulário de cadastro na newsletter
+  ============================================================
+
+  O QUE FAZ:
+  Renderiza o formulário de inscrição na newsletter usando o form nativo
+  'customer' do Shopify (com a tag "newsletter"). Mostra mensagem de erro
+  ou de confirmação após o envio.
+
+  COMO USAR:
+  {% render 'newsletter-form' %}
+
+  PARÂMETROS:
+  - block (opcional): usado apenas para contexto de shopify_attributes.
+
+  OBSERVAÇÕES:
+  O e-mail cadastrado recebe a tag "newsletter" (campo hidden). Traz seu
+  próprio <style>.
+{%- endcomment -%}
+{%- form 'customer', class: 'newsletter-form' -%}
+  <input type="hidden" name="contact[tags]" value="newsletter">
+  <label class="visually-hidden" for="NewsletterEmail">{{ 'general.newsletter_form.newsletter_email' | t }}</label>
+  <div class="newsletter-form__field">
+    <input
+      id="NewsletterEmail"
+      type="email"
+      name="contact[email]"
+      class="field__input"
+      value="{{ form.email }}"
+      aria-required="true"
+      autocorrect="off"
+      autocapitalize="off"
+      autocomplete="email"
+      placeholder="{{ 'general.newsletter_form.email_placeholder' | t }}"
+      required
+    >
+    <button type="submit" class="button newsletter-form__button">
+      {{ 'general.newsletter_form.button_label' | t }}
+    </button>
+  </div>
+  {%- if form.errors -%}
+    <small class="newsletter-form__message form__message" role="alert">
+      {{ form.errors.translated_fields.email | capitalize }} {{ form.errors.messages.email }}
+    </small>
+  {%- elsif form.posted_successfully? -%}
+    <p class="newsletter-form__message form__message" role="status">
+      {{ 'general.newsletter_form.confirmation' | t }}
+    </p>
+  {%- endif -%}
+{%- endform -%}
+
+<style>
+  .newsletter-form__field { display: flex; gap: 8px; flex-wrap: wrap; }
+  .newsletter-form__field .field__input { flex: 1; min-width: 180px; }
+  .newsletter-form__message { display: block; margin-top: 8px; font-size: var(--f1); }
+</style>

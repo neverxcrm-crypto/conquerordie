@@ -1,0 +1,34 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-product",
+      "blocks": {
+        "vendor": { "type": "vendor" },
+        "title": { "type": "title" },
+        "price": { "type": "price" },
+        "variant_picker": { "type": "variant_picker" },
+        "quantity": { "type": "quantity" },
+        "buy_buttons": {
+          "type": "buy_buttons",
+          "settings": { "show_dynamic_checkout": true }
+        },
+        "description": { "type": "description" },
+        "share": { "type": "share" }
+      },
+      "block_order": [
+        "vendor",
+        "title",
+        "price",
+        "variant_picker",
+        "quantity",
+        "buy_buttons",
+        "description",
+        "share"
+      ]
+    },
+    "related": {
+      "type": "related-products"
+    }
+  },
+  "order": ["main", "related"]
+}

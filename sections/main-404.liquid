@@ -1,0 +1,121 @@
+{%- comment -%}
+  ============================================================
+  MAIN 404 — página de erro "não encontrado"
+  ============================================================
+
+  O QUE FAZ:
+  Tela exibida quando a URL não existe (erro 404). Mostra o código
+  "404", título e subtexto, um campo de busca e um link para voltar
+  à home, ajudando o visitante a se reorientar.
+
+  ONDE É USADA:
+  Template 404 (páginas inexistentes).
+
+  PRINCIPAIS PARTES:
+  - Formulário de busca aponta para routes.search_url (GET, name="q")
+  - Link routes.root_url volta para a home
+  - Textos via i18n (general.404.*, general.search.*)
+  - Sem settings no schema
+
+  OBSERVAÇÕES:
+  No mobile a busca empilha (flex-direction: column).
+{%- endcomment -%}
+
+<section class="notfound page-width" data-section-id="{{ section.id }}">
+  <div class="notfound__inner">
+    <p class="notfound__code" aria-hidden="true">404</p>
+    <h1 class="notfound__title">{{ 'general.404.title' | t }}</h1>
+    <p class="notfound__subtext">{{ 'general.404.subtext' | t }}</p>
+
+    <form action="{{ routes.search_url }}" method="get" role="search" class="notfound__search">
+      <label class="visually-hidden" for="Search404-{{ section.id }}">
+        {{ 'general.search.search' | t }}
+      </label>
+      <input
+        type="search"
+        class="field__input notfound__search-input"
+        id="Search404-{{ section.id }}"
+        name="q"
+        placeholder="{{ 'general.search.placeholder' | t }}"
+        spellcheck="false"
+        autocomplete="off"
+      >
+      <button type="submit" class="button notfound__search-submit">
+        {{ 'general.search.submit' | t }}
+      </button>
+    </form>
+
+    <a href="{{ routes.root_url }}" class="notfound__home">
+      {{ 'general.continue_shopping' | t }}
+    </a>
+  </div>
+</section>
+
+<style>
+  .notfound {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: var(--spacing-sections, 40px);
+    padding-bottom: var(--spacing-sections, 40px);
+    text-align: center;
+  }
+
+  .notfound__inner {
+    max-width: 520px;
+  }
+
+  .notfound__code {
+    font-family: var(--font-heading-family);
+    font-size: clamp(4rem, 12vw, 8rem);
+    line-height: 1;
+    color: var(--color-accent);
+    margin-bottom: 8px;
+  }
+
+  .notfound__title {
+    font-size: var(--f6);
+    margin-bottom: 12px;
+  }
+
+  .notfound__subtext {
+    font-size: var(--f2);
+    opacity: 0.75;
+    margin-bottom: 28px;
+  }
+
+  .notfound__search {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .notfound__search-input {
+    flex: 1;
+  }
+
+  .notfound__home {
+    color: var(--color-accent);
+    text-decoration: underline;
+  }
+
+  @media screen and (max-width: 1000px) {
+    .notfound__title {
+      font-size: var(--f5);
+    }
+
+    .notfound__search {
+      flex-direction: column;
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "t:sections.main_404.name",
+  "tag": "section",
+  "class": "section-main-404",
+  "settings": []
+}
+{% endschema %}

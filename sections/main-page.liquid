@@ -1,0 +1,72 @@
+{%- comment -%}
+  ============================================================
+  MAIN PAGE — página institucional padrão
+  ============================================================
+
+  O QUE FAZ:
+  Renderiza uma página estática do Shopify: título centralizado
+  (page.title) e o conteúdo rich text (page.content) num container
+  de largura confortável para leitura.
+
+  ONDE É USADA:
+  Template page (páginas como "Sobre", "Trocas", etc.).
+
+  PRINCIPAIS PARTES:
+  - page.title: cabeçalho da página
+  - page.content dentro de .rte: conteúdo editado no admin
+  - Sem settings no schema (conteúdo vem do objeto page)
+
+  OBSERVAÇÕES:
+  Conteúdo com max-width de 760px para boa legibilidade.
+{%- endcomment -%}
+
+<section class="main-page page-width" data-section-id="{{ section.id }}">
+  <header class="main-page__header">
+    <h1 class="main-page__title">{{ page.title | escape }}</h1>
+  </header>
+
+  {%- if page.content != blank -%}
+    <div class="main-page__content rte">
+      {{ page.content }}
+    </div>
+  {%- endif -%}
+</section>
+
+<style>
+  .main-page {
+    padding-top: var(--spacing-sections, 40px);
+    padding-bottom: var(--spacing-sections, 40px);
+  }
+
+  .main-page__header {
+    margin-bottom: 32px;
+    text-align: center;
+  }
+
+  .main-page__title {
+    font-size: var(--f7);
+    line-height: 1.1;
+  }
+
+  .main-page__content {
+    max-width: 760px;
+    margin: 0 auto;
+    font-size: var(--f2);
+    line-height: 1.7;
+  }
+
+  @media screen and (max-width: 1000px) {
+    .main-page__title {
+      font-size: var(--f6);
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "t:sections.main_page.name",
+  "tag": "section",
+  "class": "section-main-page",
+  "settings": []
+}
+{% endschema %}

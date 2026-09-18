@@ -1,0 +1,93 @@
+{%- comment -%}
+  ============================================================
+  COLLECTION LIST — grade de coleções selecionadas
+  ============================================================
+
+  O QUE FAZ:
+  Mostra um conjunto de coleções ESCOLHIDAS pelo lojista (via blocks)
+  como cards com imagem + título, cada um linkando para a coleção.
+  Diferente do main-list-collections, aqui você curadoria quais.
+
+  ONDE É USADA:
+  Seção reutilizável (tem preset com 3 blocos) — comum na home.
+
+  PRINCIPAIS PARTES:
+  - section.blocks do tipo featured_collection (cada um escolhe 1 coleção)
+  - featured_image da coleção ou placeholder SVG
+  - Settings: heading, columns_desktop
+  - Colunas via --grid-columns inline no wrapper
+
+  OBSERVAÇÕES:
+  Cada card é um bloco; adicione/remova coleções no theme editor.
+{%- endcomment -%}
+<div class="collection-list page-width" data-section-id="{{ section.id }}" style="--grid-columns: {{ section.settings.columns_desktop }};">
+  {%- if section.settings.heading != blank -%}
+    <h2 class="collection-list__heading">{{ section.settings.heading | escape }}</h2>
+  {%- endif -%}
+
+  <ul class="collection-list__grid product-grid" role="list">
+    {%- for block in section.blocks -%}
+      {%- assign collection = collections[block.settings.collection] -%}
+      <li {{ block.shopify_attributes }}>
+        <a href="{{ collection.url | default: '#' }}" class="collection-card">
+          <div class="collection-card__media">
+            {%- if collection.featured_image -%}
+              {{
+                collection.featured_image
+                | image_url: width: 720
+                | image_tag:
+                  loading: 'lazy',
+                  class: 'collection-card__image',
+                  widths: '360, 540, 720',
+                  sizes: '(min-width: 1000px) 25vw, 50vw',
+                  alt: collection.title | escape
+              }}
+            {%- else -%}
+              {{ 'collection-1' | placeholder_svg_tag: 'collection-card__image placeholder-svg' }}
+            {%- endif -%}
+          </div>
+          <h3 class="collection-card__title">{{ collection.title | default: 'onboarding.collection_title' | t }}</h3>
+        </a>
+      </li>
+    {%- endfor -%}
+  </ul>
+</div>
+
+<style>
+  .collection-list { padding-top: var(--spacing-sections); padding-bottom: var(--spacing-sections); }
+  .collection-list__heading { font-size: var(--f6); margin-bottom: 24px; }
+  .collection-card { display: block; text-decoration: none; color: inherit; }
+  .collection-card__media { position: relative; width: 100%; padding-bottom: 100%; overflow: hidden; border-radius: var(--media-radius); background-color: var(--color-background-contrast); }
+  .collection-card__image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .collection-card__title { margin-top: 12px; font-size: var(--f3); }
+</style>
+
+{% schema %}
+{
+  "name": "t:sections.collection_list.name",
+  "tag": "section",
+  "settings": [
+    { "type": "text", "id": "heading", "default": "Collections", "label": "t:sections.collection_list.settings.heading.label" },
+    { "type": "range", "id": "columns_desktop", "min": 2, "max": 5, "step": 1, "default": 3, "label": "t:sections.collection_list.settings.columns_desktop.label" }
+  ],
+  "blocks": [
+    {
+      "type": "featured_collection",
+      "name": "t:sections.collection_list.blocks.featured_collection.name",
+      "settings": [
+        { "type": "collection", "id": "collection", "label": "t:sections.collection_list.blocks.featured_collection.settings.collection.label" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.collection_list.name",
+      "blocks": [
+        { "type": "featured_collection" },
+        { "type": "featured_collection" },
+        { "type": "featured_collection" }
+      ]
+    }
+  ]
+}
+{% endschema %}

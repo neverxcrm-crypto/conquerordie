@@ -1,0 +1,81 @@
+{%- comment -%}
+  ============================================================
+  card-product — card de produto reutilizável
+  ============================================================
+
+  O QUE FAZ:
+  Renderiza o card de um produto: imagem (com troca de imagem no hover se
+  ativado nas settings), badge de promoção/esgotado, vendor opcional,
+  título e preço (via snippet 'price').
+
+  COMO USAR:
+  {% render 'card-product', card_product: product %}
+  Dentro de um loop de coleção, por exemplo.
+
+  PARÂMETROS:
+  - card_product: objeto product a ser exibido no card.
+
+  OBSERVAÇÕES:
+  O aspect ratio da imagem vem de settings.card_image_ratio
+  ('portrait', 'square' ou 'adapt'). A segunda imagem no hover depende de
+  settings.card_show_second_image; o vendor depende de settings.card_show_vendor.
+{%- endcomment -%}
+{%- liquid
+  assign ratio = 1
+  case settings.card_image_ratio
+    when 'portrait'
+      assign ratio = 0.75
+    when 'square'
+      assign ratio = 1
+    when 'adapt'
+      if card_product.featured_media
+        assign ratio = card_product.featured_media.aspect_ratio
+      endif
+  endcase
+-%}
+<div class="card-product">
+  <a href="{{ card_product.url }}" class="card-product__link">
+    <div class="card-product__media" style="padding-bottom: {{ 1 | divided_by: ratio | times: 100 }}%;">
+      {%- if card_product.featured_media -%}
+        {{
+          card_product.featured_media
+          | image_url: width: 720
+          | image_tag:
+            loading: 'lazy',
+            class: 'card-product__image card-product__image--primary',
+            widths: '180, 360, 540, 720',
+            sizes: '(min-width: 1000px) 25vw, 50vw',
+            alt: card_product.featured_media.alt | default: card_product.title | escape
+        }}
+        {%- if settings.card_show_second_image and card_product.media[1] -%}
+          {{
+            card_product.media[1]
+            | image_url: width: 720
+            | image_tag:
+              loading: 'lazy',
+              class: 'card-product__image card-product__image--secondary',
+              widths: '180, 360, 540, 720',
+              sizes: '(min-width: 1000px) 25vw, 50vw',
+              alt: card_product.media[1].alt | default: card_product.title | escape
+          }}
+        {%- endif -%}
+      {%- else -%}
+        {{ 'product-1' | placeholder_svg_tag: 'card-product__image placeholder-svg' }}
+      {%- endif -%}
+
+      {%- if card_product.compare_at_price > card_product.price and card_product.available -%}
+        <span class="card-product__badge">{{ 'products.product.on_sale' | t }}</span>
+      {%- elsif card_product.available == false -%}
+        <span class="card-product__badge card-product__badge--sold-out">{{ 'products.product.sold_out' | t }}</span>
+      {%- endif -%}
+    </div>
+
+    <div class="card-product__info">
+      {%- if settings.card_show_vendor and card_product.vendor != blank -%}
+        <span class="card-product__vendor">{{ card_product.vendor }}</span>
+      {%- endif -%}
+      <h3 class="card-product__title">{{ card_product.title | escape }}</h3>
+      {% render 'price', product: card_product, use_variant: false, show_compare: true, price_class: 'price--card' %}
+    </div>
+  </a>
+</div>

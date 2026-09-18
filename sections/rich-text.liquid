@@ -1,0 +1,89 @@
+{%- comment -%}
+  ============================================================
+  RICH TEXT — bloco de texto centralizado
+  ============================================================
+
+  O QUE FAZ:
+  Seção simples e centralizada com título, texto rich text e um botão
+  opcional. Serve para apresentar a marca, dar avisos ou destacar
+  uma chamada, sem imagens.
+
+  ONDE É USADA:
+  Seção reutilizável (tem preset com heading + text) — versátil na home.
+
+  PRINCIPAIS PARTES:
+  - Blocks: heading, text, button (cada um limit 1)
+  - Botão só renderiza se button_label preenchido
+  - Sem settings de seção (tudo vem dos blocks)
+
+  OBSERVAÇÕES:
+  Conteúdo limitado a 640px e centralizado.
+{%- endcomment -%}
+<div class="rich-text page-width" data-section-id="{{ section.id }}">
+  <div class="rich-text__wrapper">
+    {%- for block in section.blocks -%}
+      {%- case block.type -%}
+        {%- when 'heading' -%}
+          <h2 class="rich-text__heading" {{ block.shopify_attributes }}>{{ block.settings.heading | escape }}</h2>
+        {%- when 'text' -%}
+          <div class="rich-text__text rte" {{ block.shopify_attributes }}>{{ block.settings.text }}</div>
+        {%- when 'button' -%}
+          {%- if block.settings.button_label != blank -%}
+            <a href="{{ block.settings.button_link | default: '#' }}" class="button rich-text__button" {{ block.shopify_attributes }}>
+              {{ block.settings.button_label | escape }}
+            </a>
+          {%- endif -%}
+      {%- endcase -%}
+    {%- endfor -%}
+  </div>
+</div>
+
+<style>
+  .rich-text { padding-top: var(--spacing-sections); padding-bottom: var(--spacing-sections); }
+  .rich-text__wrapper { max-width: 640px; margin: 0 auto; text-align: center; }
+  .rich-text__heading { font-size: var(--f6); margin-bottom: 16px; }
+  .rich-text__text { font-size: var(--f3); line-height: 1.6; margin-bottom: 20px; }
+</style>
+
+{% schema %}
+{
+  "name": "t:sections.rich_text.name",
+  "tag": "section",
+  "blocks": [
+    {
+      "type": "heading",
+      "name": "t:sections.rich_text.blocks.heading.name",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "heading", "default": "Talk about your brand", "label": "t:sections.rich_text.blocks.heading.settings.heading.label" }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "t:sections.rich_text.blocks.text.name",
+      "limit": 1,
+      "settings": [
+        { "type": "richtext", "id": "text", "default": "<p>Share information about your brand with your customers.</p>", "label": "t:sections.rich_text.blocks.text.settings.text.label" }
+      ]
+    },
+    {
+      "type": "button",
+      "name": "t:sections.rich_text.blocks.button.name",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "button_label", "label": "t:sections.rich_text.blocks.button.settings.button_label.label" },
+        { "type": "url", "id": "button_link", "label": "t:sections.rich_text.blocks.button.settings.button_link.label" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.rich_text.name",
+      "blocks": [
+        { "type": "heading" },
+        { "type": "text" }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,50 @@
+{%- comment -%}
+  ============================================================
+  structured-data-website — JSON-LD de WebSite + Organization
+  ============================================================
+
+  O QUE FAZ:
+  Gera dois blocos JSON-LD (schema.org) para a home: WebSite (com
+  SearchAction para a caixa de busca do Google) e Organization (nome,
+  url e logo da loja).
+
+  COMO USAR:
+  {% render 'structured-data-website' %}
+  Normalmente chamado por meta-tags apenas na home (page_type 'index').
+
+  PARÂMETROS:
+  Nenhum — usa shop, routes e settings.logo.
+
+  OBSERVAÇÕES:
+  O placeholder {search_term_string} é montado por partes (append) de
+  propósito, pra que as chaves literais não sejam interpretadas como
+  tags Liquid. Não mexa nesse assign.
+{%- endcomment -%}
+{%- liquid
+  assign search_placeholder = '?q=' | append: '{' | append: 'search_term_string' | append: '}'
+  assign search_target = shop.url | append: routes.search_url | append: search_placeholder
+-%}
+<script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "WebSite",
+    "name": {{ shop.name | json }},
+    "url": {{ shop.url | append: routes.root_url | json }},
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {{ search_target | json }},
+      "query-input": "required name=search_term_string"
+    }
+  }
+</script>
+<script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "Organization",
+    "name": {{ shop.name | json }},
+    "url": {{ shop.url | append: routes.root_url | json }}
+    {%- if settings.logo %},
+      "logo": {{ settings.logo | image_url: width: 500 | prepend: "https:" | json }}
+    {%- endif -%}
+  }
+</script>
