@@ -2,40 +2,6 @@
   ============================================================
   HERO — abertura editorial da home
   ============================================================
-
-  O QUE FAZ:
-  Primeira dobra da loja: fotografia full-bleed ocupando quase toda
-  a viewport, com um bloco de texto compacto no terço esquerdo
-  (eyebrow de campanha, headline Display, subheadline, texto curto
-  e um CTA). Cada slide é um block — com 2+ blocks vira carrossel
-  com indicador editorial (01 / 04), setas de teclado e swipe.
-
-  ONDE É USADA:
-  Home (templates/index.json). Tem preset, então pode ser usada em
-  qualquer página pelo theme editor.
-
-  PRINCIPAIS PARTES:
-  - Um <li> por block 'slide'. O primeiro slide carrega eager +
-    fetchpriority high (é o LCP da home); os demais, lazy.
-  - image / image_mobile: arte separada para retrato, porque cortar
-    a foto desktop no mobile destrói a composição.
-  - hero__indicator: contador 01/04 + botões prev/next discretos.
-    Só renderiza com 2 ou mais slides.
-
-  ACESSIBILIDADE:
-  - role="region" + aria-roledescription="carousel" quando há vários
-    slides; cada slide é um group com aria-label "1 de 4".
-  - Setas ←/→ navegam quando o carrossel tem foco.
-  - Slides inativos ficam com inert/aria-hidden, então leitores de
-    tela e Tab não entram em conteúdo invisível.
-  - Sem autoplay: nada se move sozinho na primeira dobra.
-
-  OBSERVAÇÕES:
-  - O overlay é um gradiente lateral curto e localizado (só do lado
-    do texto), não um véu sobre a foto inteira — a peça precisa
-    continuar visível.
-  - .scheme-dark força os tokens escuros: o hero vive dentro do
-    <main>, que é claro por padrão.
 {%- endcomment -%}
 {%- liquid
   assign slides = section.blocks
@@ -60,8 +26,6 @@
         {{ block.shopify_attributes }}
       >
         {%- liquid
-          # Só o primeiro slide é candidato a LCP: ele carrega eager com
-          # prioridade alta; os demais ficam lazy para não competir.
           if forloop.first
             assign slide_loading = 'eager'
             assign slide_priority = 'high'
@@ -70,6 +34,8 @@
             assign slide_priority = 'auto'
           endif
         -%}
+
+        <!-- Elemento 1: Mídia / Background -->
         <div class="hero__media">
           {%- if block.settings.image != blank -%}
             {%- if block.settings.image_mobile != blank -%}
@@ -114,40 +80,65 @@
           {%- endif -%}
         </div>
 
+        <!-- Elemento 2: Conteúdo Principal -->
         <div class="hero__content page-width">
-          <div class="hero__text">
-            {%- if block.settings.eyebrow != blank -%}
-              <p class="eyebrow hero__eyebrow">{{ block.settings.eyebrow | escape }}</p>
-            {%- endif -%}
+          <div class="hero__text-container">
+            
+            <!-- Componente Dedicado de Sombra/Degradê de Contraste -->
+            <div class="hero__text-shadow" aria-hidden="true"></div>
 
-            {%- if block.settings.heading != blank -%}
-              {%- if forloop.first -%}
-                <h1 class="hero__heading">{{ block.settings.heading | newline_to_br }}</h1>
-              {%- else -%}
-                <p class="hero__heading" role="heading" aria-level="2">{{ block.settings.heading | newline_to_br }}</p>
+            <div class="hero__text-inner">
+              
+              <!-- Elemento: Eyebrow -->
+              {%- if block.settings.eyebrow != blank -%}
+                <div class="hero__element hero__element--eyebrow">
+                  <p class="eyebrow hero__eyebrow">{{ block.settings.eyebrow | escape }}</p>
+                </div>
               {%- endif -%}
-            {%- endif -%}
 
-            {%- if block.settings.subheading != blank -%}
-              <p class="hero__subheading">{{ block.settings.subheading | escape }}</p>
-            {%- endif -%}
+              <!-- Elemento: Heading -->
+              {%- if block.settings.heading != blank -%}
+                <div class="hero__element hero__element--heading">
+                  {%- if forloop.first -%}
+                    <h1 class="hero__heading">{{ block.settings.heading | newline_to_br }}</h1>
+                  {%- else -%}
+                    <p class="hero__heading" role="heading" aria-level="2">{{ block.settings.heading | newline_to_br }}</p>
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
 
-            {%- if block.settings.text != blank -%}
-              <div class="hero__body rte">{{ block.settings.text }}</div>
-            {%- endif -%}
+              <!-- Elemento: Subheading -->
+              {%- if block.settings.subheading != blank -%}
+                <div class="hero__element hero__element--subheading">
+                  <p class="hero__subheading">{{ block.settings.subheading | escape }}</p>
+                </div>
+              {%- endif -%}
 
-            {%- if block.settings.button_label != blank -%}
-              <a href="{{ block.settings.button_link | default: routes.all_products_collection_url }}" class="button hero__cta">
-                <span>{{ block.settings.button_label | escape }}</span>
-                {% render 'icon', name: 'arrow-right' %}
-              </a>
-            {%- endif -%}
+              <!-- Elemento: Descrição / Texto -->
+              {%- if block.settings.text != blank -%}
+                <div class="hero__element hero__element--body">
+                  <div class="hero__body rte">{{ block.settings.text }}</div>
+                </div>
+              {%- endif -%}
+
+              <!-- Elemento: Botão CTA -->
+              {%- if block.settings.button_label != blank -%}
+                <div class="hero__element hero__element--cta">
+                  <a href="{{ block.settings.button_link | default: routes.all_products_collection_url }}" class="button hero__cta">
+                    <span>{{ block.settings.button_label | escape }}</span>
+                    {% render 'icon', name: 'arrow-right' %}
+                  </a>
+                </div>
+              {%- endif -%}
+
+            </div>
           </div>
         </div>
       </li>
     {%- endfor -%}
   </ul>
 
+  <!-- Elemento 3: Navegação do Carrossel -->
   {%- if slide_count > 1 -%}
     <div class="hero__indicator">
       <button type="button" class="hero__nav tap-target" data-hero-prev aria-label="{{ 'general.slider.previous' | t }}">
@@ -165,6 +156,7 @@
 </div>
 
 <style>
+  /* Layout Base & Opções de Altura */
   .hero {
     margin-top: calc(-1 * var(--header-height, 70px));
     position: relative;
@@ -183,7 +175,6 @@
     transition: opacity 600ms cubic-bezier(0.22, 1, 0.36, 1), visibility 600ms;
   }
 
-  /* Opções de Altura do Banner (Desktop) */
   .hero--short .hero__slide { min-height: 60vh; }
   .hero--default .hero__slide { min-height: 80vh; }
   .hero--tall .hero__slide { min-height: 100vh; min-height: 100dvh; }
@@ -193,19 +184,12 @@
   }
   .hero__slide.is-active { opacity: 1; visibility: visible; }
 
+  /* Elemento Mídia */
   .hero__media { position: absolute; inset: 0; }
   .hero__image { width: 100%; height: 100%; object-fit: cover; display: block; }
   .hero__placeholder { display: flex; align-items: center; justify-content: center; background-color: var(--color-surface, #121212); }
 
-  /* Overlay curto e localizado */
-  .hero__media::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--photo-veil-side, linear-gradient(to right, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.35) 45%, rgba(0, 0, 0, 0) 100%));
-    pointer-events: none;
-  }
-
+  /* Container do Conteúdo */
   .hero__content {
     position: relative;
     z-index: 2;
@@ -215,11 +199,48 @@
   @media screen and (min-width: 1001px) {
     .hero__content { padding-bottom: 0; }
   }
-  .hero__text { max-width: 33rem; }
-  .hero__eyebrow { margin-bottom: 20px; }
+
+  /* Estrutura dos Elementos de Texto */
+  .hero__text-container {
+    position: relative;
+    max-width: 34rem;
+    width: 100%;
+    isolation: isolate;
+  }
+
+  /* COMPONENTE EXCLUSIVO DE SOMBRA / DEGRADÊ ATRÁS DOS ELEMENTOS */
+  .hero__text-shadow {
+    position: absolute;
+    inset: -32px -40px;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(0, 0, 0, 0.82) 0%,
+      rgba(0, 0, 0, 0.5) 55%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    filter: blur(20px);
+    z-index: -1;
+    pointer-events: none;
+    border-radius: 32px;
+  }
+
+  .hero__text-inner {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Elementos Individuais */
+  .hero__element { display: block; }
+  .hero__element--eyebrow { margin-bottom: 20px; }
+  .hero__element--heading { margin-bottom: 20px; }
+  .hero__element--subheading { margin-bottom: 20px; }
+  .hero__element--body { margin-bottom: 32px; }
+  .hero__element--cta { margin-top: 8px; }
+
+  /* Tipografia */
   .hero__heading {
     font-size: var(--f8);
-    margin-bottom: 20px;
+    margin: 0;
     color: var(--color-text-primary, #ffffff);
   }
   .hero__subheading {
@@ -229,17 +250,16 @@
     letter-spacing: var(--tracking-label);
     text-transform: uppercase;
     color: var(--color-text-primary, #ffffff);
-    margin-bottom: 20px;
+    margin: 0;
   }
   .hero__body {
     font-size: var(--f2);
     color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
-    margin-bottom: 32px;
     max-width: 34ch;
   }
   .hero__body p { margin: 0 0 4px; }
 
-  /* Botão CTA & Hover Customizado */
+  /* Elemento Botão CTA com Hover em Branco Puro */
   .hero__cta {
     min-width: 180px;
     transition: transform 250ms ease, background-color 250ms ease, border-color 250ms ease, color 250ms ease;
@@ -263,7 +283,7 @@
     fill: #ffffff !important;
   }
 
-  /* Indicador Editorial */
+  /* Componente Indicador */
   .hero__indicator {
     position: absolute;
     right: var(--page-gutter, 20px);
@@ -312,15 +332,12 @@
   [data-hero-next] svg { transform: rotate(90deg); }
 
   @media screen and (max-width: 749px) {
-    /* Opções de Altura no Mobile */
     .hero--short .hero__slide { min-height: 50vh; }
     .hero--default .hero__slide { min-height: 70vh; }
     .hero--tall .hero__slide { min-height: 100vh; min-height: 100dvh; }
 
-    .hero__media::after {
-      background: var(--photo-veil-bottom, linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.35) 60%, rgba(0, 0, 0, 0) 100%));
-    }
-    .hero__text { max-width: 100%; }
+    .hero__text-shadow { inset: -24px -20px; }
+    .hero__text-container { max-width: 100%; }
     .hero__body { max-width: 100%; }
     .hero__cta { width: 100%; }
     .hero__indicator { flex-direction: row; bottom: 20px; right: var(--page-gutter, 20px); }
@@ -398,13 +415,13 @@
     {
       "type": "select",
       "id": "height",
-      "label": "Tamanho / Altura do Banner",
       "options": [
-        { "value": "short", "label": "Compacto (60vh)" },
-        { "value": "default", "label": "Médio (80vh)" },
-        { "value": "tall", "label": "Tela Cheia (100vh)" }
+        { "value": "short", "label": "t:sections.hero.settings.height.options__1.label" },
+        { "value": "default", "label": "t:sections.hero.settings.height.options__2.label" },
+        { "value": "tall", "label": "t:sections.hero.settings.height.options__3.label" }
       ],
-      "default": "default"
+      "default": "default",
+      "label": "t:sections.hero.settings.height.label"
     }
   ],
   "blocks": [
