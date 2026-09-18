@@ -1,110 +1,120 @@
 {%- comment -%}
   ============================================================
-  ANNOUNCEMENT BAR / CARROSSEL DE AVISOS
+  MARQUEE / CARROSSEL CONTINUO DE AVISOS (TICKER)
   ============================================================
 {%- endcomment -%}
 
 {%- if section.blocks.size > 0 -%}
   <div 
-    class="announcement-bar" 
+    class="ticker" 
     data-section-id="{{ section.id }}"
     style="
-      --announcement-bg: {{ section.settings.bg_color }};
-      --announcement-text: {{ section.settings.text_color }};
+      --ticker-bg: {{ section.settings.bg_color }};
+      --ticker-color: {{ section.settings.text_color }};
+      --ticker-speed: {{ section.settings.speed }}s;
     "
   >
-    <div class="announcement-bar__slider page-width" data-announcement-slider>
-      {%- for block in section.blocks -%}
-        <div 
-          class="announcement-bar__item {% if forloop.first %}is-active{% endif %}" 
-          data-announcement-item
-          {{ block.shopify_attributes }}
-        >
-          {%- if block.settings.link != blank -%}
-            <a href="{{ block.settings.link }}" class="announcement-bar__link">
-              <span>{{ block.settings.text | escape }}</span>
-            </a>
-          {%- else -%}
-            <span>{{ block.settings.text | escape }}</span>
-          {%- endif -%}
+    <div class="ticker__wrapper {% if section.settings.pause_on_hover %}ticker__wrapper--pause{% endif %}">
+      {%- comment -%} Repetimos o grupo 4 vezes para garantir preenchimento em qualquer resolução sem lacunas {%- endcomment -%}
+      {%- for i in (1..4) -%}
+        <div class="ticker__track" {% if i > 1 %}aria-hidden="true"{% endif %}>
+          {%- for block in section.blocks -%}
+            <div class="ticker__item" {{ block.shopify_attributes }}>
+              {%- if block.settings.link != blank -%}
+                <a href="{{ block.settings.link }}" class="ticker__link">
+                  <span>{{ block.settings.text | escape }}</span>
+                </a>
+              {%- else -%}
+                <span>{{ block.settings.text | escape }}</span>
+              {%- endif -%}
+
+              {%- if section.settings.show_separator -%}
+                <span class="ticker__separator" aria-hidden="true">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/>
+                  </svg>
+                </span>
+              {%- endif -%}
+            </div>
+          {%- endfor -%}
         </div>
       {%- endfor -%}
     </div>
   </div>
 
   <style>
-    .announcement-bar {
-      background-color: var(--announcement-bg, #000000);
-      color: var(--announcement-text, #ffffff);
+    .ticker {
+      background-color: var(--ticker-bg, #000000);
+      color: var(--ticker-color, #ffffff);
+      overflow: hidden;
       padding: 10px 0;
-      font-size: 0.825rem;
-      font-weight: 500;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      white-space: nowrap;
       position: relative;
       z-index: 101;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      user-select: none;
     }
 
-    .announcement-bar__slider {
-      display: grid;
-      place-items: center;
-      min-height: 20px;
+    .ticker__wrapper {
+      display: flex;
+      width: max-content;
+      will-change: transform;
     }
 
-    .announcement-bar__item {
-      grid-area: 1 / 1;
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(6px);
-      transition: opacity 400ms ease, transform 400ms ease, visibility 400ms;
+    .ticker__wrapper--pause:hover .ticker__track {
+      animation-play-state: paused;
     }
 
-    .announcement-bar__item.is-active {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0);
+    .ticker__track {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      animation: tickerMarquee var(--ticker-speed, 20s) linear infinite;
     }
 
-    .announcement-bar__link {
+    .ticker__item {
+      display: inline-flex;
+      align-items: center;
+      gap: 24px;
+      padding: 0 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .ticker__link {
       color: inherit;
       text-decoration: none;
       transition: opacity 200ms ease;
     }
 
-    .announcement-bar__link:hover {
+    .ticker__link:hover {
       opacity: 0.8;
-      text-decoration: underline;
+    }
+
+    .ticker__separator {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.6;
+    }
+
+    @keyframes tickerMarquee {
+      0% {
+        transform: translateX(0%);
+      }
+      100% {
+        transform: translateX(-100%);
+      }
     }
   </style>
-
-  {%- if section.blocks.size > 1 -%}
-    <script>
-      (function () {
-        var root = document.querySelector('.announcement-bar[data-section-id="{{ section.id }}"]');
-        if (!root) return;
-
-        var items = Array.prototype.slice.call(root.querySelectorAll('[data-announcement-item]'));
-        var index = 0;
-        var interval = {{ section.settings.speed | times: 1000 }};
-
-        function nextItem() {
-          items[index].classList.remove('is-active');
-          index = (index + 1) % items.length;
-          items[index].classList.add('is-active');
-        }
-
-        setInterval(nextItem, interval);
-      })();
-    </script>
-  {%- endif -%}
 {%- endif -%}
 
 {% schema %}
 {
-  "name": "Barra de Anúncios",
-  "class": "section-announcement-bar",
+  "name": "Barra Contínua (Ticker)",
+  "class": "section-ticker",
   "settings": [
     {
       "type": "color",
@@ -121,12 +131,25 @@
     {
       "type": "range",
       "id": "speed",
-      "min": 2,
-      "max": 10,
-      "step": 1,
+      "min": 10,
+      "max": 60,
+      "step": 2,
       "unit": "s",
-      "label": "Tempo de Transição (segundos)",
-      "default": 4
+      "label": "Velocidade da Animação",
+      "info": "Menos segundos = mais rápido. Mais segundos = mais lento.",
+      "default": 24
+    },
+    {
+      "type": "checkbox",
+      "id": "show_separator",
+      "label": "Exibir Ícone Separador",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "pause_on_hover",
+      "label": "Pausar ao passar o mouse",
+      "default": true
     }
   ],
   "blocks": [
@@ -137,24 +160,24 @@
         {
           "type": "text",
           "id": "text",
-          "label": "Texto do Aviso",
-          "default": "Frete Grátis para todo o Brasil em compras acima de R$ 299"
+          "label": "Texto",
+          "default": "FRETE GRÁTIS ACIMA DE R$585!"
         },
         {
           "type": "url",
           "id": "link",
-          "label": "Link do Aviso (Opcional)"
+          "label": "Link (Opcional)"
         }
       ]
     }
   ],
   "presets": [
     {
-      "name": "Barra de Anúncios",
+      "name": "Barra Contínua (Ticker)",
       "blocks": [
-        { "type": "announcement", "settings": { "text": "Frete Grátis para todo o Brasil" } },
-        { "type": "announcement", "settings": { "text": "Parcele em até 10x sem juros" } },
-        { "type": "announcement", "settings": { "text": "Primeira troca grátis" } }
+        { "type": "announcement", "settings": { "text": "FRETE GRÁTIS ACIMA DE R$585!" } },
+        { "type": "announcement", "settings": { "text": "EM ATÉ 10X SEM JUROS" } },
+        { "type": "announcement", "settings": { "text": "CUPOM PRIMEIRA COMPRA: WELCOME10" } }
       ]
     }
   ]
