@@ -1,56 +1,42 @@
 {%- comment -%}
   ============================================================
-  HERO — abertura editorial da home
+  HERO — Abertura Editorial Customizável (OS 2.0)
   ============================================================
-
-  O QUE FAZ:
-  Primeira dobra da loja: fotografia full-bleed ocupando quase toda
-  a viewport, com um bloco de texto compacto no terço esquerdo
-  (eyebrow de campanha, headline Display, subheadline, texto curto
-  e um CTA). Cada slide é um block — com 2+ blocks vira carrossel
-  com indicador editorial (01 / 04), setas de teclado e swipe.
-
-  ONDE É USADA:
-  Home (templates/index.json). Tem preset, então pode ser usada em
-  qualquer página pelo theme editor.
-
-  PRINCIPAIS PARTES:
-  - Um <li> por block 'slide'. O primeiro slide carrega eager +
-    fetchpriority high (é o LCP da home); os demais, lazy.
-  - image / image_mobile: arte separada para retrato, porque cortar
-    a foto desktop no mobile destrói a composição.
-  - hero__indicator: contador 01/04 + botões prev/next discretos.
-    Só renderiza com 2 ou mais slides.
-
-  ACESSIBILIDADE:
-  - role="region" + aria-roledescription="carousel" quando há vários
-    slides; cada slide é um group com aria-label "1 de 4".
-  - Setas ←/→ navegam quando o carrossel tem foco.
-  - Slides inativos ficam com inert/aria-hidden, então leitores de
-    tela e Tab não entram em conteúdo invisível.
-  - Sem autoplay: nada se move sozinho na primeira dobra.
-
-  OBSERVAÇÕES:
-  - O overlay é um gradiente lateral curto e localizado (só do lado
-    do texto), não um véu sobre a foto inteira — a peça precisa
-    continuar visível.
-  - .scheme-dark força os tokens escuros: o hero vive dentro do
-    <main>, que é claro por padrão.
 {%- endcomment -%}
 {%- liquid
   assign slides = section.blocks
   assign slide_count = slides.size
 -%}
+
 <div
-  class="hero scheme-dark hero--{{ section.settings.height }}"
+  class="hero hero--{{ section.settings.height }}"
   data-section-id="{{ section.id }}"
   {% if slide_count > 1 %}data-hero-carousel role="region" aria-roledescription="carousel" aria-label="{{ shop.name | escape }}"{% endif %}
 >
   <ul class="hero__slides" role="list">
     {%- for block in slides -%}
+      {%- liquid
+        if forloop.first
+          assign slide_loading = 'eager'
+          assign slide_priority = 'high'
+        else
+          assign slide_loading = 'lazy'
+          assign slide_priority = 'auto'
+        endif
+
+        assign overlay_alpha = block.settings.overlay_opacity | divided_by: 100.0
+      -%}
+
       <li
-        class="hero__slide {% if forloop.first %}is-active{% endif %}"
+        class="hero__slide hero__slide--{{ block.id }} hero__slide--valign-{{ block.settings.desktop_position }} hero__slide--align-{{ block.settings.desktop_alignment }} hero__slide--mobile-align-{{ block.settings.mobile_alignment }} {% if forloop.first %}is-active{% endif %}"
         data-hero-slide
+        style="
+          --slide-text-color: {{ block.settings.text_color }};
+          --slide-eyebrow-color: {{ block.settings.eyebrow_color }};
+          --slide-cta-bg: {{ block.settings.button_bg_color }};
+          --slide-cta-text: {{ block.settings.button_text_color }};
+          --slide-overlay-opacity: {{ overlay_alpha }};
+        "
         {% if slide_count > 1 %}
           role="group"
           aria-roledescription="slide"
@@ -59,17 +45,6 @@
         {% endif %}
         {{ block.shopify_attributes }}
       >
-        {%- liquid
-          # Só o primeiro slide é candidato a LCP: ele carrega eager com
-          # prioridade alta; os demais ficam lazy para não competir.
-          if forloop.first
-            assign slide_loading = 'eager'
-            assign slide_priority = 'high'
-          else
-            assign slide_loading = 'lazy'
-            assign slide_priority = 'auto'
-          endif
-        -%}
         <div class="hero__media">
           {%- if block.settings.image != blank -%}
             {%- if block.settings.image_mobile != blank -%}
@@ -112,6 +87,7 @@
               {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
             </div>
           {%- endif -%}
+          <div class="hero__overlay" aria-hidden="true"></div>
         </div>
 
         <div class="hero__content page-width">
@@ -122,9 +98,9 @@
 
             {%- if block.settings.heading != blank -%}
               {%- if forloop.first -%}
-                <h1 class="hero__heading">{{ block.settings.heading | newline_to_br }}</h1>
+                <h1 class="hero__heading hero__heading--{{ block.settings.heading_size }}">{{ block.settings.heading | newline_to_br }}</h1>
               {%- else -%}
-                <p class="hero__heading" role="heading" aria-level="2">{{ block.settings.heading | newline_to_br }}</p>
+                <p class="hero__heading hero__heading--{{ block.settings.heading_size }}" role="heading" aria-level="2">{{ block.settings.heading | newline_to_br }}</p>
               {%- endif -%}
             {%- endif -%}
 
@@ -137,8 +113,8 @@
             {%- endif -%}
 
             {%- if block.settings.button_label != blank -%}
-              <a href="{{ block.settings.button_link | default: routes.all_products_collection_url }}" class="button hero__cta">
-                {{ block.settings.button_label | escape }}
+              <a href="{{ block.settings.button_link | default: routes.all_products_collection_url }}" class="button hero__cta hero__cta--{{ block.settings.button_style }}">
+                <span>{{ block.settings.button_label | escape }}</span>
                 {% render 'icon', name: 'arrow-right' %}
               </a>
             {%- endif -%}
@@ -168,87 +144,160 @@
   .hero {
     margin-top: calc(-1 * var(--header-height, 70px));
     position: relative;
-    background-color: var(--color-background);
+    background-color: #000000;
     overflow: hidden;
   }
   .hero__slides { list-style: none; margin: 0; padding: 0; display: grid; }
-  /* Todos os slides ocupam a mesma célula do grid: sem salto de altura */
+  
   .hero__slide {
     grid-area: 1 / 1;
     position: relative;
     display: flex;
-    /* Mobile: conteúdo na base da foto (item 11 do brief — a foto
-       vertical domina, o texto e o CTA ficam onde o polegar alcança). */
     align-items: flex-end;
     min-height: 88vh;
     opacity: 0;
     visibility: hidden;
     transition: opacity 600ms cubic-bezier(0.22, 1, 0.36, 1), visibility 600ms;
+    color: var(--slide-text-color, #ffffff);
   }
-  /* Desktop: bloco de texto no centro vertical (~50%), não colado no
-     rodapé. O CTA passa a ser percebido como o ponto de ação
-     principal em vez de ficar perdido no fim do Hero. */
-  @media screen and (min-width: 1001px) {
-    .hero__slide { align-items: center; }
-  }
+
   .hero__slide.is-active { opacity: 1; visibility: visible; }
   .hero--short .hero__slide { min-height: 70vh; }
   .hero--tall .hero__slide { min-height: 94vh; }
 
+  /* Mídia & Overlays */
   .hero__media { position: absolute; inset: 0; }
   .hero__image { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .hero__placeholder { display: flex; align-items: center; justify-content: center; background-color: var(--color-surface); }
+  .hero__placeholder { display: flex; align-items: center; justify-content: center; background-color: #121212; }
 
-  /* Overlay curto e localizado: escurece só o lado do texto,
-     preservando o produto e o rosto do outro lado. */
-  .hero__media::after {
-    content: '';
+  .hero__overlay {
     position: absolute;
     inset: 0;
-    background: var(--photo-veil-side);
+    background: #000000;
+    opacity: var(--slide-overlay-opacity, 0.4);
+    pointer-events: none;
+  }
+
+  /* Posicionamento & Alinhamento Desktop */
+  @media screen and (min-width: 1001px) {
+    .hero__slide--valign-top { align-items: flex-start; padding-top: calc(var(--header-height, 70px) + 40px); }
+    .hero__slide--valign-center { align-items: center; }
+    .hero__slide--valign-bottom { align-items: flex-end; }
+
+    .hero__slide--align-left .hero__text { margin-right: auto; margin-left: 0; text-align: left; }
+    .hero__slide--align-center .hero__text { margin-right: auto; margin-left: auto; text-align: center; }
+    .hero__slide--align-right .hero__text { margin-left: auto; margin-right: 0; text-align: right; }
+  }
+
+  /* Alinhamento Mobile */
+  @media screen and (max-width: 1000px) {
+    .hero__slide--mobile-align-left .hero__text { text-align: left; margin-right: auto; margin-left: 0; }
+    .hero__slide--mobile-align-center .hero__text { text-align: center; margin-right: auto; margin-left: auto; }
+    .hero__slide--mobile-align-right .hero__text { text-align: right; margin-left: auto; margin-right: 0; }
   }
 
   .hero__content {
     position: relative;
     z-index: 2;
     width: 100%;
-    padding-bottom: clamp(56px, 9vh, 120px);
+    padding-bottom: clamp(48px, 8vh, 100px);
   }
-  @media screen and (min-width: 1001px) {
-    /* Sem padding assimétrico no centro: a folga extra embaixo
-       puxaria o bloco visualmente para cima do centro real. */
-    .hero__content { padding-bottom: 0; }
-  }
-  .hero__text { max-width: 33rem; }
-  .hero__eyebrow { margin-bottom: 20px; }
-  .hero__heading {
-    font-size: var(--f8);
-    margin-bottom: 20px;
-    color: var(--color-text-primary);
-  }
-  .hero__subheading {
-    font-family: var(--font-ui-family);
-    font-size: var(--f2);
-    font-weight: var(--font-weight-medium);
-    letter-spacing: var(--tracking-label);
+
+  .hero__text { max-width: 36rem; width: 100%; }
+
+  /* Typografias Customizáveis */
+  .hero__eyebrow {
+    margin-bottom: 16px;
+    color: var(--slide-eyebrow-color, #d4a640);
+    font-size: var(--f1, 0.85rem);
+    font-weight: 600;
     text-transform: uppercase;
-    color: var(--color-text-primary);
-    margin-bottom: 20px;
+    letter-spacing: 0.1em;
   }
+
+  .hero__heading {
+    margin-bottom: 20px;
+    color: var(--slide-text-color, #ffffff);
+    line-height: 1.1;
+  }
+  .hero__heading--small { font-size: var(--f6, 2rem); }
+  .hero__heading--medium { font-size: var(--f8, 3rem); }
+  .hero__heading--large { font-size: clamp(2.5rem, 5vw, 4.2rem); }
+
+  .hero__subheading {
+    font-family: var(--font-ui-family, inherit);
+    font-size: var(--f2, 0.95rem);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--slide-text-color, #ffffff);
+    margin-bottom: 16px;
+    opacity: 0.9;
+  }
+
   .hero__body {
-    font-size: var(--f2);
-    color: var(--color-text-secondary);
-    margin-bottom: 32px;
+    font-size: var(--f2, 1rem);
+    color: var(--slide-text-color, #ffffff);
+    opacity: 0.8;
+    margin-bottom: 28px;
     max-width: 34ch;
   }
-  .hero__body p { margin: 0 0 4px; }
-  .hero__cta { min-width: 180px; }
+  .hero__slide--align-center .hero__body,
+  .hero__slide--mobile-align-center .hero__body { margin-left: auto; margin-right: auto; }
+  .hero__body p { margin: 0 0 6px; }
 
-  /* Indicador editorial — números, não um componente de carrossel */
+  /* Estilos do Botão CTA & Hover Customizado */
+  .hero__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-width: 180px;
+    padding: 14px 28px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+    transition: transform 250ms ease, background-color 250ms ease, border-color 250ms ease, color 250ms ease;
+  }
+
+  .hero__cta--solid {
+    background-color: var(--slide-cta-bg, #ffffff);
+    color: var(--slide-cta-text, #000000);
+    border: 1px solid var(--slide-cta-bg, #ffffff);
+  }
+
+  .hero__cta--outline {
+    background-color: transparent;
+    color: var(--slide-text-color, #ffffff);
+    border: 1px solid var(--slide-text-color, #ffffff);
+  }
+
+  .hero__cta svg {
+    transition: transform 250ms ease, stroke 250ms ease, fill 250ms ease, color 250ms ease;
+  }
+
+  /* Hover com Borda Branca, Texto Branco e Seta Branca */
+  .hero__cta:hover {
+    transform: translateY(-2px);
+    background-color: transparent !important;
+    border-color: #ffffff !important;
+    color: #ffffff !important;
+  }
+
+  .hero__cta:hover span,
+  .hero__cta:hover svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+    fill: #ffffff !important;
+  }
+
+  /* Indicador do Carrossel */
   .hero__indicator {
     position: absolute;
-    right: var(--page-gutter);
-    bottom: clamp(56px, 9vh, 120px);
+    right: var(--page-gutter, 20px);
+    bottom: clamp(48px, 8vh, 100px);
     z-index: 3;
     display: flex;
     flex-direction: column;
@@ -260,21 +309,19 @@
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    font-family: var(--font-ui-family);
-    font-size: var(--f1);
-    font-weight: var(--font-weight-medium);
-    letter-spacing: var(--tracking-label);
-    color: var(--color-text-primary);
+    font-size: var(--f1, 0.85rem);
+    font-weight: 500;
+    color: #ffffff;
     margin: 0;
   }
-  .hero__counter-total { color: var(--color-text-muted); }
+  .hero__counter-total { opacity: 0.5; }
   .hero__counter-total::before {
     content: '';
     display: block;
     width: 1px;
-    height: 28px;
+    height: 24px;
     margin: 0 auto 6px;
-    background-color: var(--color-border-strong);
+    background-color: rgba(255, 255, 255, 0.3);
   }
   .hero__nav {
     display: inline-flex;
@@ -282,12 +329,12 @@
     justify-content: center;
     background: none;
     border: none;
-    color: var(--color-text-secondary);
+    color: #ffffff;
     cursor: pointer;
     opacity: 0.7;
-    transition: opacity 200ms ease, color 200ms ease;
+    transition: opacity 200ms ease;
   }
-  .hero__nav:hover, .hero__nav:focus-visible { opacity: 1; color: var(--color-text-primary); }
+  .hero__nav:hover { opacity: 1; }
   .hero__nav svg { width: 14px; height: 14px; }
   [data-hero-prev] svg { transform: rotate(-90deg); }
   [data-hero-next] svg { transform: rotate(90deg); }
@@ -295,12 +342,8 @@
   @media screen and (max-width: 749px) {
     .hero__slide { min-height: 78vh; }
     .hero--tall .hero__slide { min-height: 86vh; }
-    /* No retrato o gradiente sobe de baixo, não da lateral */
-    .hero__media::after { background: var(--photo-veil-bottom); }
-    .hero__text { max-width: 100%; }
-    .hero__body { max-width: 100%; }
     .hero__cta { width: 100%; }
-    .hero__indicator { flex-direction: row; bottom: 20px; right: var(--page-gutter); }
+    .hero__indicator { flex-direction: row; bottom: 20px; right: var(--page-gutter, 20px); }
     .hero__counter { flex-direction: row; gap: 4px; }
     .hero__counter-total::before { display: none; }
   }
@@ -338,7 +381,6 @@
         if (current) current.textContent = pad(index + 1);
       }
 
-      // Estado inicial: tudo que não é o primeiro sai do fluxo de foco
       show(0);
 
       var prev = root.querySelector('[data-hero-prev]');
@@ -351,7 +393,6 @@
         if (event.key === 'ArrowRight') { show(index + 1); }
       });
 
-      // Swipe — só horizontal, e só se o gesto for claramente lateral
       var startX = 0;
       var startY = 0;
       root.addEventListener('touchstart', function (event) {
@@ -377,28 +418,170 @@
     {
       "type": "select",
       "id": "height",
+      "label": "Altura da Seção",
       "options": [
-        { "value": "short", "label": "t:sections.hero.settings.height.options__1.label" },
-        { "value": "default", "label": "t:sections.hero.settings.height.options__2.label" },
-        { "value": "tall", "label": "t:sections.hero.settings.height.options__3.label" }
+        { "value": "short", "label": "Pequeno (70vh)" },
+        { "value": "default", "label": "Padrão (88vh)" },
+        { "value": "tall", "label": "Grande (94vh)" }
       ],
-      "default": "default",
-      "label": "t:sections.hero.settings.height.label"
+      "default": "default"
     }
   ],
   "blocks": [
     {
       "type": "slide",
-      "name": "t:sections.hero.blocks.slide.name",
+      "name": "Slide do Hero",
       "settings": [
-        { "type": "image_picker", "id": "image", "label": "t:sections.hero.blocks.slide.settings.image.label" },
-        { "type": "image_picker", "id": "image_mobile", "label": "t:sections.hero.blocks.slide.settings.image_mobile.label", "info": "t:sections.hero.blocks.slide.settings.image_mobile.info" },
-        { "type": "text", "id": "eyebrow", "label": "t:sections.hero.blocks.slide.settings.eyebrow.label" },
-        { "type": "textarea", "id": "heading", "label": "t:sections.hero.blocks.slide.settings.heading.label", "info": "t:sections.hero.blocks.slide.settings.heading.info" },
-        { "type": "text", "id": "subheading", "label": "t:sections.hero.blocks.slide.settings.subheading.label" },
-        { "type": "richtext", "id": "text", "label": "t:sections.hero.blocks.slide.settings.text.label" },
-        { "type": "text", "id": "button_label", "label": "t:sections.hero.blocks.slide.settings.button_label.label" },
-        { "type": "url", "id": "button_link", "label": "t:sections.hero.blocks.slide.settings.button_link.label" }
+        {
+          "type": "header",
+          "content": "🖼️ Mídia & Imagens"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Imagem Desktop"
+        },
+        {
+          "type": "image_picker",
+          "id": "image_mobile",
+          "label": "Imagem Mobile (Retrato)",
+          "info": "Opcional. Recomendado para evitar cortes na composição em telas verticais."
+        },
+        {
+          "type": "range",
+          "id": "overlay_opacity",
+          "min": 0,
+          "max": 90,
+          "step": 5,
+          "unit": "%",
+          "label": "Escurecimento da Imagem (Overlay)",
+          "default": 40
+        },
+        {
+          "type": "header",
+          "content": "📐 Layout & Alinhamento"
+        },
+        {
+          "type": "select",
+          "id": "desktop_position",
+          "label": "Posição Vertical (Desktop)",
+          "options": [
+            { "value": "top", "label": "Topo" },
+            { "value": "center", "label": "Centro" },
+            { "value": "bottom", "label": "Base" }
+          ],
+          "default": "center"
+        },
+        {
+          "type": "select",
+          "id": "desktop_alignment",
+          "label": "Alinhamento do Texto (Desktop)",
+          "options": [
+            { "value": "left", "label": "Esquerda" },
+            { "value": "center", "label": "Centro" },
+            { "value": "right", "label": "Direita" }
+          ],
+          "default": "left"
+        },
+        {
+          "type": "select",
+          "id": "mobile_alignment",
+          "label": "Alinhamento do Texto (Mobile)",
+          "options": [
+            { "value": "left", "label": "Esquerda" },
+            { "value": "center", "label": "Centro" },
+            { "value": "right", "label": "Direita" }
+          ],
+          "default": "left"
+        },
+        {
+          "type": "header",
+          "content": "✏️ Conteúdo do Slide"
+        },
+        {
+          "type": "text",
+          "id": "eyebrow",
+          "label": "Eyebrow / Selo de Campanha",
+          "default": "Drop 002 — The Rebellion"
+        },
+        {
+          "type": "textarea",
+          "id": "heading",
+          "label": "Título Principal (Heading)",
+          "default": "Conquer\nor Die"
+        },
+        {
+          "type": "select",
+          "id": "heading_size",
+          "label": "Tamanho do Título",
+          "options": [
+            { "value": "small", "label": "Pequeno" },
+            { "value": "medium", "label": "Médio" },
+            { "value": "large", "label": "Grande / Display" }
+          ],
+          "default": "medium"
+        },
+        {
+          "type": "text",
+          "id": "subheading",
+          "label": "Subtítulo",
+          "default": "NOT MADE TO BLEND IN."
+        },
+        {
+          "type": "richtext",
+          "id": "text",
+          "label": "Descrição",
+          "default": "<p>Mais que roupas, uma mentalidade. Conquiste o que é seu.</p>"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "Texto do Botão (CTA)",
+          "default": "Shop now"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "Link do Botão"
+        },
+        {
+          "type": "select",
+          "id": "button_style",
+          "label": "Estilo do Botão",
+          "options": [
+            { "value": "solid", "label": "Sólido" },
+            { "value": "outline", "label": "Contorno / Outline" }
+          ],
+          "default": "solid"
+        },
+        {
+          "type": "header",
+          "content": "🎨 Cores Personalizadas"
+        },
+        {
+          "type": "color",
+          "id": "text_color",
+          "label": "Cor dos Textos",
+          "default": "#ffffff"
+        },
+        {
+          "type": "color",
+          "id": "eyebrow_color",
+          "label": "Cor do Eyebrow",
+          "default": "#d4a640"
+        },
+        {
+          "type": "color",
+          "id": "button_bg_color",
+          "label": "Fundo do Botão (Sólido)",
+          "default": "#ffffff"
+        },
+        {
+          "type": "color",
+          "id": "button_text_color",
+          "label": "Texto do Botão (Sólido)",
+          "default": "#000000"
+        }
       ]
     }
   ],
