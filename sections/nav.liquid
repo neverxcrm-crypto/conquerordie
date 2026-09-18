@@ -145,6 +145,15 @@
       backdrop-filter 450ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
+  /* Estado intermediário: evita o salto visual direto para o glass. */
+  .header--transitioning {
+    background-color: rgba(18, 18, 22, 0.32);
+    border-bottom-color: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 8px 24px -16px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(8px) saturate(112%);
+    -webkit-backdrop-filter: blur(8px) saturate(112%);
+  }
+
   /* Glassmorphism de Alta Definição com Brilho Especular */
   .header--scrolled {
     background-color: var(--color-overlay, rgba(12, 12, 15, 0.72));
@@ -191,7 +200,7 @@
     padding: 5px 9px;
     color: var(--color-text);
     text-decoration: none;
-    transition: transform 450ms cubic-bezier(0.16, 1, 0.3, 1), filter 450ms ease;
+    transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1), filter 600ms ease;
   }
   .header__logo-link:hover { transform: translateY(-1px); }
   .header__logo-aura {
@@ -200,15 +209,15 @@
     width: 122%;
     height: 155%;
     border-radius: 50%;
-    background: radial-gradient(ellipse, rgb(214 166 64 / 72%) 0%, rgb(214 166 64 / 24%) 38%, transparent 72%);
+    background: radial-gradient(ellipse, rgb(214 166 64 / 38%) 0%, rgb(214 166 64 / 12%) 38%, transparent 72%);
     opacity: 0;
-    filter: blur(10px);
+    filter: blur(14px);
     transform: scale(.62);
-    transition: opacity 550ms ease, transform 550ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 700ms ease, transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
     pointer-events: none;
   }
   .header--scrolled .header__logo-aura {
-    opacity: 1;
+    opacity: .42;
     transform: scale(1);
   }
 
@@ -232,7 +241,7 @@
     transform: scale(0.88);
   }
   .header--scrolled .header__logo-image {
-    filter: drop-shadow(0 3px 13px rgb(214 166 64 / 46%));
+    filter: drop-shadow(0 3px 12px rgb(214 166 64 / 24%));
   }
 
   /* Desktop Menu Interativo */
@@ -555,10 +564,17 @@
   @media screen and (max-width: 1000px) {
     .header__nav { display: none; }
     .header__menu-toggle { display: inline-flex; align-items: center; justify-content: center; }
-    .header__inner { padding-top: 14px; padding-bottom: 14px; }
+    .header__inner { position: relative; padding-top: 14px; padding-bottom: 14px; }
     .header--scrolled .header__inner { padding-top: 10px; padding-bottom: 10px; }
     .header__logo-image { max-height: 32px; }
-    .header__logo-link { margin: 0 auto; }
+    .header__logo-link {
+      position: absolute;
+      left: 50%;
+      margin: 0;
+      transform: translateX(-50%);
+    }
+    .header__logo-link:hover { transform: translateX(-50%); }
+    .header__actions { margin-left: auto; }
   }
 
   @media screen and (min-width: 1001px) {
@@ -584,15 +600,27 @@
     var EXIT_AT = 8;
     var ticking = false;
     var isScrolled = false;
+    var transitionTimer = null;
+    var TRANSITION_MS = 260;
+
+    function transitionTo(scrolled) {
+      if (transitionTimer) window.clearTimeout(transitionTimer);
+      header.classList.add('header--transitioning');
+      transitionTimer = window.setTimeout(function () {
+        header.classList.toggle('header--scrolled', scrolled);
+        header.classList.remove('header--transitioning');
+        transitionTimer = null;
+      }, TRANSITION_MS);
+    }
 
     function applyScrollState() {
       var y = window.scrollY || document.documentElement.scrollTop;
       if (!isScrolled && y > ENTER_AT) {
         isScrolled = true;
-        header.classList.add('header--scrolled');
+        transitionTo(true);
       } else if (isScrolled && y < EXIT_AT) {
         isScrolled = false;
-        header.classList.remove('header--scrolled');
+        transitionTo(false);
       }
       ticking = false;
     }
