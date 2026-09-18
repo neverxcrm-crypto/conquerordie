@@ -22,7 +22,10 @@
     menu desktop com até 3 níveis (link > child > grandchild).
   - header__actions: busca (details com painel), conta (só se
     customer_accounts_enabled) e carrinho com contador
-    data-cart-count baseado em cart.item_count.
+    data-cart-count baseado em cart.item_count. O link do carrinho
+    tem data-cart-open: com cart_type "drawer" o carrinho.js
+    intercepta o clique e abre o cart-drawer; com "page" (ou sem JS),
+    o link funciona normalmente e leva para /cart.
   - header__mobile-nav: drawer que desliza da direita em telas
     <= 1000px, aberto/fechado pelo <script> (aria-expanded/hidden
     + classe .is-open para animar transform/opacity).
@@ -134,7 +137,12 @@
         </a>
       {%- endif -%}
 
-      <a href="{{ routes.cart_url }}" class="header__action-button header__cart tap-target" aria-label="{{ 'templates.cart.cart' | t }}">
+      <a
+        href="{{ routes.cart_url }}"
+        class="header__action-button header__cart tap-target"
+        aria-label="{{ 'templates.cart.cart' | t }}"
+        data-cart-open
+      >
         {% render 'icon', name: 'cart' %}
         <span class="header__cart-count" data-cart-count {% if cart.item_count == 0 %}hidden{% endif %}>{{ cart.item_count }}</span>
       </a>
@@ -546,7 +554,12 @@
     function closeDrawer() {
       drawer.classList.remove('is-open');
       scrim.classList.remove('is-open');
-      document.body.classList.remove('bloquear');
+      // Idem: se o cart drawer ainda estiver aberto, é ele quem
+      // controla o destrave do scroll.
+      var cartDrawer = document.getElementById('CartDrawer');
+      if (!cartDrawer || !cartDrawer.classList.contains('is-open')) {
+        document.body.classList.remove('bloquear');
+      }
       toggle.setAttribute('aria-expanded', 'false');
       closeTimer = setTimeout(function () {
         drawer.hidden = true;

@@ -200,7 +200,21 @@
       "subtotal": "Subtotal",
       "new_subtotal": "New subtotal",
       "update": "Update",
-      "remove": "Remove"
+      "remove": "Remove",
+      "item_count": {
+        "one": "{{ count }} item",
+        "other": "{{ count }} items"
+      },
+      "close": "Close cart",
+      "item_added": "Added to cart",
+      "item_removed": "Item removed",
+      "suggestions": "You might like",
+      "free_shipping_remaining_html": "{{ amount }} away from free shipping",
+      "free_shipping_reached": "You've unlocked free shipping",
+      "secure_payment": "Secure payment",
+      "decrease": "Decrease quantity of {{ title }}",
+      "increase": "Increase quantity of {{ title }}",
+      "bump_title": "Complete the look"
     },
     "footer": {
       "payment": "Payment methods",

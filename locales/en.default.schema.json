@@ -526,6 +526,80 @@
           "info": "Format HH:MM in the store timezone."
         }
       }
+    },
+    "cart_drawer": {
+      "name": "Cart drawer",
+      "settings": {
+        "header__shipping": {
+          "content": "Free shipping bar"
+        },
+        "show_free_shipping": {
+          "label": "Show free shipping progress"
+        },
+        "free_shipping_threshold": {
+          "label": "Free shipping threshold (R$)",
+          "info": "Set to match your real shipping rate. 0 hides the bar."
+        },
+        "header__bump": {
+          "content": "Order bump"
+        },
+        "paragraph__bump": {
+          "content": "Shown once, between the cart items and checkout. Never more than one product."
+        },
+        "bump_mode": {
+          "label": "Order bump source",
+          "options__1": {
+            "label": "Off"
+          },
+          "options__2": {
+            "label": "Automatic (Shopify recommendations)"
+          },
+          "options__3": {
+            "label": "Manual (choose a product)"
+          }
+        },
+        "bump_product": {
+          "label": "Product",
+          "info": "Only used in manual mode."
+        },
+        "bump_title": {
+          "label": "Title",
+          "info": "Defaults to \"Complete the look\"."
+        },
+        "bump_text": {
+          "label": "Short text"
+        },
+        "header__empty": {
+          "content": "Empty cart"
+        },
+        "empty_text": {
+          "label": "Text"
+        },
+        "empty_button_label": {
+          "label": "Button label",
+          "info": "Defaults to \"Continue shopping\"."
+        },
+        "empty_link": {
+          "label": "Button link"
+        },
+        "empty_collection": {
+          "label": "Suggested collection",
+          "info": "Shows up to 2 products from this collection when the cart is empty."
+        }
+      },
+      "blocks": {
+        "trust": {
+          "name": "Trust message",
+          "settings": {
+            "text": {
+              "label": "Text"
+            }
+          }
+        }
+      }
+    },
+    "cart_recommendations": {
+      "name": "Cart recommendations (internal)"
     }
   },
   "settings_schema": {

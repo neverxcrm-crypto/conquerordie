@@ -1,0 +1,38 @@
+{%- comment -%}
+  ============================================================
+  CART RECOMMENDATIONS — fonte do order bump automático
+  ============================================================
+
+  O QUE FAZ:
+  Section "invisível", sem rota própria: existe só para ser chamada
+  pelo endpoint nativo do Shopify /recommendations/products, que
+  populado o objeto `recommendations` com produtos realmente
+  relacionados ao item informado (o motor de recomendação do
+  Shopify — mesma base do "frequentemente comprados juntos").
+
+  COMO É USADA:
+  O JS do cart-drawer (assets/carrinho.js) faz fetch em:
+    /recommendations/products?product_id=X&limit=1&section_id=cart-recommendations
+  e injeta o HTML retornado (que é exatamente o card renderizado
+  aqui) no slot [data-cart-bump-slot] do drawer.
+
+  POR QUE UMA SECTION SEPARADA:
+  A Recommendations API do Shopify exige uma section com esse nome
+  reservado de objeto (`recommendations`) — não dá para reaproveitar
+  a lógica do cart-drawer.liquid para isso.
+
+  SEM RECOMENDAÇÃO REAL:
+  Se `recommendations.performed` for false (produto sem relação
+  configurada/aprendida) ou não houver produtos, o HTML sai vazio.
+  O JS trata isso escondendo o bloco inteiro — nunca mostramos um
+  card de recomendação inventado.
+{%- endcomment -%}
+{%- if recommendations.performed and recommendations.products.size > 0 -%}
+  {% render 'cart-bump-product', product: recommendations.products.first %}
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.cart_recommendations.name"
+}
+{% endschema %}
