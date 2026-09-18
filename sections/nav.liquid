@@ -25,7 +25,7 @@
   MOBILE:
   Grid 1fr | logo | 1fr (simetria), drawer lateral de vidro com
   itens em cascata. Abrir o drawer põe body.bloquear — o mesmo que
-  o carrinho usa — e o movimento.js pausa o scroll suave.
+  o carrinho usa — e o movimento.js pausa o ScrollSmoother.
 {%- endcomment -%}
 <header class="header" data-section-id="{{ section.id }}" data-header>
   <span class="header__glass" aria-hidden="true">
@@ -160,7 +160,7 @@
     </button>
   </div>
 
-  <div class="header__mobile-body" data-lenis-prevent>
+  <div class="header__mobile-body">
     <ul class="header__mobile-menu" role="list">
       {%- for link in section.settings.menu.links -%}
         <li class="header__mobile-item" style="--item-index: {{ forloop.index }};">
@@ -961,7 +961,7 @@
 
     /* ---------------------------------------------------------
        Drawer mobile
-       body.bloquear trava a página (e pausa o Lenis via
+       body.bloquear trava a página (e pausa o ScrollSmoother via
        movimento.js). O carrinho usa a mesma classe: quem fecha
        por último destrava.
     --------------------------------------------------------- */

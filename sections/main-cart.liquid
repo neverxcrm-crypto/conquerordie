@@ -62,8 +62,10 @@
   .cart__summary {
     flex: 0 0 320px;
     position: sticky;
-    top: 24px;
+    top: calc(var(--header-height) + 24px);
   }
+  /* Com o ScrollSmoother o pin é do GSAP (data-smooth-sticky) */
+  .has-smooth-scroll .cart__summary { position: relative; top: auto; }
 
   /* Table */
   .cart-items {
@@ -366,7 +368,12 @@
           </table>
         </div>
 
-        <div class="cart__summary">
+        {%- comment -%}
+          data-smooth-sticky: com o ScrollSmoother, position: sticky não
+          funciona (conteúdo transformado); movimento.js fixa o resumo
+          via ScrollTrigger a partir de 1001px.
+        {%- endcomment -%}
+        <div class="cart__summary" data-smooth-sticky="1001">
           {%- if section.settings.show_note -%}
             <label class="cart__note-label" for="Cart-note">{{ 'sections.cart.note' | t }}</label>
             <textarea

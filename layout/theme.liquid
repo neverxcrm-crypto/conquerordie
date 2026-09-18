@@ -13,10 +13,11 @@
     meta description, URL canonica.
   - Favicon e apple-touch-icon (config settings.favicon).
   - Open Graph / JSON-LD e demais tags via {% render 'meta-tags' %}.
-  - CSS: index.css (ponto de entrada) + css-variables (variaveis
-    do tema geradas pelas settings).
+  - CSS: fontes.css, normalizar.css e base.css (cada um com asset_url,
+    para ter cache-busting) + css-variables (variaveis do tema).
   - Scripts: troca no-js -> js e carrega carrinho.js, revelar.js e
-    o scroll suave (gsap, ScrollTrigger, lenis, movimento.js), todos defer.
+    o scroll suave (gsap, ScrollTrigger, ScrollSmoother, movimento.js),
+    todos defer.
   - {{ content_for_header }}: scripts obrigatorios do Shopify.
 
   NO <body> temos:
@@ -29,6 +30,8 @@
     editaveis pelo lojista no editor de temas.
   - {{ content_for_layout }}: aqui entra o conteudo especifico de
     cada template/pagina, dentro do <main id="MainContent">.
+  - <main> + footer ficam dentro de #smooth-wrapper/#smooth-content
+    (ScrollSmoother). Elementos fixed ficam fora, antes dele.
 {%- endcomment -%}
 <!doctype html>
 <html class="no-js" lang="{{ request.locale.iso_code }}">
@@ -57,20 +60,29 @@
 
     {% render 'meta-tags' %}
 
-    {{ 'index.css' | asset_url | stylesheet_tag }}
+    {%- comment -%}
+      CSS carregado arquivo a arquivo via asset_url (e NÃO por @import
+      dentro de index.css): o asset_url põe ?v=<hash> na URL, então toda
+      alteração chega ao navegador na hora. Com @import relativo a CDN
+      do Shopify servia a versão antiga do arquivo indefinidamente.
+      A ordem importa: fontes → reset → base.
+    {%- endcomment -%}
+    {{ 'fontes.css' | asset_url | stylesheet_tag }}
+    {{ 'normalizar.css' | asset_url | stylesheet_tag }}
+    {{ 'base.css' | asset_url | stylesheet_tag }}
     {% render 'css-variables' %}
 
     <script>document.documentElement.className = document.documentElement.className.replace('no-js', 'js');</script>
     <script src="{{ 'carrinho.js' | asset_url }}" defer="defer"></script>
     <script src="{{ 'revelar.js' | asset_url }}" defer="defer"></script>
     {%- comment -%}
-      Scroll suave: GSAP + ScrollTrigger + Lenis (vendorizados em assets/,
-      sem CDN externo). Todos defer — a ordem de execucao e a do HTML,
-      entao movimento.js ja encontra as tres libs carregadas.
+      Scroll suave: GSAP + ScrollTrigger + ScrollSmoother (vendorizados
+      em assets/, sem CDN externo). Todos defer — a ordem de execução é
+      a do HTML, então movimento.js já encontra as três libs carregadas.
     {%- endcomment -%}
     <script src="{{ 'gsap.min.js' | asset_url }}" defer="defer"></script>
     <script src="{{ 'ScrollTrigger.min.js' | asset_url }}" defer="defer"></script>
-    <script src="{{ 'lenis.min.js' | asset_url }}" defer="defer"></script>
+    <script src="{{ 'ScrollSmoother.min.js' | asset_url }}" defer="defer"></script>
     <script src="{{ 'movimento.js' | asset_url }}" defer="defer"></script>
 
     {{ content_for_header }}
@@ -86,10 +98,20 @@
     {% sections 'header-group' %}
     {% section 'cart-drawer' %}
 
-    <main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
-      {{ content_for_layout }}
-    </main>
+    {%- comment -%}
+      ScrollSmoother: o conteúdo que ROLA fica dentro de
+      #smooth-wrapper > #smooth-content. Tudo que é position: fixed
+      (alertas, header, cart drawer) precisa ficar FORA, acima.
+      Ver assets/movimento.js.
+    {%- endcomment -%}
+    <div id="smooth-wrapper">
+      <div id="smooth-content">
+        <main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
+          {{ content_for_layout }}
+        </main>
 
-    {% sections 'footer-group' %}
+        {% sections 'footer-group' %}
+      </div>
+    </div>
   </body>
 </html>

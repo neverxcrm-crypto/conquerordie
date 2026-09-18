@@ -3,8 +3,15 @@
   index.css — Ponto de entrada do CSS do tema
   ============================================================
 
-  O QUE FAZ:
-  Este é o unico arquivo CSS carregado pelo layout (theme.liquid).
+  ATENÇÃO — NÃO É MAIS CARREGADO PELO LAYOUT:
+  layout/theme.liquid agora carrega fontes.css, normalizar.css e
+  base.css diretamente via asset_url. O @import relativo abaixo não
+  leva o ?v= de versão, e a CDN do Shopify continuava entregando
+  arquivos antigos depois de cada deploy. Mantido só por
+  compatibilidade; pode ser removido.
+
+  O QUE FAZIA:
+  Era o unico arquivo CSS carregado pelo layout (theme.liquid).
   Ele importa os demais na ordem correta:
   1. fontes.css     — carregamento de fontes / @font-face
   2. normalizar.css — reset e normalizacao entre navegadores

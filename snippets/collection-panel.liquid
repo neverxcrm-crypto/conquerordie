@@ -53,13 +53,17 @@
     assign panel_text = collection.description | strip_html | truncatewords: 14
   endif
 
+  # all_products_count pode não existir (coleção vazia no onboarding):
+  # "| plus: 0" garante número e evita "comparison of String with 0".
+  assign panel_count = collection.all_products_count | plus: 0
+
   assign panel_index = index | default: 1 | prepend: '0' | slice: -2, 2
   assign panel_sizes = sizes | default: '(min-width: 1001px) 30vw, (min-width: 601px) 50vw, 80vw'
 -%}
 <a
   href="{{ collection.url | default: routes.collections_url }}"
   class="collection-panel"
-  aria-label="{{ panel_title | escape }}"
+  aria-label="{{ panel_title | escape_once }}"
 >
   <div class="collection-panel__media" {% if parallax %}data-parallax="0.08"{% endif %}>
     <div class="collection-panel__frame" data-parallax-target>
@@ -72,7 +76,7 @@
             class: 'collection-panel__image',
             widths: '360, 540, 720, 960, 1200, 1400',
             sizes: panel_sizes,
-            alt: panel_image.alt | default: panel_title | escape
+            alt: panel_image.alt | default: panel_title | escape_once
         }}
       {%- else -%}
         {{ 'collection-1' | placeholder_svg_tag: 'collection-panel__image placeholder-svg' }}
@@ -86,18 +90,18 @@
 
   <div class="collection-panel__band scheme-dark" aria-hidden="true">
     <span class="collection-panel__index">{{ panel_index }}</span>
-    <span class="collection-panel__label">{{ panel_title | escape }}</span>
+    <span class="collection-panel__label">{{ panel_title | escape_once }}</span>
     <span class="collection-panel__arrow">{% render 'icon', name: 'arrow-right' %}</span>
   </div>
 
   <div class="collection-panel__info scheme-dark">
-    <h3 class="collection-panel__title"><span class="collection-panel__title-inner">{{ panel_title | escape }}</span></h3>
+    <h3 class="collection-panel__title"><span class="collection-panel__title-inner">{{ panel_title | escape_once }}</span></h3>
     {%- if panel_text != blank -%}
       <p class="collection-panel__text">{{ panel_text | escape }}</p>
     {%- endif -%}
     <p class="collection-panel__meta">
-      {%- if show_count and collection.all_products_count > 0 -%}
-        <span>{{ collection.all_products_count }} {{ count_label | escape }}</span>
+      {%- if show_count and panel_count > 0 -%}
+        <span>{{ panel_count }} {{ count_label | escape }}</span>
       {%- endif -%}
       {%- if cta != blank -%}
         <span class="collection-panel__cta">

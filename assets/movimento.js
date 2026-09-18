@@ -1,133 +1,142 @@
 /*
   ============================================================
-  movimento.js — scroll suave (Lenis) + animacoes de scroll (GSAP)
+  movimento.js — scroll suave (GSAP ScrollSmoother) + animações
   ============================================================
 
   O QUE FAZ:
-  1. Liga o Lenis no documento inteiro: a roda do mouse/trackpad
-     ganha inercia, e o scroll nativo continua existindo por baixo
-     (window.scrollY, position: sticky, IntersectionObserver e o
-     revelar.js seguem funcionando sem adaptacao).
-  2. Sincroniza o Lenis com o ticker do GSAP e com o ScrollTrigger,
-     para todas as animacoes lerem a MESMA posicao de scroll no
-     mesmo frame — sem tremida entre parallax e scroll.
-  3. Parallax leve em [data-parallax] (o filho <img> desliza dentro
-     do wrapper, que corta o excesso).
-  4. Pausa o Lenis sempre que body.bloquear existe (carrinho e menu
-     mobile abertos) e respeita [data-lenis-prevent] em regioes que
-     rolam sozinhas.
-  5. Links ancora (#id) rolam suave e descontam a altura da header.
+  1. Liga o ScrollSmoother no site inteiro. O layout (theme.liquid)
+     envolve <main> + footer em #smooth-wrapper > #smooth-content;
+     o smoother desliza esse conteúdo com transform enquanto o
+     scroll nativo continua existindo por baixo (window.scrollY,
+     eventos de scroll, IntersectionObserver e revelar.js seguem
+     funcionando sem adaptação).
+  2. Efeitos declarativos do ScrollSmoother (effects: true):
+     data-speed="0.9" / data-lag="0.2" em qualquer elemento.
+  3. Parallax em [data-parallax] via ScrollTrigger (funciona com ou
+     sem o smoother).
+  4. [data-smooth-sticky]: substitui position: sticky, que não
+     funciona dentro de conteúdo transformado, por um pin do
+     ScrollTrigger (ex.: resumo da página do carrinho).
+  5. Trava: body.bloquear (carrinho e menu mobile abertos) pausa o
+     smoother.
+  6. Âncoras (#id) rolam suave, descontando a header fixa.
 
-  POR QUE ASSIM:
-  - Toque (celular/tablet) mantem o scroll nativo: o Lenis so
-    suaviza a roda. Scroll de toque sintetico piora a sensacao e
-    quebra o momentum do iOS.
-  - prefers-reduced-motion: nada e ligado, o site fica 100% nativo.
-  - Sem as libs (bloqueio de CDN, erro de rede), o arquivo sai sem
-    fazer nada: o site continua funcional com scroll nativo.
+  QUEM FICA FORA DO WRAPPER (e por quê):
+  Tudo que é position: fixed — header, cart drawer, alertas. Dentro
+  de um elemento com transform, fixed passa a ser relativo a ele e
+  "rolaria junto".
 
-  API PUBLICA:
-  window.CODMotion = { lenis, scrollTo(target, opts), stop(), start() }
+  QUANDO NÃO LIGA (scroll nativo):
+  - prefers-reduced-motion.
+  - Editor de temas do Shopify (Shopify.designMode): o editor rola o
+    iframe até a section selecionada e isso não combina com
+    conteúdo transformado.
+  - GSAP/ScrollSmoother indisponíveis — o site segue 100% funcional.
+
+  API PÚBLICA:
+  window.CODMotion = { smoother, scrollTo(target), stop(), start() }
 */
 (function () {
   'use strict';
 
   var root = document.documentElement;
-  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var gsap = window.gsap;
+  var ScrollTrigger = window.ScrollTrigger;
+  var ScrollSmoother = window.ScrollSmoother;
 
-  function headerOffset() {
-    var value = getComputedStyle(root).getPropertyValue('--header-height');
-    return -(parseFloat(value) || 68) - 12;
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var designMode = !!(window.Shopify && window.Shopify.designMode);
+  var wrapper = document.getElementById('smooth-wrapper');
+  var content = document.getElementById('smooth-content');
+
+  function headerHeight() {
+    return parseFloat(getComputedStyle(root).getPropertyValue('--header-height')) || 68;
   }
 
-  /* Sem movimento pedido ou sem Lenis: ancora nativa e fim. */
-  if (reduced || typeof window.Lenis !== 'function') {
-    window.CODMotion = {
-      lenis: null,
-      scrollTo: function (target) {
-        var el = typeof target === 'string' ? document.querySelector(target) : target;
-        if (el && el.scrollIntoView) el.scrollIntoView();
-      },
-      stop: function () {},
-      start: function () {}
+  if (gsap && ScrollTrigger) gsap.registerPlugin(ScrollTrigger);
+
+  /* ---------------------------------------------------------
+     ScrollSmoother
+  --------------------------------------------------------- */
+  var smoother = null;
+  if (!reduced && !designMode && gsap && ScrollTrigger && ScrollSmoother && wrapper && content) {
+    gsap.registerPlugin(ScrollSmoother);
+    // Antes de criar: o scroll-behavior: smooth nativo brigaria com o
+    // smoother (ver normalizar.css).
+    root.classList.add('has-smooth-scroll');
+    smoother = ScrollSmoother.create({
+      wrapper: wrapper,
+      content: content,
+      smooth: 1.1,            // segundos para "alcançar" a posição real
+      smoothTouch: 0.1,       // toque: suavização leve, sem parecer atrasado
+      effects: true,          // habilita data-speed / data-lag
+      ignoreMobileResize: true
+    });
+  }
+
+  /* ---------------------------------------------------------
+     Trava: body.bloquear => smoother pausado.
+     Quem adiciona a classe (carrinho.js, nav.liquid) não precisa
+     saber que o smoother existe.
+  --------------------------------------------------------- */
+  if (smoother) {
+    var syncLock = function () {
+      var locked = document.body.classList.contains('bloquear');
+      if (smoother.paused() !== locked) smoother.paused(locked);
     };
+    new MutationObserver(syncLock).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    syncLock();
+  }
+
+  /* ---------------------------------------------------------
+     Âncoras internas com offset da header fixa.
+  --------------------------------------------------------- */
+  function scrollToTarget(target) {
+    var el = typeof target === 'string' ? document.querySelector(target) : target;
+    if (!el) return;
+    if (smoother) {
+      smoother.scrollTo(el, true, 'top ' + (headerHeight() + 12) + 'px');
+    } else if (el.scrollIntoView) {
+      el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
+    }
+  }
+
+  if (smoother) {
+    document.addEventListener('click', function (event) {
+      var link = event.target.closest && event.target.closest('a[href*="#"]');
+      if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey) return;
+      var url;
+      try { url = new URL(link.href, window.location.href); } catch (e) { return; }
+      if (url.pathname !== window.location.pathname || !url.hash || url.hash === '#') return;
+      var target;
+      try { target = document.querySelector(decodeURIComponent(url.hash)); } catch (e) { return; }
+      if (!target) return;
+      event.preventDefault();
+      scrollToTarget(target);
+      if (history.pushState) history.pushState(null, '', url.hash);
+    });
+
+    // Chegou numa URL com #hash: o salto nativo aconteceu antes do
+    // smoother existir, então reposiciona.
+    if (window.location.hash) {
+      window.addEventListener('load', function () {
+        try { scrollToTarget(decodeURIComponent(window.location.hash)); } catch (e) {}
+      });
+    }
+  }
+
+  if (!gsap || !ScrollTrigger) {
+    window.CODMotion = { smoother: null, scrollTo: scrollToTarget, stop: function () {}, start: function () {} };
     return;
   }
 
-  var hasGsap = typeof window.gsap !== 'undefined';
-  var hasScrollTrigger = hasGsap && typeof window.ScrollTrigger !== 'undefined';
-
-  var lenis = new window.Lenis({
-    // lerp (interpolação por frame) em vez de duração fixa: a rolagem
-    // acompanha a roda continuamente e desacelera de forma orgânica,
-    // sem a sensação de "atraso" de uma animação com tempo fechado.
-    lerp: 0.085,
-    smoothWheel: true,
-    wheelMultiplier: 1,
-    // Toque segue nativo — ver cabecalho.
-    syncTouch: false,
-    // Nao rouba o scroll de paineis que rolam sozinhos (carrinho,
-    // menu mobile, busca, selects nativos).
-    prevent: function (node) {
-      return !!(node.closest && node.closest('[data-lenis-prevent], .cart-drawer__scroll, .header__mobile-body, dialog'));
-    }
-  });
-
-  /* ---------------------------------------------------------
-     Loop: GSAP dirige o Lenis quando existe; senao, rAF puro.
-  --------------------------------------------------------- */
-  if (hasGsap) {
-    if (hasScrollTrigger) {
-      window.gsap.registerPlugin(window.ScrollTrigger);
-      lenis.on('scroll', window.ScrollTrigger.update);
-    }
-    window.gsap.ticker.add(function (time) { lenis.raf(time * 1000); });
-    window.gsap.ticker.lagSmoothing(0);
-  } else {
-    var raf = function (time) {
-      lenis.raf(time);
-      window.requestAnimationFrame(raf);
-    };
-    window.requestAnimationFrame(raf);
-  }
-
-  /* ---------------------------------------------------------
-     Travas de scroll: body.bloquear => Lenis parado.
-     Quem adiciona a classe (carrinho.js, nav.liquid) nao precisa
-     saber que o Lenis existe.
-  --------------------------------------------------------- */
-  function syncLock() {
-    if (document.body.classList.contains('bloquear')) lenis.stop();
-    else lenis.start();
-  }
-  new MutationObserver(syncLock).observe(document.body, { attributes: true, attributeFilter: ['class'] });
-  syncLock();
-
-  /* ---------------------------------------------------------
-     Ancoras internas com offset da header fixa.
-  --------------------------------------------------------- */
-  document.addEventListener('click', function (event) {
-    var link = event.target.closest && event.target.closest('a[href*="#"]');
-    if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey) return;
-    var url;
-    try { url = new URL(link.href, window.location.href); } catch (e) { return; }
-    if (url.pathname !== window.location.pathname || !url.hash || url.hash === '#') return;
-    var target;
-    try { target = document.querySelector(decodeURIComponent(url.hash)); } catch (e) { return; }
-    if (!target) return;
-    event.preventDefault();
-    lenis.scrollTo(target, { offset: headerOffset() });
-    if (history.pushState) history.pushState(null, '', url.hash);
-  });
-
   /* ---------------------------------------------------------
      Parallax em [data-parallax]
-     data-parallax="0.12" controla a intensidade (padrao 0.1).
+     data-parallax="0.12" controla a intensidade (padrão 0.1).
      O wrapper precisa de overflow: hidden (regra global em base.css).
-     O <img> e ampliado so o necessario para nunca mostrar borda.
   --------------------------------------------------------- */
   function initParallax(scope) {
-    if (!hasScrollTrigger) return;
+    if (reduced) return;
     scope.querySelectorAll('[data-parallax]').forEach(function (wrap) {
       if (wrap.__codParallax) return;
       // [data-parallax-target] deixa o <img> livre para outro transform
@@ -136,8 +145,8 @@
       if (!media) return;
       var amount = parseFloat(wrap.getAttribute('data-parallax')) || 0.1;
       var shift = amount * 100;
-      window.gsap.set(media, { scale: 1 + amount * 2, transformOrigin: '50% 50%', willChange: 'transform' });
-      wrap.__codParallax = window.gsap.fromTo(
+      gsap.set(media, { scale: 1 + amount * 2, transformOrigin: '50% 50%', willChange: 'transform' });
+      wrap.__codParallax = gsap.fromTo(
         media,
         { yPercent: -shift / 2 },
         {
@@ -158,32 +167,61 @@
     });
   }
 
-  initParallax(document);
-  root.classList.add('has-smooth-scroll');
-
-  /* Imagens lazy mudam a altura da pagina: recalcula os gatilhos. */
-  if (hasScrollTrigger) {
-    window.addEventListener('load', function () { window.ScrollTrigger.refresh(); });
-    document.addEventListener('load', function (event) {
-      if (event.target && event.target.tagName === 'IMG') {
-        clearTimeout(initParallax.__refresh);
-        initParallax.__refresh = setTimeout(function () { window.ScrollTrigger.refresh(); }, 150);
-      }
-    }, true);
+  /* ---------------------------------------------------------
+     [data-smooth-sticky] — sticky que sobrevive ao smoother.
+     data-smooth-sticky="1001" = largura mínima (px) para fixar;
+     abaixo disso o elemento fica no fluxo normal.
+  --------------------------------------------------------- */
+  var stickyMedia = gsap.matchMedia();
+  function initSticky(scope) {
+    if (!smoother) return; // sem smoother, o position: sticky do CSS já funciona
+    scope.querySelectorAll('[data-smooth-sticky]').forEach(function (el) {
+      if (el.__codSticky) return;
+      el.__codSticky = true;
+      var min = parseInt(el.getAttribute('data-smooth-sticky'), 10) || 0;
+      stickyMedia.add('(min-width: ' + min + 'px)', function () {
+        var offset = function () { return headerHeight() + 24; };
+        ScrollTrigger.create({
+          trigger: el,
+          pin: el,
+          pinSpacing: false,
+          start: function () { return 'top ' + offset() + 'px'; },
+          endTrigger: el.parentElement,
+          end: function () { return 'bottom ' + (offset() + el.offsetHeight) + 'px'; },
+          invalidateOnRefresh: true
+        });
+      });
+    });
   }
+
+  initParallax(document);
+  initSticky(document);
+
+  /* Imagens lazy e fontes mudam a altura da página: recalcula os
+     gatilhos (e a altura rolável do smoother). */
+  var refreshTimer = null;
+  function queueRefresh() {
+    window.clearTimeout(refreshTimer);
+    refreshTimer = window.setTimeout(function () { ScrollTrigger.refresh(); }, 150);
+  }
+  window.addEventListener('load', function () { ScrollTrigger.refresh(); });
+  document.addEventListener('load', function (event) {
+    if (event.target && event.target.tagName === 'IMG') queueRefresh();
+  }, true);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(queueRefresh);
 
   /* Theme editor: sections recriadas precisam de novos gatilhos. */
   document.addEventListener('shopify:section:unload', function (event) { killParallax(event.target); });
   document.addEventListener('shopify:section:load', function (event) {
     initParallax(event.target);
-    lenis.resize();
-    if (hasScrollTrigger) window.ScrollTrigger.refresh();
+    initSticky(event.target);
+    queueRefresh();
   });
 
   window.CODMotion = {
-    lenis: lenis,
-    scrollTo: function (target, opts) { lenis.scrollTo(target, Object.assign({ offset: headerOffset() }, opts || {})); },
-    stop: function () { lenis.stop(); },
-    start: function () { lenis.start(); }
+    smoother: smoother,
+    scrollTo: scrollToTarget,
+    stop: function () { if (smoother) smoother.paused(true); },
+    start: function () { if (smoother) smoother.paused(false); }
   };
 })();
