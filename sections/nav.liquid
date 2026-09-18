@@ -32,7 +32,7 @@
     "main-menu"); submenus só aparecem se o link tiver filhos.
   - Estilos e o JS do toggle mobile ficam inline neste arquivo.
 {%- endcomment -%}
-<header class="header page-width" data-section-id="{{ section.id }}">
+<header class="header page-width" data-section-id="{{ section.id }}" data-scroll-header>
   <div class="header__inner">
     <button
       type="button"
@@ -45,6 +45,7 @@
     </button>
 
     <a href="{{ routes.root_url }}" class="header__logo-link">
+      <span class="header__logo-aura" aria-hidden="true"></span>
       {%- if settings.logo != blank -%}
         {%- assign logo_alt = shop.name | escape -%}
         {%- assign logo_height = settings.logo_width | divided_by: settings.logo.aspect_ratio -%}
@@ -161,7 +162,70 @@
     gap: 20px;
     padding: 16px 0;
   }
-  .header__logo-image { display: block; height: auto; }
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    transition: background-color 0.45s ease, box-shadow 0.45s ease, backdrop-filter 0.45s ease;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 0 calc((var(--page-width) - 100vw) / 2);
+    background: color-mix(in srgb, var(--color-background) 86%, transparent);
+    opacity: 0;
+    transition: opacity 0.45s ease, background 0.45s ease;
+    pointer-events: none;
+  }
+  .header[data-scrolled='true'] {
+    background-color: color-mix(in srgb, var(--color-background) 72%, transparent);
+    box-shadow: 0 12px 36px rgb(0 0 0 / 10%);
+    backdrop-filter: blur(18px) saturate(135%);
+    -webkit-backdrop-filter: blur(18px) saturate(135%);
+  }
+  .header[data-scrolled='true']::before { opacity: 1; }
+  .header__logo-link {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    padding: 5px 9px;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: transform 0.45s cubic-bezier(.22, 1, .36, 1), filter 0.45s ease;
+  }
+  .header__logo-link:hover { transform: translateY(-1px); }
+  .header__logo-aura {
+    position: absolute;
+    z-index: -1;
+    width: 112%;
+    height: 145%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgb(214 166 64 / 68%) 0%, rgb(214 166 64 / 22%) 38%, transparent 72%);
+    opacity: 0;
+    filter: blur(9px);
+    transform: scale(.65);
+    transition: opacity 0.55s ease, transform 0.55s cubic-bezier(.22, 1, .36, 1);
+    pointer-events: none;
+  }
+  .header[data-scrolled='true'] .header__logo-aura {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .header__logo-image {
+    display: block;
+    width: auto;
+    max-width: min(220px, 28vw);
+    height: auto;
+    filter: drop-shadow(0 2px 9px rgb(0 0 0 / 16%));
+    transition: filter 0.45s ease, transform 0.45s ease;
+  }
+  .header[data-scrolled='true'] .header__logo-image {
+    filter: drop-shadow(0 3px 12px rgb(214 166 64 / 42%));
+  }
   .header__logo-text { font-family: var(--font-heading-family); font-size: var(--f4); }
   .header__nav { flex: 1; }
   .header__menu {
@@ -181,7 +245,10 @@
     text-decoration: none;
     padding: 8px 0;
     display: inline-block;
+    transition: color 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
   }
+  .header__menu-link:hover,
+  .header__menu-link:focus-visible { color: var(--color-accent); transform: translateY(-1px); }
   .header__submenu {
     position: absolute;
     top: 100%;
@@ -221,7 +288,10 @@
     border: none;
     cursor: pointer;
     text-decoration: none;
+    transition: color 0.3s ease, transform 0.3s ease;
   }
+  .header__action-button:hover,
+  .header__action-button:focus-visible { color: var(--color-accent); transform: translateY(-1px); }
   .header__action-button svg { width: 22px; height: 22px; }
   .header__cart-count {
     position: absolute;
@@ -279,9 +349,20 @@
     .header__menu-toggle { display: inline-flex; }
     .header__inner { justify-content: space-between; }
     .header__logo-link { margin: 0 auto; }
+    .header__logo-image { max-width: min(190px, 48vw); }
+    .header__inner { padding: 12px 0; }
   }
   @media screen and (min-width: 1001px) {
     .header__mobile-nav { display: none !important; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .header,
+    .header::before,
+    .header__logo-link,
+    .header__logo-aura,
+    .header__logo-image,
+    .header__menu-link,
+    .header__action-button { transition: none; }
   }
 </style>
 
@@ -289,6 +370,12 @@
   (function () {
     var section = document.querySelector('.header[data-section-id="{{ section.id }}"]');
     if (!section) return;
+    var scrollThreshold = 18;
+    var updateScrollState = function () {
+      section.setAttribute('data-scrolled', window.scrollY > scrollThreshold ? 'true' : 'false');
+    };
+    updateScrollState();
+    window.addEventListener('scroll', updateScrollState, { passive: true });
     var toggle = section.querySelector('.header__menu-toggle');
     var nav = document.getElementById('MobileNav-{{ section.id }}');
     if (toggle && nav) {
