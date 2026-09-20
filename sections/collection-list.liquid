@@ -364,25 +364,61 @@
       var bar = section.querySelector('[data-collection-bar]');
       var current = section.querySelector('[data-collection-current]');
 
-      /* ---------- Progresso do trilho (≤1000px) ---------- */
+      /* ---------- Progresso do trilho (≤1000px) ----------
+
+         As medidas do trilho ficam em cache.
+
+         updateProgress roda a cada frame em que o dedo arrasta a
+         fileira — e lia rail.scrollWidth e rail.clientWidth ali
+         dentro. As duas sao propriedades de LAYOUT: le-las obriga o
+         navegador a recalcular o layout na hora, de forma sincrona,
+         antes de devolver o numero. Um reflow forcado por frame,
+         durante o unico gesto em que a pessoa esta olhando de perto
+         para a fluidez da fileira.
+
+         Largura do trilho e do conteudo so mudam quando algo muda
+         de TAMANHO — nunca por rolar. Entao sao medidas no resize,
+         quando as imagens lazy chegam e quando o editor recria a
+         section. Durante a rolagem sobra scrollLeft, que e leitura
+         barata, e uma escrita em transform, que vai para a GPU. */
+      var trilho = { max: 0, visivel: 1 };
+      function medirTrilho() {
+        var total = Math.max(rail.scrollWidth, 1);
+        trilho.max = rail.scrollWidth - rail.clientWidth;
+        trilho.visivel = rail.clientWidth / total;
+      }
+
       var progressTick = false;
+      var ultimoIndice = '';
       function updateProgress() {
         progressTick = false;
         if (!bar) return;
-        var max = rail.scrollWidth - rail.clientWidth;
-        var ratio = max > 0 ? rail.scrollLeft / max : 0;
-        var visible = rail.clientWidth / Math.max(rail.scrollWidth, 1);
-        var scale = visible + (1 - visible) * ratio;
+        var ratio = trilho.max > 0 ? rail.scrollLeft / trilho.max : 0;
+        var scale = trilho.visivel + (1 - trilho.visivel) * ratio;
         bar.style.transform = 'scaleX(' + Math.min(1, Math.max(0.04, scale)) + ')';
         if (current && items.length) {
-          current.textContent = ('0' + (Math.round(ratio * (items.length - 1)) + 1)).slice(-2);
+          // O numero muda a cada painel, nao a cada frame: sem esta
+          // guarda seria uma escrita no DOM por frame de rolagem.
+          var indice = ('0' + (Math.round(ratio * (items.length - 1)) + 1)).slice(-2);
+          if (indice !== ultimoIndice) {
+            ultimoIndice = indice;
+            current.textContent = indice;
+          }
         }
       }
+
+      function remedirTrilho() {
+        medirTrilho();
+        updateProgress();
+      }
+
       rail.addEventListener('scroll', function () {
         if (!progressTick) { progressTick = true; window.requestAnimationFrame(updateProgress); }
       }, { passive: true });
-      window.addEventListener('resize', updateProgress);
-      updateProgress();
+      window.addEventListener('resize', remedirTrilho);
+      window.addEventListener('load', remedirTrilho);
+      document.addEventListener('shopify:section:load', remedirTrilho);
+      remedirTrilho();
 
       var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       var gsap = window.gsap;

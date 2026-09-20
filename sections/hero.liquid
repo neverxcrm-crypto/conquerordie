@@ -217,36 +217,66 @@
   .hero__element--body { margin-bottom: 32px; }
   .hero__element--cta { margin-top: 8px; display: inline-block; }
 
+  /* ==========================================================
+     DEGRADÊS/SOMBRAS ATRÁS DO TEXTO — sem filter: blur()
+     ==========================================================
+     Os dois halos abaixo usavam radial-gradient + filter: blur().
+     Era o efeito mais caro que sobrava no tema, e no pior lugar
+     possivel: o hero e a primeira coisa pintada, ocupa a tela toda
+     e e quase sempre o elemento de LCP da home.
+
+     filter: blur() nao e um degrade — e um passe de pos-processo:
+     o navegador precisa renderizar a camada num buffer separado,
+     desfocar esse buffer e so entao compor o resultado. Isso se
+     repete a cada repintura da area: na troca de slides, ao girar
+     o aparelho, ao voltar para a aba.
+
+     E o que ele estava desfocando ja era suave — um degrade radial.
+     Entao a maciez foi passada para o proprio degrade: mais paradas
+     de cor, desenhando a mesma queda de luz que o blur produzia. O
+     'closest-side' faz o preto chegar a zero exatamente na borda da
+     caixa, sem o corte seco que o border-radius deixava e que o
+     blur existia, em boa parte, para disfarcar.
+
+     Resultado: mesma sombra suave, pintada de uma vez pelo mesmo
+     caminho de um fundo comum — sem buffer, sem passe de blur.
+     ========================================================== */
+
   /* DEGRADÊ/SOMBRA EXCLUSIVA ATRÁS DOS TÍTULOS */
   .hero__heading-shadow {
     position: absolute;
-    inset: -30px -40px;
+    inset: -44px -58px;
     background: radial-gradient(
-      ellipse at center,
+      ellipse closest-side at center,
       rgba(0, 0, 0, 0.95) 0%,
-      rgba(0, 0, 0, 0.7) 45%,
+      rgba(0, 0, 0, 0.91) 18%,
+      rgba(0, 0, 0, 0.8) 34%,
+      rgba(0, 0, 0, 0.62) 49%,
+      rgba(0, 0, 0, 0.4) 63%,
+      rgba(0, 0, 0, 0.21) 76%,
+      rgba(0, 0, 0, 0.08) 88%,
       rgba(0, 0, 0, 0) 100%
     );
-    filter: blur(20px);
     z-index: -1;
     pointer-events: none;
-    border-radius: 50%;
   }
 
   /* DEGRADÊ/SOMBRA EXCLUSIVA ATRÁS DO BOTÃO */
   .hero__cta-shadow {
     position: absolute;
-    inset: -20px -30px;
+    inset: -30px -42px;
     background: radial-gradient(
-      ellipse at center,
+      ellipse closest-side at center,
       rgba(0, 0, 0, 0.95) 0%,
-      rgba(0, 0, 0, 0.65) 50%,
+      rgba(0, 0, 0, 0.88) 22%,
+      rgba(0, 0, 0, 0.72) 40%,
+      rgba(0, 0, 0, 0.5) 56%,
+      rgba(0, 0, 0, 0.28) 71%,
+      rgba(0, 0, 0, 0.11) 85%,
       rgba(0, 0, 0, 0) 100%
     );
-    filter: blur(14px);
     z-index: -1;
     pointer-events: none;
-    border-radius: 40px;
   }
 
   /* Tipografia */

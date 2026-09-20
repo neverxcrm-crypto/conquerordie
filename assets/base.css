@@ -599,6 +599,20 @@ textarea.field__input:focus {
   opacity: 0;
   transform: translate(-50%, -50%);
   pointer-events: none;
+}
+/* will-change so enquanto o cursor esta em cima.
+
+   Antes ele era permanente: cada painel da lista mantinha uma
+   camada de GPU reservada — com mix-blend-mode: screen, que obriga
+   o compositor a guardar tambem o que esta ATRAS para poder
+   misturar — a visita inteira, para um brilho que so existe
+   durante o hover. Numa lista de 8 coleções eram 8 camadas
+   ociosas ocupando memoria de video.
+
+   Declarado no :hover, o navegador promove a camada no comeco do
+   gesto (a transicao do glow dura o suficiente para ela ficar
+   pronta a tempo) e a devolve quando o cursor sai. */
+.collection-panel:hover .collection-panel__glow {
   will-change: transform, opacity;
 }
 .collection-panel__text {

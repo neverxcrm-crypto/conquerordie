@@ -242,6 +242,26 @@ Para reativar um efeito no mobile, ajuste a condição em
 `snippets/carregar-movimento.liquid` (JS) e a media query
 `(max-width: 1000px), (pointer: coarse)` da regra correspondente (CSS).
 
+### Custos que valem em todo aparelho
+
+Estes não dependem do modo: são casos em que o efeito ficou igual e o
+trabalho do navegador caiu em qualquer tela.
+
+| Custo evitado | Onde | Como |
+|---|---|---|
+| Passe de blur no hero (o elemento de LCP da home) | `sections/hero.liquid` | Os halos atrás do título e do botão eram `radial-gradient` + `filter: blur()`. A maciez virou paradas de cor no próprio degradê — mesma sombra, pintada como um fundo comum |
+| Passe de blur dentro da header **fixa**, a cada frame de rolagem | `sections/nav.liquid` | Mesma troca na aura dourada do logo (`.header__logo-aura`) |
+| Um `setInterval` por segundo, para sempre | `sections/campaign.liquid` | A contagem regressiva só anda quando está na tela (IntersectionObserver) e com a aba em primeiro plano. Não desalinha: cada tick recalcula a partir de `Date.now()` |
+| Marquise animando depois de sair da tela | `sections/announcement-bar.liquid` | `animation-play-state: paused` via IntersectionObserver — a barra fica no topo e some no primeiro deslize |
+| Reflow forçado por frame ao arrastar a fileira de coleções | `sections/collection-list.liquid` | `scrollWidth`/`clientWidth` saíram do laço de rolagem para um cache, remedido só em resize/load |
+| Camada de GPU ociosa por painel de coleção | `assets/base.css` | O `will-change` do brilho do cursor passou a valer só no `:hover` |
+
+> A regra por trás de todos: **`filter: blur()` não é um degradê** — é um
+> passe de pós-processo (render num buffer à parte, desfoque,
+> recomposição) refeito a cada repintura da área. Quando o que está sendo
+> desfocado já é um degradê, as paradas de cor entregam o mesmo resultado
+> de graça. E **efeito contínuo só deve rodar enquanto alguém pode vê-lo.**
+
 ---
 
 ## Customizações comuns

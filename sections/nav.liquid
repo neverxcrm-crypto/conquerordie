@@ -305,15 +305,35 @@
     color: var(--color-text, #ffffff);
     text-decoration: none;
   }
+  /* Aura do logo: maciez no degradê, não em filter: blur().
+
+     Este elemento vive DENTRO da header, que é position: fixed —
+     ou seja, repintada enquanto a página inteira desliza por baixo.
+     Um filter: blur() aqui obrigava um passe de pós-processo (render
+     num buffer à parte, desfoque, recomposição) a cada frame de
+     rolagem, justamente enquanto a aura está visível (ela acende em
+     .header--scrolled). Era o mesmo erro do hero, no pior lugar.
+
+     O que o blur fazia era suavizar um degradê radial que já é
+     suave. Mais paradas de cor desenham a mesma queda de luz, e o
+     brilho dourado sai idêntico — pintado como um fundo comum. */
   .header__logo-aura {
     position: absolute;
     z-index: -1;
     width: 130%;
     height: 160%;
     border-radius: 50%;
-    background: radial-gradient(ellipse, rgb(214 166 64 / 35%) 0%, transparent 70%);
+    background: radial-gradient(
+      ellipse closest-side,
+      rgb(214 166 64 / 35%) 0%,
+      rgb(214 166 64 / 30%) 22%,
+      rgb(214 166 64 / 21%) 40%,
+      rgb(214 166 64 / 12%) 56%,
+      rgb(214 166 64 / 5%) 72%,
+      rgb(214 166 64 / 1%) 87%,
+      transparent 100%
+    );
     opacity: 0;
-    filter: blur(12px);
     transform: scale(0.6);
     transition: opacity 400ms ease, transform 400ms var(--hd-ease);
     pointer-events: none;

@@ -241,22 +241,80 @@
 
       function pad(n) { return (n < 10 ? '0' : '') + n; }
 
+      /* Escreve so quando o valor MUDOU. Os dias mudam uma vez por
+         dia, as horas uma vez por hora: sem esta guarda o contador
+         reescrevia os quatro campos a cada segundo, e cada escrita
+         num no de texto custa layout + paint da caixa do numero. */
+      function escrever(campo, valor) {
+        if (!campo || campo.textContent === valor) return;
+        campo.textContent = valor;
+      }
+
+      var acabou = false;
+
       function tick() {
         var remaining = Math.floor((deadline - Date.now()) / 1000);
         if (remaining <= 0) {
           // Acabou: o bloco some em vez de ficar zerado na tela.
-          clearInterval(timer);
+          acabou = true;
+          parar();
           root.remove();
           return;
         }
-        if (fields.days) fields.days.textContent = pad(Math.floor(remaining / 86400));
-        if (fields.hours) fields.hours.textContent = pad(Math.floor((remaining % 86400) / 3600));
-        if (fields.minutes) fields.minutes.textContent = pad(Math.floor((remaining % 3600) / 60));
-        if (fields.seconds) fields.seconds.textContent = pad(remaining % 60);
+        escrever(fields.days, pad(Math.floor(remaining / 86400)));
+        escrever(fields.hours, pad(Math.floor((remaining % 86400) / 3600)));
+        escrever(fields.minutes, pad(Math.floor((remaining % 3600) / 60)));
+        escrever(fields.seconds, pad(remaining % 60));
       }
 
-      var timer = setInterval(tick, 1000);
-      tick();
+      /* ---------------------------------------------------------
+         O contador so anda quando ALGUEM PODE VE-LO.
+
+         Antes era um setInterval solto: enquanto a pagina estivesse
+         aberta ele acordava a thread principal uma vez por segundo,
+         para sempre — inclusive com a section rolada para longe da
+         tela, e inclusive com o site numa aba de fundo ou com o
+         celular no bolso. Um relogio que ninguem esta olhando e
+         custo puro: CPU, bateria e um frame gasto por segundo que
+         podia estar servindo a rolagem.
+
+         Parar nao desalinha nada: tick() recalcula o tempo a partir
+         de Date.now() toda vez, nunca de um acumulador. Entao ao
+         voltar a ficar visivel ele ja aparece com a hora certa, sem
+         "recuperar" segundos perdidos.
+      --------------------------------------------------------- */
+      var timer = null;
+      var naTela = true;
+
+      function parar() {
+        if (timer === null) return;
+        window.clearInterval(timer);
+        timer = null;
+      }
+
+      function andar() {
+        if (timer !== null || acabou) return;
+        tick();                              // acerta o relogio na hora
+        // tick() pode ter descoberto que o prazo ja venceu: ai nao
+        // ha contador nenhum para manter andando.
+        if (!acabou) timer = window.setInterval(tick, 1000);
+      }
+
+      function sincronizar() {
+        if (naTela && !document.hidden) andar();
+        else parar();
+      }
+
+      document.addEventListener('visibilitychange', sincronizar);
+
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          naTela = entries[0].isIntersecting;
+          sincronizar();
+        }, { rootMargin: '120px 0px' }).observe(root);
+      }
+
+      sincronizar();
     })();
   </script>
 {%- endif -%}

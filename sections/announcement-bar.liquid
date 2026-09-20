@@ -72,13 +72,35 @@
       user-select: none;
     }
 
+    /* Sem will-change aqui: o wrapper NAO se move — quem anima e o
+       .ticker__track la dentro. Um will-change: transform nele
+       reservava uma camada de GPU, pela vida inteira da pagina,
+       para um elemento parado. A camada que importa o navegador ja
+       promove sozinho ao ver a animacao de transform no track. */
     .ticker__wrapper {
       display: flex;
       width: max-content;
-      will-change: transform;
     }
 
     .ticker__wrapper--pause:hover .ticker__track {
+      animation-play-state: paused;
+    }
+
+    /* ==========================================================
+       BARRA FORA DA TELA = ANIMACAO PARADA
+       ==========================================================
+       A barra fica no topo do site: passa da tela no primeiro
+       deslize e nao volta mais. A marquise, porem, continuava
+       rodando ate o fim da visita — o compositor acordava a cada
+       frame para deslizar um texto que ninguem estava vendo. No
+       celular isso concorre justamente com a rolagem.
+
+       A classe entra e sai via IntersectionObserver (script no fim
+       desta section). Fora da tela, animacao pausada: zero trabalho
+       por frame. Ao voltar ao topo, ela continua de onde parou —
+       animation-play-state nao reinicia o ciclo. */
+    .ticker--fora-da-tela .ticker__track,
+    .ticker--fora-da-tela .ticker__text-gold {
       animation-play-state: paused;
     }
 
@@ -189,6 +211,25 @@
       .ticker__text-gold { animation: none; }
     }
   </style>
+
+  <script>
+    (function () {
+      /* Liga/desliga a marquise conforme a barra entra e sai da
+         tela. Ver o comentario de .ticker--fora-da-tela no CSS.
+
+         IntersectionObserver e a ferramenta certa aqui: o navegador
+         avisa quando o cruzamento acontece, sem nenhum listener de
+         scroll e sem medir nada por frame. */
+      if (!('IntersectionObserver' in window)) return;
+
+      var barra = document.querySelector('.ticker[data-section-id="{{ section.id }}"]');
+      if (!barra) return;
+
+      new IntersectionObserver(function (entries) {
+        barra.classList.toggle('ticker--fora-da-tela', !entries[0].isIntersecting);
+      }).observe(barra);
+    })();
+  </script>
 {%- endif -%}
 
 {% schema %}
