@@ -1,3 +1,12 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
 {
   "sections": {
     "hero": {
@@ -6,22 +15,75 @@
         "slide_1": {
           "type": "slide",
           "settings": {
+            "image": "shopify://shop_images/ChatGPT_Image_18_de_set._de_2026_14_37_38.png",
+            "image_mobile": "shopify://shop_images/A1FF48D2-8135-4609-B9EB-FFD142BC5718.png",
             "eyebrow": "Drop 002 — The Rebellion",
             "heading": "Conquer\nor Die",
             "subheading": "Not made to blend in.",
             "text": "<p>Mais que roupas, uma mentalidade.</p><p>Conquiste o que é seu.</p>",
-            "button_label": "Shop now"
+            "button_label": "Shop now",
+            "button_link": ""
           }
         }
       },
-      "block_order": ["slide_1"],
-      "settings": { "height": "default" }
+      "block_order": [
+        "slide_1"
+      ],
+      "settings": {
+        "height": "tall"
+      }
+    },
+    "announcement_bar_tXfDTN": {
+      "type": "announcement-bar",
+      "blocks": {
+        "announcement_CwpNbc": {
+          "type": "announcement",
+          "settings": {
+            "text": "FRETE GRÁTIS EM COMPRAS ACIMA DE R$585",
+            "link": ""
+          }
+        },
+        "announcement_MWGigf": {
+          "type": "announcement",
+          "settings": {
+            "text": "PARCELE EM ATÉ 10X SEM JUROS",
+            "link": ""
+          }
+        },
+        "announcement_GCfYtd": {
+          "type": "announcement",
+          "settings": {
+            "text": "QUALIDADE & ELEGÂNCIA EXCLUSIVA",
+            "link": ""
+          }
+        }
+      },
+      "block_order": [
+        "announcement_CwpNbc",
+        "announcement_MWGigf",
+        "announcement_GCfYtd"
+      ],
+      "name": "Barra Contínua (Ouro)",
+      "settings": {
+        "speed": 45,
+        "pause_on_hover": true,
+        "font_size": 10,
+        "enable_italic": true,
+        "font_weight": "700",
+        "text_transform": "uppercase",
+        "letter_spacing": 1.5,
+        "enable_gold_effect": true,
+        "text_color": "#ffffff",
+        "bg_color": "#000000",
+        "show_separator": true
+      }
     },
     "latest_drop": {
       "type": "featured-collection",
       "settings": {
         "eyebrow": "Últimos lançamentos",
         "heading": "The Latest Drop",
+        "collection": "automated-collection",
         "products_to_show": 4,
         "columns_desktop": 4,
         "show_view_all": true
@@ -30,34 +92,106 @@
     "collections": {
       "type": "collection-list",
       "blocks": {
-        "collection_1": { "type": "featured_collection", "settings": {} },
-        "collection_2": { "type": "featured_collection", "settings": {} },
-        "collection_3": { "type": "featured_collection", "settings": {} },
-        "collection_4": { "type": "featured_collection", "settings": {} }
+        "collection_1": {
+          "type": "featured_collection",
+          "settings": {
+            "collection": "",
+            "title": "",
+            "text": ""
+          }
+        },
+        "collection_2": {
+          "type": "featured_collection",
+          "settings": {
+            "collection": "",
+            "title": "",
+            "text": ""
+          }
+        },
+        "collection_3": {
+          "type": "featured_collection",
+          "settings": {
+            "collection": "",
+            "title": "",
+            "text": ""
+          }
+        },
+        "collection_4": {
+          "type": "featured_collection",
+          "settings": {
+            "collection": "",
+            "title": "",
+            "text": ""
+          }
+        }
       },
-      "block_order": ["collection_1", "collection_2", "collection_3", "collection_4"],
+      "block_order": [
+        "collection_1",
+        "collection_2",
+        "collection_3",
+        "collection_4"
+      ],
       "settings": {
         "eyebrow": "Explore",
         "heading": "Escolha\nseu lado",
         "text": "Diferentes estilos. A mesma mentalidade.",
-        "button_label": "Ver coleções"
+        "button_label": "Ver coleções",
+        "button_link": "",
+        "panel_height": 600,
+        "card_cta": "Explorar",
+        "show_count": true,
+        "count_label": "peças"
       }
     },
     "brand_story": {
       "type": "brand-story",
       "blocks": {
-        "benefit_1": { "type": "benefit", "settings": { "icon": "quality", "title": "Qualidade premium", "text": "Tecidos de alta gramatura" } },
-        "benefit_2": { "type": "benefit", "settings": { "icon": "shipping", "title": "Envio rápido", "text": "Em até 24h" } },
-        "benefit_3": { "type": "benefit", "settings": { "icon": "secure", "title": "Compra segura", "text": "Seus dados protegidos" } },
-        "benefit_4": { "type": "benefit", "settings": { "icon": "support", "title": "Atendimento especializado", "text": "Suporte via WhatsApp" } }
+        "benefit_1": {
+          "type": "benefit",
+          "settings": {
+            "icon": "quality",
+            "title": "Qualidade premium",
+            "text": "Tecidos de alta gramatura"
+          }
+        },
+        "benefit_2": {
+          "type": "benefit",
+          "settings": {
+            "icon": "shipping",
+            "title": "Envio rápido",
+            "text": "Em até 24h"
+          }
+        },
+        "benefit_3": {
+          "type": "benefit",
+          "settings": {
+            "icon": "secure",
+            "title": "Compra segura",
+            "text": "Seus dados protegidos"
+          }
+        },
+        "benefit_4": {
+          "type": "benefit",
+          "settings": {
+            "icon": "support",
+            "title": "Atendimento especializado",
+            "text": "Suporte via WhatsApp"
+          }
+        }
       },
-      "block_order": ["benefit_1", "benefit_2", "benefit_3", "benefit_4"],
+      "block_order": [
+        "benefit_1",
+        "benefit_2",
+        "benefit_3",
+        "benefit_4"
+      ],
       "settings": {
         "image_position": "left",
         "eyebrow": "The Brand",
         "heading": "Conquer or Die",
         "text": "<p>Não somos apenas uma marca de roupas. Somos um movimento. Uma mentalidade para aqueles que se recusam a ser comuns.</p><p>Conquiste. Evolua. Supere.</p>",
-        "button_label": "Sobre nós"
+        "button_label": "Sobre nós",
+        "button_link": ""
       }
     },
     "campaign": {
@@ -67,11 +201,20 @@
         "heading": "The Ascension",
         "text": "O próximo capítulo está chegando.",
         "button_label": "Receber alertas",
+        "button_link": "",
         "show_countdown": false,
         "countdown_label": "Em breve",
+        "countdown_date": "",
         "countdown_time": "00:00"
       }
     }
   },
-  "order": ["hero", "latest_drop", "collections", "brand_story", "campaign"]
+  "order": [
+    "hero",
+    "announcement_bar_tXfDTN",
+    "latest_drop",
+    "collections",
+    "brand_story",
+    "campaign"
+  ]
 }
