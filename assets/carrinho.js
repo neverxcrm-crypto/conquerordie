@@ -263,14 +263,14 @@
         .then(function (item) {
           applySections(item.sections);
           announce(
-            (root.getAttribute('data-added-message') || 'Added to cart') + ': ' + item.product_title
+            (root.getAttribute('data-added-message') || 'Adicionado ao carrinho') + ': ' + item.product_title
           );
           if (cartType === 'drawer') openDrawer(opener);
         })
         .catch(function (err) {
           // Estoque insuficiente ou erro real: mensagem no lugar do
           // toast antigo, sem travar o formulário.
-          var message = (err && err.description) || root.getAttribute('data-error-message') || 'Cart error';
+          var message = (err && err.description) || root.getAttribute('data-error-message') || 'Não foi possível atualizar seu carrinho. Tente novamente.';
           if (typeof window.mostrarAlerta === 'function') {
             window.mostrarAlerta(message, 'negativo');
           } else {
@@ -306,7 +306,7 @@
         .then(function (item) {
           lastBumpSourceId = null; // forca reavaliar a recomendacao com o carrinho novo
           applySections(item.sections);
-          announce((root.getAttribute('data-added-message') || 'Added to cart') + ': ' + item.product_title);
+          announce((root.getAttribute('data-added-message') || 'Adicionado ao carrinho') + ': ' + item.product_title);
         })
         .catch(function () {})
         .finally(function () { button.removeAttribute('data-busy'); })
@@ -334,11 +334,11 @@
         .then(function (r) { return r.json(); })
         .then(function (cart) {
           applySections(cart.sections);
-          announce(quantity === 0 ? (root.getAttribute('data-removed-message') || 'Item removed') : null);
+          announce(quantity === 0 ? (root.getAttribute('data-removed-message') || 'Item removido') : null);
         })
         .catch(function () {
           if (typeof window.mostrarAlerta === 'function') {
-            window.mostrarAlerta(root.getAttribute('data-error-message') || 'Cart error', 'negativo');
+            window.mostrarAlerta(root.getAttribute('data-error-message') || 'Não foi possível atualizar seu carrinho. Tente novamente.', 'negativo');
           }
         })
     );
