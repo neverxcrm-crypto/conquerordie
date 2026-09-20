@@ -215,13 +215,24 @@ O tema tem dois modos de execução, decididos em tempo real por
 `snippets/carregar-movimento.liquid`. O gancho é a classe
 `html.motion-full` ou `html.motion-lite`.
 
-**Desktop com mouse** (`pointer: fine` e ≥ 1001px, sem
-`prefers-reduced-motion` e sem economia de dados) recebe a experiência
-completa: GSAP + ScrollTrigger + ScrollSmoother, scroll suave, parallax e
-os efeitos de hover.
+**Desktop com mouse e máquina capaz** recebe a experiência completa: GSAP +
+ScrollTrigger + ScrollSmoother, scroll suave, parallax e os efeitos de
+hover. Para entrar aqui, o aparelho precisa passar em todos estes testes:
 
-**Celular e tablet** recebem o caminho leve. O princípio é que o celular
-não deve pagar por nenhum efeito que ele não pode mostrar:
+| Teste | Por quê |
+|---|---|
+| `pointer: fine` e ≥ 1001px | Tem mouse e tela grande — os efeitos de hover existem |
+| `hardwareConcurrency > 4` | Até 4 núcleos é processador de entrada ou notebook antigo; o ScrollSmoother divide a thread principal com o resto do tema |
+| `deviceMemory > 4` (quando o navegador informa) | Até 4 GB é aparelho de entrada. Só o Chromium implementa — se vier `undefined`, não reprova ninguém |
+| Sem `prefers-reduced-motion` | Preferência do usuário |
+| Sem economia de dados / 2G | Não vale 131 KB de enfeite |
+
+Na dúvida o tema fica com o caminho leve: um efeito a menos num aparelho
+capaz passa despercebido; a rolagem travando num aparelho fraco, não.
+
+**Celular, tablet e máquina fraca** recebem o caminho leve (`motion-lite`).
+O princípio é que o aparelho não deve pagar por nenhum efeito que ele não
+pode mostrar — ou não aguenta mostrar:
 
 | Custo evitado | Como |
 |---|---|
@@ -231,7 +242,14 @@ não deve pagar por nenhum efeito que ele não pode mostrar:
 | Metade das imagens de uma grade | A foto de hover do card virou `background-image` dentro de `@media (hover: hover)` — no toque não há requisição |
 | Layout e pintura de sections fora da tela | `content-visibility: auto` a partir da 3ª section de `#MainContent` |
 | Repaint infinito do brilho dourado do ticker | A animação de `background-position` fica parada no toque; a marquise (transform) continua |
-| Camadas de GPU reservadas para efeitos de hover | `will-change` removido no toque (header, setas dos painéis, brilho do cursor) |
+| Camadas de GPU reservadas para efeitos de hover | `will-change` removido no toque (header, setas dos painéis) |
+
+As regras de CSS correspondentes existem em **duas** formas, de propósito:
+uma media query (`(max-width: 1000px), (pointer: coarse)`) e uma variante
+`html.motion-lite`. A media query pega celular e tablet mesmo que o JS do
+carregador não rode — é a garantia. A classe pega o que a media query não
+consegue ver: o notebook fraco, que tem tela grande e mouse. Ao mexer numa,
+mexa na outra.
 
 O que **não** muda no mobile: o reveal no scroll (`revelar.js`, via
 IntersectionObserver), a marquise da barra de avisos, os `scroll-snap` dos
@@ -254,7 +272,9 @@ trabalho do navegador caiu em qualquer tela.
 | Um `setInterval` por segundo, para sempre | `sections/campaign.liquid` | A contagem regressiva só anda quando está na tela (IntersectionObserver) e com a aba em primeiro plano. Não desalinha: cada tick recalcula a partir de `Date.now()` |
 | Marquise animando depois de sair da tela | `sections/announcement-bar.liquid` | `animation-play-state: paused` via IntersectionObserver — a barra fica no topo e some no primeiro deslize |
 | Reflow forçado por frame ao arrastar a fileira de coleções | `sections/collection-list.liquid` | `scrollWidth`/`clientWidth` saíram do laço de rolagem para um cache, remedido só em resize/load |
-| Camada de GPU ociosa por painel de coleção | `assets/base.css` | O `will-change` do brilho do cursor passou a valer só no `:hover` |
+| Reflow forçado a cada movimento do mouse no acordeão de coleções | `sections/collection-list.liquid` | `getBoundingClientRect()` saiu do `pointermove` para um cache, remedido só quando o retângulo muda (acordeão assentando, scroll, resize). O movimento passou a ser processado no máximo uma vez por frame |
+| Brilho dourado que seguia o cursor (removido) | `snippets/collection-panel.liquid` | `mix-blend-mode: screen` obriga o compositor a guardar também o que está atrás, uma camada por painel, mais dois tweens por movimento do mouse — para um reflexo quase imperceptível por cima da foto |
+| Primeira foto do produto fora do preload scanner | `sections/main-product.liquid` | Ela é o LCP da página de produto e estava `loading="lazy"`, então o download só começava depois do layout. Agora é `eager` + `fetchpriority="high"`; o resto da galeria segue lazy |
 
 > A regra por trás de todos: **`filter: blur()` não é um degradê** — é um
 > passe de pós-processo (render num buffer à parte, desfoque,

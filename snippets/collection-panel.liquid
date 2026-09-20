@@ -84,9 +84,17 @@
     </div>
   </div>
 
-  {%- comment -%} Camadas de interação: sombra (painéis vizinhos recuam) e brilho que segue o cursor. {%- endcomment -%}
+  {%- comment -%}
+    Camada de interação: sombra (os painéis vizinhos recuam).
+
+    O brilho dourado que seguia o cursor foi removido. Ele custava
+    caro — uma camada de GPU por painel, com mix-blend-mode: screen,
+    que obriga o compositor a guardar também o que está atrás para
+    poder misturar — e dois tweens por movimento do mouse, tudo isso
+    por um reflexo que quase não se percebe por cima da foto. O
+    acordeão, o zoom na imagem e a entrada do texto continuam.
+  {%- endcomment -%}
   <span class="collection-panel__shade" aria-hidden="true"></span>
-  <span class="collection-panel__glow" aria-hidden="true"></span>
 
   <div class="collection-panel__band scheme-dark" aria-hidden="true">
     <span class="collection-panel__index">{{ panel_index }}</span>

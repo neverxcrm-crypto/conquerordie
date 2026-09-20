@@ -431,7 +431,6 @@
           panel: panel,
           img: panel.querySelector('.collection-panel__image'),
           shade: panel.querySelector('.collection-panel__shade'),
-          glow: panel.querySelector('.collection-panel__glow'),
           info: panel.querySelector('.collection-panel__info'),
           title: panel.querySelector('.collection-panel__title-inner'),
           text: panel.querySelector('.collection-panel__text'),
@@ -462,7 +461,6 @@
           gsap.set(p.info, { autoAlpha: 1, y: 0 });
           gsap.set(p.title, { yPercent: 115 });
           gsap.set([p.text, p.meta].filter(Boolean), { autoAlpha: 0, y: 18 });
-          gsap.set(p.glow, { xPercent: -50, yPercent: -50, x: 0, y: 0, opacity: 0 });
 
           p.tl = gsap.timeline({ paused: true, defaults: { ease: 'expo.out' } })
             .to(p.title, { yPercent: 0, duration: 1 }, 0.14)
@@ -471,18 +469,39 @@
           // quickTo: segue o cursor com atraso macio, sem recriar tweens
           p.imgX = gsap.quickTo(p.img, 'xPercent', { duration: 1.4, ease: 'power3.out' });
           p.imgY = gsap.quickTo(p.img, 'yPercent', { duration: 1.4, ease: 'power3.out' });
-          p.glowX = gsap.quickTo(p.glow, 'x', { duration: 0.7, ease: 'power3.out' });
-          p.glowY = gsap.quickTo(p.glow, 'y', { duration: 0.7, ease: 'power3.out' });
           if (p.arrow) {
             p.arrowX = gsap.quickTo(p.arrow, 'x', { duration: 0.6, ease: 'power3.out' });
             p.arrowY = gsap.quickTo(p.arrow, 'y', { duration: 0.6, ease: 'power3.out' });
           }
         });
 
+        /* Os retangulos medidos ficam invalidos quando a fileira
+           muda de forma ou de lugar: o acordeao abrindo/fechando, a
+           pagina rolando, a janela redimensionando. Aqui so os
+           marcamos como vencidos (operacao de graca) — a proxima
+           mexida do mouse remede, uma vez. */
+        function invalidarRects() {
+          panels.forEach(function (q) { q.rect = null; });
+        }
+
+        // O acordeao leva 1,15s para assentar: uma remedicao no fim
+        // devolve a precisao total depois da animacao.
+        var assentar = null;
+
+        // passive: avisa o navegador que estes handlers nunca vao
+        // chamar preventDefault, entao a rolagem nao precisa esperar
+        // por eles para comecar.
+        window.addEventListener('scroll', invalidarRects, { passive: true, signal: ac.signal });
+        window.addEventListener('resize', invalidarRects, { passive: true, signal: ac.signal });
+
         function setActive(index) {
           if (active === index) return;
           active = index;
           var idle = index === null;
+
+          invalidarRects();
+          if (assentar) assentar.kill();
+          assentar = gsap.delayedCall(1.2, invalidarRects);
 
           panels.forEach(function (p, i) {
             var isOn = i === index;
@@ -504,7 +523,6 @@
               ease: 'power3.out',
               overwrite: 'auto'
             });
-            gsap.to(p.glow, { opacity: isOn ? 1 : 0, duration: 0.6, ease: 'power2.out', overwrite: 'auto' });
 
             if (isOn) {
               p.tl.timeScale(1).play();
@@ -524,18 +542,59 @@
             timer = window.setTimeout(function () { setActive(i); }, active === null ? 40 : 90);
           });
 
-          on(p.panel, 'pointermove', function (event) {
-            var r = p.panel.getBoundingClientRect();
-            var rx = (event.clientX - r.left) / r.width;
-            var ry = (event.clientY - r.top) / r.height;
+          /* ------------------------------------------------------
+             pointermove sem reflow forcado.
+
+             Antes este handler chamava getBoundingClientRect() do
+             painel A CADA EVENTO de movimento do mouse — e um
+             trackpad moderno dispara 120 ou mais por segundo.
+             getBoundingClientRect() e uma leitura de LAYOUT: obriga
+             o navegador a recalcular o layout ali, de forma
+             sincrona, antes de devolver o numero.
+
+             E pior do que parece: o acordeao anima flexGrow, ou
+             seja, o layout esta REALMENTE sujo durante a animacao.
+             Cada leitura pagava um recalculo de verdade da fileira
+             inteira, dezenas de vezes por segundo, no meio do
+             gesto. Num notebook fraco e isso que faz o acordeao
+             "engasgar" em vez de deslizar.
+
+             Agora: o retangulo e medido nos momentos em que ele
+             muda (entrada do mouse, fim da animacao do acordeao,
+             rolagem, resize) e o movimento so le a posicao do
+             cursor, que ja vem no evento. O movimento tambem passa
+             a ser processado no maximo uma vez por frame.
+
+             O leve atraso do retangulo durante a expansao move o
+             parallax da foto em fracoes de pixel — o deslocamento
+             total e de 3,5%. Imperceptivel.
+          ------------------------------------------------------ */
+          p.rect = null;
+          p.medir = function () { p.rect = p.panel.getBoundingClientRect(); };
+
+          var pendente = null;
+          var frame = false;
+
+          function aplicar() {
+            frame = false;
+            if (!p.rect || !pendente) return;
+            var r = p.rect;
+            var rx = (pendente.x - r.left) / r.width;
+            var ry = (pendente.y - r.top) / r.height;
             p.imgX((0.5 - rx) * 3.5);
             p.imgY((0.5 - ry) * 3.5);
-            p.glowX(event.clientX - r.left);
-            p.glowY(event.clientY - r.top);
             if (p.arrowX) {
               p.arrowX((rx - 0.5) * 6);
               p.arrowY((ry - 0.5) * 10);
             }
+          }
+
+          on(p.panel, 'pointermove', function (event) {
+            // Só mouse/caneta: num toque isso nem deve começar.
+            if (event.pointerType === 'touch') return;
+            pendente = { x: event.clientX, y: event.clientY };
+            if (!p.rect) p.medir();
+            if (!frame) { frame = true; window.requestAnimationFrame(aplicar); }
           });
 
           on(p.item, 'focusin', function () { window.clearTimeout(timer); setActive(i); });
@@ -553,6 +612,7 @@
         // limpamos listeners e o modo animado.
         return function () {
           window.clearTimeout(timer);
+          if (assentar) assentar.kill();
           ac.abort();
           rail.classList.remove('is-enhanced');
           panels.forEach(function (p) { p.tl.kill(); });

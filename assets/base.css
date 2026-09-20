@@ -585,36 +585,18 @@ textarea.field__input:focus {
   pointer-events: none;
   transition: opacity 700ms var(--cp-ease);
 }
-/* Brilho dourado que acompanha o cursor (posicionado via JS) */
-.collection-panel__glow {
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 1;
-  width: 70%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(227, 201, 139, 0.22) 0%, rgba(201, 162, 77, 0.08) 35%, transparent 65%);
-  mix-blend-mode: screen;
-  opacity: 0;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-/* will-change so enquanto o cursor esta em cima.
+/* O brilho dourado que seguia o cursor (.collection-panel__glow) foi
+   removido do tema — markup, CSS e JS.
 
-   Antes ele era permanente: cada painel da lista mantinha uma
-   camada de GPU reservada — com mix-blend-mode: screen, que obriga
-   o compositor a guardar tambem o que esta ATRAS para poder
-   misturar — a visita inteira, para um brilho que so existe
-   durante o hover. Numa lista de 8 coleções eram 8 camadas
-   ociosas ocupando memoria de video.
+   Por que ele era caro: mix-blend-mode: screen obriga o compositor a
+   manter uma camada separada por painel E a guardar o que esta atras
+   dela para poder misturar, numa lista de ate 8 paineis. Em cima
+   disso, cada movimento do mouse alimentava dois tweens de posicao.
 
-   Declarado no :hover, o navegador promove a camada no comeco do
-   gesto (a transicao do glow dura o suficiente para ela ficar
-   pronta a tempo) e a devolve quando o cursor sai. */
-.collection-panel:hover .collection-panel__glow {
-  will-change: transform, opacity;
-}
+   Por que saiu em vez de ser otimizado: por cima de uma foto, o
+   reflexo era quase imperceptivel. Custo alto, ganho visual baixo.
+   O acordeao, o zoom da imagem e a entrada do texto — que sao o que
+   realmente da o efeito — continuam intactos. */
 .collection-panel__text {
   max-width: 30ch;
   font-size: var(--f1);
@@ -667,9 +649,29 @@ textarea.field__input:focus {
     -webkit-backdrop-filter: none;
     background-color: rgba(0, 0, 0, 0.62);
   }
-  /* O brilho que segue o cursor nao existe sem cursor: fora de cena
-     ele ainda reservava uma camada de GPU por painel. */
-  .collection-panel__glow { display: none; }
+}
+
+/* ==========================================================
+   MODO LEVE — tambem em maquina fraca, nao so no toque
+   ==========================================================
+   As media queries acima cobrem celular e tablet pela LARGURA e
+   pelo PONTEIRO. Um notebook fraco passa nos dois testes (tela
+   grande, mouse) e continuava pagando o backdrop-filter.
+
+   html.motion-lite e decidido em tempo de execucao por
+   snippets/carregar-movimento.liquid e significa "este aparelho
+   fica no caminho leve" — seja por ser toque, por ter poucos
+   nucleos ou pouca memoria, por economia de dados ou por
+   prefers-reduced-motion.
+
+   As media queries ficam como estao de proposito: elas sao a
+   garantia caso o JS do carregador nao rode. Esta regra soma-se
+   a elas, nunca as substitui.
+   ========================================================== */
+.motion-lite .collection-panel__band {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background-color: rgba(0, 0, 0, 0.62);
 }
 @media screen and (max-width: 600px) {
   .collection-panel { --cp-band: 48px; --cp-radius: 12px; }
@@ -778,4 +780,22 @@ textarea.field__input:focus {
     contain-intrinsic-size: 600px;
     contain-intrinsic-size: auto 600px;
   }
+}
+
+/* A mesma economia no notebook fraco.
+
+   A regra acima se limitava ao mobile porque, no desktop, o
+   ScrollSmoother e o ScrollTrigger medem a pagina inteira para
+   montar os gatilhos, e uma section com o render pulado devolveria
+   a altura estimada em vez da real.
+
+   Em html.motion-lite essa objecao nao existe: as libs do GSAP nem
+   chegam a ser baixadas (snippets/carregar-movimento.liquid), entao
+   ninguem esta medindo a pagina. Uma maquina de entrada ganha o
+   mesmo alivio que o celular — o navegador para de calcular layout
+   e pintura de todas as sections antes do primeiro render. */
+.motion-lite #MainContent > .shopify-section:nth-child(n + 3) {
+  content-visibility: auto;
+  contain-intrinsic-size: 600px;
+  contain-intrinsic-size: auto 600px;
 }

@@ -57,13 +57,46 @@
     var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     var economico = !!(conn && (conn.saveData || /(^|-)(2g|slow-2g)$/.test(conn.effectiveType || '')));
 
+    /* ---------------------------------------------------------
+       Aparelho fraco — a peneira que faltava.
+
+       Ter mouse e tela grande NAO quer dizer ter maquina. Um
+       notebook de entrada, ou um de 8 anos atras, passa nos testes
+       de ponteiro e largura e entao recebia a experiencia completa:
+       131 KB de JS mais o ScrollSmoother, que repinta a pagina a
+       cada frame de rolagem. E justamente a maquina que menos
+       aguenta isso.
+
+       Dois sinais que o navegador entrega de graca:
+
+       hardwareConcurrency — nucleos logicos de CPU. Ate 4 e a faixa
+       dos processadores de entrada e dos notebooks antigos. O
+       ScrollSmoother divide a thread principal com o resto do
+       tema; com poucos nucleos nao ha para onde escoar.
+
+       deviceMemory — memoria RAM em GB, arredondada. Ate 4 GB e
+       aparelho de entrada. So o Chromium implementa, entao e
+       tratado como bonus: se vier undefined, o teste nao reprova
+       ninguem.
+
+       Na duvida o tema fica com o caminho leve. Um efeito a menos
+       num aparelho capaz passa despercebido; a rolagem travando num
+       aparelho fraco, nao.
+    --------------------------------------------------------- */
+    var nucleos = navigator.hardwareConcurrency;
+    var memoria = navigator.deviceMemory;
+    var fraco =
+      (typeof nucleos === 'number' && nucleos > 0 && nucleos <= 4) ||
+      (typeof memoria === 'number' && memoria > 0 && memoria <= 4);
+
     // Ponteiro fino + tela grande = desktop com mouse. Celular e
     // tablet tem pointer: coarse e ficam de fora.
     var completo =
       mq('(min-width: 1001px)') &&
       mq('(pointer: fine)') &&
       !mq('(prefers-reduced-motion: reduce)') &&
-      !economico;
+      !economico &&
+      !fraco;
 
     root.classList.add(completo ? 'motion-full' : 'motion-lite');
 

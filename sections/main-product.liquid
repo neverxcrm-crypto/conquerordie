@@ -45,7 +45,30 @@
   <div class="product__media-wrapper">
     {%- if product.featured_media != blank -%}
       <div class="product__media-list" id="ProductMedia-{{ section.id }}">
+        {%- comment -%}
+          A PRIMEIRA foto carrega eager + fetchpriority high; as
+          demais ficam lazy.
+
+          Ela é o elemento de LCP da página de produto — a maior
+          coisa visível na abertura, e a que o comprador está
+          esperando para decidir. Como `loading="lazy"`, ela ficava
+          invisível para o preload scanner do navegador (o passe que
+          lê o HTML e já vai buscando os recursos antes do CSS
+          terminar): o download só começava depois do layout
+          concluir que ela estava na tela. Era atraso puro, no pior
+          lugar possível, e mais caro ainda no 4G.
+
+          As outras fotos da galeria seguem lazy — essas sim só
+          aparecem se a pessoa navegar pela galeria.
+        {%- endcomment -%}
         {%- for media in product.media -%}
+          {%- if forloop.first -%}
+            {%- assign media_loading = 'eager' -%}
+            {%- assign media_priority = 'high' -%}
+          {%- else -%}
+            {%- assign media_loading = 'lazy' -%}
+            {%- assign media_priority = 'auto' -%}
+          {%- endif -%}
           <div class="product__media-item" data-media-id="{{ media.id }}">
             {%- case media.media_type -%}
               {%- when 'image' -%}
@@ -53,7 +76,8 @@
                   media
                   | image_url: width: 1920
                   | image_tag:
-                    loading: 'lazy',
+                    loading: media_loading,
+                    fetchpriority: media_priority,
                     sizes: '(min-width: 1000px) 55vw, 100vw',
                     widths: '360, 540, 720, 900, 1080, 1440, 1920',
                     alt: media.alt | default: product.title | escape
