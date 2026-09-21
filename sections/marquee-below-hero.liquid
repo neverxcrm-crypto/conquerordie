@@ -1,0 +1,420 @@
+{%- comment -%}
+  ============================================================
+  MARQUEE BELOW HERO — Barra de Anúncios Infinita Continuada
+  ============================================================
+{%- endcomment -%}
+
+{%- assign avisos = section.blocks -%}
+{%- assign total = avisos.size -%}
+
+{%- if total > 0 -%}
+  <section
+    class="marquee-hero{% if section.settings.enable_gold_effect %} marquee-hero--ouro{% endif %}"
+    data-section-id="{{ section.id }}"
+    aria-label="{{ 'sections.announcement.label' | t | default: 'Anúncios' }}"
+    style="
+      --marquee-bg: {{ section.settings.bg_color }};
+      --marquee-cor: {{ section.settings.text_color }};
+      --marquee-cor-separador: {{ section.settings.separator_color }};
+      --marquee-fonte: {{ section.settings.font_size }}px;
+      --marquee-peso: {{ section.settings.font_weight }};
+      --marquee-caixa: {{ section.settings.text_transform }};
+      --marquee-tracking: {{ section.settings.letter_spacing }}px;
+      --marquee-italico: {% if section.settings.enable_italic %}italic{% else %}normal{% endif %};
+      --marquee-duracao: {{ section.settings.speed | default: 25 }}s;
+      --marquee-padding-v: {{ section.settings.padding_vertical }}px;
+      --marquee-border-color: {{ section.settings.border_color }};
+    "
+  >
+    <div class="marquee-hero__container">
+      <div class="marquee-hero__track">
+        {%- comment -%}
+          Duplicamos em 2 grupos idênticos para cálculo perfeito de transform -50% (sem saltos visuais).
+        {%- endcomment -%}
+        {%- for g in (1..2) -%}
+          <div class="marquee-hero__group" {% if g == 2 %}aria-hidden="true"{% endif %}>
+            {%- comment -%}
+              Garante preenchimento contínuo em telas ultrawide repetindo os blocos se houver poucos avisos.
+            {%- endcomment -%}
+            {%- assign repeat_count = 1 -%}
+            {%- if total < 4 -%}
+              {%- assign repeat_count = 3 -%}
+            {%- endif -%}
+
+            {%- for r in (1..repeat_count) -%}
+              {%- for block in avisos -%}
+                <div class="marquee-hero__item" {{ block.shopify_attributes }}>
+                  {%- if block.settings.link != blank -%}
+                    <a href="{{ block.settings.link }}" class="marquee-hero__texto marquee-hero__texto--link" {% if g == 2 %}tabindex="-1"{% endif %}>
+                      <span>{{ block.settings.text | escape }}</span>
+                      {%- if section.settings.show_arrow -%}
+                        <svg class="marquee-hero__seta" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                          <path d="M3 9l6-6M4 3h5v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      {%- endif -%}
+                    </a>
+                  {%- else -%}
+                    <span class="marquee-hero__texto">{{ block.settings.text | escape }}</span>
+                  {%- endif -%}
+
+                  <span class="marquee-hero__separador" aria-hidden="true">
+                    {%- case section.settings.separator_symbol -%}
+                      {%- when 'circle_outline' -%}
+                        <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="none">
+                          <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                      {%- when 'circle_filled' -%}
+                        <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="currentColor">
+                          <circle cx="6" cy="6" r="4"/>
+                        </svg>
+                      {%- when 'star' -%}
+                        <svg class="marquee-hero__icon" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                      {%- else -%}
+                        <span class="marquee-hero__char">{{ section.settings.separator_custom | default: '•' }}</span>
+                    {%- endcase -%}
+                  </span>
+                </div>
+              {%- endfor -%}
+            {%- endfor -%}
+          </div>
+        {%- endfor -%}
+      </div>
+    </div>
+  </section>
+
+  <style>
+    .marquee-hero {
+      position: relative;
+      z-index: 9;
+      background-color: var(--marquee-bg, #000000);
+      border-top: 1px solid var(--marquee-border-color, rgba(255, 255, 255, 0.1));
+      border-bottom: 1px solid var(--marquee-border-color, rgba(255, 255, 255, 0.1));
+      user-select: none;
+      overflow: hidden;
+      padding-block: var(--marquee-padding-v, 12px);
+      width: 100%;
+    }
+
+    .marquee-hero__container {
+      display: flex;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .marquee-hero__track {
+      display: flex;
+      width: max-content;
+      white-space: nowrap;
+      will-change: transform;
+      animation: marquee-hero-loop var(--marquee-duracao, 25s) linear infinite;
+    }
+
+    /* Pausa a rolagem ao passar o mouse ou focar */
+    .marquee-hero:hover .marquee-hero__track,
+    .marquee-hero:focus-within .marquee-hero__track {
+      animation-play-state: paused;
+    }
+
+    .marquee-hero__group {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .marquee-hero__item {
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .marquee-hero__texto {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-body-family, inherit);
+      font-size: var(--marquee-fonte, 12px);
+      font-style: var(--marquee-italico, normal);
+      font-weight: var(--marquee-peso, 600);
+      text-transform: var(--marquee-caixa, uppercase);
+      letter-spacing: var(--marquee-tracking, 1.2px);
+      color: var(--marquee-cor, #ffffff);
+      text-decoration: none;
+      line-height: 1;
+      transition: opacity 0.2s ease;
+    }
+
+    .marquee-hero__texto--link:hover {
+      opacity: 0.85;
+    }
+
+    .marquee-hero__separador {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-inline: {{ section.settings.item_gap }}px;
+      color: var(--marquee-cor-separador, #C9A24D);
+      opacity: 0.9;
+    }
+
+    .marquee-hero__icon {
+      width: 12px;
+      height: 12px;
+      display: block;
+    }
+
+    .marquee-hero__char {
+      font-size: var(--marquee-fonte, 12px);
+      line-height: 1;
+    }
+
+    /* Efeito Ouro Metálico */
+    .marquee-hero--ouro .marquee-hero__texto {
+      background: linear-gradient(100deg, #FBF0B9 0%, #E3C98B 28%, #C9A24D 55%, #E9D49A 82%, #FBF0B9 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+
+    .marquee-hero--ouro .marquee-hero__seta {
+      color: #C9A24D;
+      -webkit-text-fill-color: currentColor;
+    }
+
+    .marquee-hero__seta {
+      width: 10px;
+      height: 10px;
+      flex: none;
+      transition: transform 0.2s ease;
+    }
+
+    .marquee-hero__texto--link:hover .marquee-hero__seta {
+      transform: translate(2px, -2px);
+    }
+
+    @keyframes marquee-hero-loop {
+      0% {
+        transform: translate3d(0, 0, 0);
+      }
+      100% {
+        transform: translate3d(-50%, 0, 0);
+      }
+    }
+
+    /* Ajustes para Dispositivos Móveis */
+    @media screen and (max-width: 749px) {
+      .marquee-hero {
+        padding-block: max(8px, calc(var(--marquee-padding-v, 12px) - 3px));
+      }
+      .marquee-hero__texto {
+        font-size: max(10px, calc(var(--marquee-fonte, 12px) - 1px));
+      }
+      .marquee-hero__separador {
+        margin-inline: max(14px, calc({{ section.settings.item_gap }}px - 8px));
+      }
+    }
+
+    /* Acessibilidade (Movimento Reduzido) */
+    @media (prefers-reduced-motion: reduce) {
+      .marquee-hero__container {
+        overflow-x: auto;
+      }
+      .marquee-hero__track {
+        animation: none;
+      }
+    }
+  </style>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Marquee Pós-Hero",
+  "class": "section-marquee-hero",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Animação & Velocidade"
+    },
+    {
+      "type": "range",
+      "id": "speed",
+      "min": 10,
+      "max": 60,
+      "step": 5,
+      "unit": "s",
+      "label": "Tempo de rotação",
+      "info": "Valores menores deixam a rolagem mais rápida. O movimento pausa ao passar o mouse.",
+      "default": 25
+    },
+    {
+      "type": "range",
+      "id": "item_gap",
+      "min": 12,
+      "max": 60,
+      "step": 4,
+      "unit": "px",
+      "label": "Espaçamento entre avisos",
+      "default": 28
+    },
+    {
+      "type": "header",
+      "content": "Estilo do Texto & Tipografia"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_gold_effect",
+      "label": "Texto com efeito Ouro Metálico",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_italic",
+      "label": "Texto em Itálico",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "min": 10,
+      "max": 22,
+      "step": 1,
+      "unit": "px",
+      "label": "Tamanho da fonte",
+      "default": 13
+    },
+    {
+      "type": "select",
+      "id": "font_weight",
+      "label": "Espessura da fonte",
+      "options": [
+        { "value": "400", "label": "Normal (400)" },
+        { "value": "500", "label": "Médio (500)" },
+        { "value": "600", "label": "Semi-negrito (600)" },
+        { "value": "700", "label": "Negrito (700)" },
+        { "value": "800", "label": "Extra Negrito (800)" }
+      ],
+      "default": "700"
+    },
+    {
+      "type": "select",
+      "id": "text_transform",
+      "label": "Transformação do texto",
+      "options": [
+        { "value": "uppercase", "label": "MAIÚSCULAS" },
+        { "value": "capitalize", "label": "Primeiras Letras Maiúsculas" },
+        { "value": "none", "label": "Normal (Conforme digitado)" }
+      ],
+      "default": "uppercase"
+    },
+    {
+      "type": "range",
+      "id": "letter_spacing",
+      "min": 0,
+      "max": 5,
+      "step": 0.2,
+      "unit": "px",
+      "label": "Espaçamento entre letras",
+      "default": 1.4
+    },
+    {
+      "type": "checkbox",
+      "id": "show_arrow",
+      "label": "Exibir seta de link nos itens clicáveis",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Separador"
+    },
+    {
+      "type": "select",
+      "id": "separator_symbol",
+      "label": "Estilo do separador",
+      "options": [
+        { "value": "circle_outline", "label": "Círculo Vazado (Igual referência)" },
+        { "value": "circle_filled", "label": "Círculo Preenchido" },
+        { "value": "star", "label": "Estrela" },
+        { "value": "custom", "label": "Caractere Personalizado" }
+      ],
+      "default": "circle_outline"
+    },
+    {
+      "type": "text",
+      "id": "separator_custom",
+      "label": "Caractere personalizado",
+      "info": "Ex: • , | , ★ , /",
+      "default": "•"
+    },
+    {
+      "type": "header",
+      "content": "Cores e Layout"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Cor do Fundo",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Cor do Texto (quando efeito Ouro estiver desativado)",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "separator_color",
+      "label": "Cor do Separador",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Cor das Bordas (Superior e Inferior)",
+      "default": "rgba(255, 255, 255, 0.15)"
+    },
+    {
+      "type": "range",
+      "id": "padding_vertical",
+      "min": 6,
+      "max": 28,
+      "step": 2,
+      "unit": "px",
+      "label": "Espaçamento vertical (Padding)",
+      "default": 12
+    }
+  ],
+  "blocks": [
+    {
+      "type": "announcement",
+      "name": "Anúncio",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Texto do Anúncio",
+          "default": "FRETE GRÁTIS ACIMA DE R$585!"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link (opcional)"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Marquee Pós-Hero",
+      "blocks": [
+        { "type": "announcement", "settings": { "text": "FRETE GRÁTIS ACIMA DE R$585!" } },
+        { "type": "announcement", "settings": { "text": "EM ATÉ 10X SEM JUROS" } },
+        { "type": "announcement", "settings": { "text": "10% OFF NA PRIMEIRA COMPRA" } },
+        { "type": "announcement", "settings": { "text": "ENVIAMOS PARA TODO O BRASIL" } }
+      ]
+    }
+  ]
+}
+{% endschema %}
