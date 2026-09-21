@@ -33,6 +33,64 @@
         "height": "tall"
       }
     },
+    "marquee_below_hero_M8HkFV": {
+      "type": "marquee-below-hero",
+      "blocks": {
+        "announcement_GmLeGb": {
+          "type": "announcement",
+          "settings": {
+            "text": "FRETE GRÁTIS ACIMA DE R$585!",
+            "link": ""
+          }
+        },
+        "announcement_GxLLNk": {
+          "type": "announcement",
+          "settings": {
+            "text": "EM ATÉ 10X SEM JUROS",
+            "link": ""
+          }
+        },
+        "announcement_DTPTkM": {
+          "type": "announcement",
+          "settings": {
+            "text": "10% OFF NA PRIMEIRA COMPRA",
+            "link": ""
+          }
+        },
+        "announcement_KXEyXH": {
+          "type": "announcement",
+          "settings": {
+            "text": "ENVIAMOS PARA TODO O BRASIL",
+            "link": ""
+          }
+        }
+      },
+      "block_order": [
+        "announcement_GmLeGb",
+        "announcement_GxLLNk",
+        "announcement_DTPTkM",
+        "announcement_KXEyXH"
+      ],
+      "name": "Marquee Pós-Hero",
+      "settings": {
+        "speed": 40,
+        "item_gap": 28,
+        "enable_gold_effect": true,
+        "enable_italic": true,
+        "font_size": 13,
+        "font_weight": "700",
+        "text_transform": "uppercase",
+        "letter_spacing": 1.4,
+        "show_arrow": true,
+        "separator_symbol": "circle_outline",
+        "separator_custom": "•",
+        "bg_color": "#000000",
+        "text_color": "#ffffff",
+        "separator_color": "#ffffff",
+        "border_color": "rgba(255, 255, 255, 0.15)",
+        "padding_vertical": 12
+      }
+    },
     "latest_drop": {
       "type": "featured-collection",
       "settings": {
@@ -170,6 +228,7 @@
   },
   "order": [
     "hero",
+    "marquee_below_hero_M8HkFV",
     "latest_drop",
     "collections",
     "brand_story",
