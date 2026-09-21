@@ -1,66 +1,17 @@
 {%- comment -%}
   ============================================================
-  ANNOUNCEMENT BAR — carrossel editorial de avisos
+  ANNOUNCEMENT BAR / MARQUEE — Carrossel Contínuo Infinito
   ============================================================
-
-  O QUE FAZ:
-  Uma faixa fina no topo que alterna as mensagens comerciais da
-  loja (frete grátis, parcelamento, prazo de envio...). Uma
-  mensagem por vez, trocando sozinha, com uma microtransição: a
-  que sai sobe e apaga, a que entra sobe do rodapé da faixa.
-
-  POR QUE NÃO É MAIS UMA MARQUISE:
-  O texto deslizando sem parar obriga o compositor a trabalhar a
-  cada frame, a leitura acompanha um alvo em movimento e a barra
-  vira enfeite. Uma mensagem parada, trocando a cada poucos
-  segundos, é lida de verdade — e só custa CPU no instante da
-  troca.
-
-  ALTURA FIXA = ZERO CLS:
-  As mensagens ficam empilhadas em position: absolute dentro de um
-  viewport de altura fixa (--aviso-linha). Trocar de mensagem não
-  muda a altura da barra, então o conteúdo da página nunca é
-  empurrado — nem no primeiro paint, nem nas trocas seguintes.
-
-  CUSTO:
-  - Só transform e opacity (composição pura, sem layout/repaint).
-  - Nenhum timer rodando quando a barra está fora da tela, quando a
-    aba está em segundo plano ou quando há interação. É um
-    setTimeout por troca, não um loop.
-  - ~1,6 KB de JS inline, nenhuma biblioteca.
-
-  ACESSIBILIDADE:
-  - <section> com aria-label e aria-roledescription="carrossel".
-  - Só a mensagem visível fica no fluxo de leitura; as outras têm
-    aria-hidden e inert, então o leitor de tela e o Tab não passam
-    por links invisíveis.
-  - Setas de anterior/próximo no desktop, sempre alcançáveis por
-    teclado.
-  - Botão de pausar/retomar (WCAG 2.2.2: conteúdo que se move
-    sozinho precisa de um jeito de parar). Ele fica invisível até
-    receber foco — mesma ideia do "pular para o conteúdo" — para
-    não poluir a faixa.
-  - prefers-reduced-motion: a troca automática não liga. As setas
-    continuam funcionando e todas as mensagens permanecem
-    acessíveis.
-
-  TOQUE:
-  Arrastar o dedo na horizontal troca a mensagem (limiar de 40px).
-  A detecção usa Pointer Events com listener passivo — não bloqueia
-  a rolagem vertical da página em momento nenhum.
 {%- endcomment -%}
-{%- liquid
-  assign avisos = section.blocks
-  assign total = avisos.size
--%}
+
+{%- assign avisos = section.blocks -%}
+{%- assign total = avisos.size -%}
+
 {%- if total > 0 -%}
   <section
-    class="aviso{% if section.settings.enable_gold_effect %} aviso--ouro{% endif %}"
+    class="aviso-marquee{% if section.settings.enable_gold_effect %} aviso--ouro{% endif %}"
     data-section-id="{{ section.id }}"
-    data-aviso
-    data-intervalo="{{ section.settings.interval }}"
     aria-label="{{ 'sections.announcement.label' | t }}"
-    {% if total > 1 %}aria-roledescription="carrossel"{% endif %}
     style="
       --aviso-bg: {{ section.settings.bg_color }};
       --aviso-cor: {{ section.settings.text_color }};
@@ -69,473 +20,183 @@
       --aviso-caixa: {{ section.settings.text_transform }};
       --aviso-tracking: {{ section.settings.letter_spacing }}px;
       --aviso-italico: {% if section.settings.enable_italic %}italic{% else %}normal{% endif %};
+      --aviso-duracao: {{ section.settings.speed }}s;
     "
   >
-    <div class="aviso__inner page-width">
-      {%- if total > 1 -%}
-        <button
-          type="button"
-          class="aviso__nav aviso__nav--prev alvo-44"
-          data-aviso-prev
-          aria-label="{{ 'sections.announcement.previous' | t }}"
-        >
-          <svg viewBox="0 0 8 12" fill="none" aria-hidden="true" focusable="false">
-            <path d="M6.5 1L1.5 6l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-      {%- endif -%}
+    <div class="aviso-marquee__container">
+      <div class="aviso-marquee__track">
+        {%- comment -%}
+          Duplicamos o grupo (1..4) para garantir largura suficiente em telas ultrawide
+          e criar o ciclo infinito continuo (-50% transform).
+        {%- endcomment -%}
+        {%- for i in (1..4) -%}
+          <div class="aviso-marquee__group" {% if i > 1 %}aria-hidden="true"{% endif %}>
+            {%- for block in avisos -%}
+              <div class="aviso-marquee__item" {{ block.shopify_attributes }}>
+                {%- if block.settings.link != blank -%}
+                  <a href="{{ block.settings.link }}" class="aviso-marquee__texto aviso-marquee__texto--link" {% if i > 1 %}tabindex="-1"{% endif %}>
+                    <span>{{ block.settings.text | escape }}</span>
+                    <svg class="aviso-marquee__seta" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false">
+                      <path d="M3 9l6-6M4 3h5v5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </a>
+                {%- else -%}
+                  <span class="aviso-marquee__texto">{{ block.settings.text | escape }}</span>
+                {%- endif -%}
 
-      <div class="aviso__viewport" data-aviso-viewport>
-        {%- for block in avisos -%}
-          <div
-            class="aviso__item{% if forloop.first %} is-active{% endif %}"
-            data-aviso-item
-            {% unless forloop.first %}aria-hidden="true" inert{% endunless %}
-            {{ block.shopify_attributes }}
-          >
-            {%- if block.settings.link != blank -%}
-              <a href="{{ block.settings.link }}" class="aviso__texto aviso__texto--link">
-                {{- block.settings.text | escape -}}
-                <svg class="aviso__seta" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false">
-                  <path d="M3 9l6-6M4 3h5v5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </a>
-            {%- else -%}
-              <span class="aviso__texto">{{ block.settings.text | escape }}</span>
-            {%- endif -%}
+                <span class="aviso-marquee__separador" aria-hidden="true">•</span>
+              </div>
+            {%- endfor -%}
           </div>
         {%- endfor -%}
       </div>
-
-      {%- if total > 1 -%}
-        <button
-          type="button"
-          class="aviso__nav aviso__nav--next alvo-44"
-          data-aviso-next
-          aria-label="{{ 'sections.announcement.next' | t }}"
-        >
-          <svg viewBox="0 0 8 12" fill="none" aria-hidden="true" focusable="false">
-            <path d="M1.5 1l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-
-        {%- comment -%} WCAG 2.2.2 — visível ao receber foco. {%- endcomment -%}
-        <button
-          type="button"
-          class="aviso__pausa"
-          data-aviso-pausa
-          aria-pressed="false"
-          data-rotulo-pausar="{{ 'sections.announcement.pause' | t | escape }}"
-          data-rotulo-retomar="{{ 'sections.announcement.play' | t | escape }}"
-        >
-          {{ 'sections.announcement.pause' | t }}
-        </button>
-      {%- endif -%}
     </div>
   </section>
 
   <style>
-    .aviso {
-      /* Altura da LINHA de texto (a janela do carrossel).
-         Não confundir com --aviso-altura, que o script escreve no
-         :root e vale a altura TOTAL da barra — é ela que a header
-         fixa e o <main> reservam (ver base.css, "pilha do topo"). */
-      --aviso-linha: 22px;
+    .aviso-marquee {
       position: relative;
-      z-index: 101;
+      z-index: 10;
       background-color: var(--aviso-bg, #000000);
-      border-bottom: 1px solid rgba(201, 162, 77, 0.28);
+      border-block: 1px solid rgba(201, 162, 77, 0.28);
       user-select: none;
-    }
-
-    .aviso__inner {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-2xs);
-      padding-block: var(--space-2xs);
-    }
-
-    /* Altura fixa + overflow hidden: é daqui que vem o "zero CLS" e
-       é isto que corta a mensagem que entra vinda de baixo. */
-    .aviso__viewport {
-      position: relative;
-      flex: 1;
-      height: var(--aviso-linha);
       overflow: hidden;
-      text-align: center;
+      padding-block: 10px;
+      width: 100%;
     }
 
-    .aviso__item {
-      position: absolute;
-      inset: 0;
+    .aviso-marquee__container {
+      display: flex;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .aviso-marquee__track {
+      display: flex;
+      width: max-content;
+      white-space: nowrap;
+      will-change: transform;
+      animation: aviso-marquee-loop var(--aviso-duracao, 25s) linear infinite;
+    }
+
+    /* Pausa a rolagem ao passar o mouse ou focar com teclado */
+    .aviso-marquee:hover .aviso-marquee__track,
+    .aviso-marquee:focus-within .aviso-marquee__track {
+      animation-play-state: paused;
+    }
+
+    .aviso-marquee__group {
       display: flex;
       align-items: center;
-      justify-content: center;
-      opacity: 0;
-      /* A que ainda não entrou espera embaixo da janela. */
-      transform: translate3d(0, 100%, 0);
-      transition:
-        opacity var(--dur-normal) var(--ease-out),
-        transform var(--dur-emphasis) var(--ease-out);
-      pointer-events: none;
-    }
-    .aviso__item.is-active {
-      opacity: 1;
-      transform: none;
-      pointer-events: auto;
-    }
-    /* A que sai continua subindo: as duas se movem na mesma direção,
-       como uma página virando — e não uma trocando de lugar com a
-       outra. A saída é mais rápida que a entrada para não haver
-       duas mensagens legíveis ao mesmo tempo. */
-    .aviso__item.is-leaving {
-      opacity: 0;
-      transform: translate3d(0, -100%, 0);
-      transition-duration: var(--dur-fast), var(--dur-normal);
+      flex-shrink: 0;
     }
 
-    .aviso__texto {
+    .aviso-marquee__item {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .aviso-marquee__texto {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      max-width: 100%;
-      font-family: var(--font-ui-family);
+      font-family: var(--font-ui-family, inherit);
       font-size: var(--aviso-fonte, 12px);
       font-style: var(--aviso-italico, normal);
       font-weight: var(--aviso-peso, 600);
       text-transform: var(--aviso-caixa, uppercase);
       letter-spacing: var(--aviso-tracking, 1.2px);
-      line-height: var(--aviso-linha);
       color: var(--aviso-cor, #ffffff);
-      /* Uma linha sempre: a barra tem altura fixa, então um texto
-         longo demais é cortado com reticências em vez de vazar. */
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      text-decoration: none;
+      line-height: 1;
     }
 
-    /* Ouro: o mesmo degradê metálico da identidade, PARADO.
-       O brilho que deslizava animava background-position — a única
-       propriedade cara que havia aqui, repintando o texto a cada
-       frame, para sempre, no topo de todas as páginas. */
-    .aviso--ouro .aviso__texto {
+    .aviso-marquee__separador {
+      display: inline-block;
+      margin-inline: 24px;
+      color: var(--cod-gold, #C9A24D);
+      opacity: 0.5;
+      font-size: 10px;
+    }
+
+    /* Efeito Ouro Metálico */
+    .aviso--ouro .aviso-marquee__texto {
       background: linear-gradient(100deg, #FBF0B9 0%, #E3C98B 28%, #C9A24D 55%, #E9D49A 82%, #FBF0B9 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
       color: transparent;
     }
-    /* O SVG não herda background-clip: a seta volta a ter cor sólida. */
-    .aviso--ouro .aviso__seta { color: var(--cod-gold, #C9A24D); -webkit-text-fill-color: currentColor; }
 
-    .aviso__texto--link { text-decoration: none; }
-    .aviso__seta {
+    .aviso--ouro .aviso-marquee__seta {
+      color: var(--cod-gold, #C9A24D);
+      -webkit-text-fill-color: currentColor;
+    }
+
+    .aviso-marquee__seta {
       width: 10px;
       height: 10px;
       flex: none;
-      transition: transform var(--dur-normal) var(--ease-out);
-    }
-    .aviso__texto--link:hover .aviso__seta { transform: translate(2px, -2px); }
-
-    /* Setas: discretas por padrão, presentes quando a pessoa olha
-       para a barra (hover) ou navega por teclado (focus). */
-    .aviso__nav {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      flex: none;
-      padding: 0;
-      background: none;
-      border: 0;
-      border-radius: 50%;
-      color: var(--aviso-cor, #ffffff);
-      opacity: 0.35;
-      cursor: pointer;
-      transition:
-        opacity var(--dur-normal) var(--ease-out),
-        background-color var(--dur-normal) var(--ease-out);
-    }
-    .aviso__nav svg { width: 7px; height: 11px; }
-    .aviso:hover .aviso__nav { opacity: 0.6; }
-    .aviso__nav:hover { opacity: 1; background-color: rgba(255, 255, 255, 0.08); }
-    .aviso__nav:focus-visible { opacity: 1; }
-    .aviso__nav:active { transform: scale(0.9); }
-
-    /* Pausa: fora da vista até receber foco (igual ao skip link). */
-    .aviso__pausa {
-      position: absolute;
-      right: 4px;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 2;
-      padding: 10px 14px;
-      font-family: var(--font-ui-family);
-      font-size: 11px;
-      letter-spacing: var(--tracking-label);
-      text-transform: uppercase;
-      color: var(--color-button-primary-text, #000);
-      background-color: var(--color-button-primary-background, #fff);
-      border: 0;
-      border-radius: var(--radius-xs);
-      cursor: pointer;
-      clip-path: inset(50%);
-      opacity: 0;
-    }
-    .aviso__pausa:focus-visible {
-      clip-path: none;
-      opacity: 1;
+      transition: transform var(--dur-normal, 0.2s) var(--ease-out, ease);
     }
 
-    /* ==========================================================
-       MOBILE
-       ==========================================================
-       Sem setas: no toque quem troca é o dedo (arraste) e o
-       próprio giro automático. Manter setas de 28px aqui só
-       roubaria largura do texto e criaria dois alvos pequenos a
-       4px um do outro. */
+    .aviso-marquee__texto--link:hover .aviso-marquee__seta {
+      transform: translate(2px, -2px);
+    }
+
+    @keyframes aviso-marquee-loop {
+      0% {
+        transform: translate3d(0, 0, 0);
+      }
+      100% {
+        transform: translate3d(-50%, 0, 0);
+      }
+    }
+
+    /* Mobile */
     @media screen and (max-width: 749px) {
-      .aviso__nav { display: none; }
-      .aviso__inner { padding-block: 7px; }
-      .aviso__texto { font-size: max(10px, calc(var(--aviso-fonte, 12px) - 1px)); }
+      .aviso-marquee {
+        padding-block: 8px;
+      }
+      .aviso-marquee__texto {
+        font-size: max(10px, calc(var(--aviso-fonte, 12px) - 1px));
+      }
+      .aviso-marquee__separador {
+        margin-inline: 16px;
+      }
     }
 
-    /* Mais movimento reduzido: sem deslize na troca, só a
-       transição de opacidade, que não desloca nada na tela. */
+    /* Acessibilidade (Movimento Reduzido) */
     @media (prefers-reduced-motion: reduce) {
-      .aviso__item,
-      .aviso__item.is-leaving { transform: none; }
+      .aviso-marquee__container {
+        overflow-x: auto;
+      }
+      .aviso-marquee__track {
+        animation: none;
+      }
     }
   </style>
-
-  <script>
-    (function () {
-      'use strict';
-
-      var raiz = document.querySelector('.aviso[data-section-id="{{ section.id }}"]');
-      if (!raiz) return;
-
-      var itens = Array.prototype.slice.call(raiz.querySelectorAll('[data-aviso-item]'));
-
-      var intervalo = (parseInt(raiz.getAttribute('data-intervalo'), 10) || 5) * 1000;
-      var menosMovimento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-      /* ---------------------------------------------------------
-         Altura da barra -> --aviso-altura (usada em base.css)
-
-         A header é fixed e fica logo abaixo desta barra; o <main>
-         precisa reservar as duas. A medida é feita aqui porque só
-         a barra sabe sua altura real (fonte do lojista, zoom,
-         tradução mais longa).
-
-         Medir é ler offsetHeight, que força layout — então
-         acontece na montagem e em resize, nunca durante a rolagem.
-      --------------------------------------------------------- */
-      var wrapper = raiz.closest('.shopify-section') || raiz.parentElement;
-
-      /* A barra só entra na pilha fixa do topo se ESTIVER no topo.
-         Uma barra arrastada para o meio da página continua sendo
-         uma faixa comum — fixá-la ali seria sequestrar o topo da
-         tela com um conteúdo que o lojista posicionou noutro
-         lugar. (base.css chega à mesma conclusão sozinho via
-         :has(); esta linha cobre navegadores sem :has e a troca de
-         ordem das sections dentro do editor de temas.) */
-      var noTopo = wrapper && wrapper.nextElementSibling &&
-        wrapper.nextElementSibling.classList.contains('section-header');
-
-      function medir() {
-        if (!noTopo || !wrapper) return;
-        wrapper.classList.add('aviso-fixa');
-        document.documentElement.style.setProperty('--aviso-altura', raiz.offsetHeight + 'px');
-      }
-      medir();
-      window.addEventListener('resize', medir);
-      /* A fonte da loja troca depois do primeiro paint e muda a
-         altura da linha: remede quando ela chegar. */
-      if (document.fonts && document.fonts.ready) document.fonts.ready.then(medir);
-
-      var itens_total = itens.length;
-      var atual = 0;
-      var timer = null;
-      var pausadoPelaPessoa = false;
-      var naTela = true;
-
-      /* ---------------------------------------------------------
-         Troca de mensagem.
-
-         inert + aria-hidden andam juntos: sem eles, os links das
-         mensagens invisíveis continuariam recebendo Tab e sendo
-         lidos pelo leitor de tela — um clássico de carrossel mal
-         feito. inert é ignorado por navegadores antigos, e o
-         aria-hidden cobre esse caso.
-      --------------------------------------------------------- */
-      function mostrar(proximo) {
-        if (proximo === atual) return;
-
-        var saindo = itens[atual];
-        var entrando = itens[proximo];
-
-        saindo.classList.remove('is-active');
-        saindo.classList.add('is-leaving');
-        saindo.setAttribute('aria-hidden', 'true');
-        saindo.setAttribute('inert', '');
-
-        entrando.classList.remove('is-leaving');
-        entrando.classList.add('is-active');
-        entrando.removeAttribute('aria-hidden');
-        entrando.removeAttribute('inert');
-
-        atual = proximo;
-
-        /* A classe de saída é limpa quando a transição termina.
-           Sem isso a mensagem ficaria presa acima da janela e a
-           próxima entrada dela começaria do lugar errado. */
-        var limpar = function () {
-          saindo.classList.remove('is-leaving');
-          saindo.removeEventListener('transitionend', limpar);
-        };
-        saindo.addEventListener('transitionend', limpar);
-      }
-
-      function irPara(passo) {
-        mostrar((atual + passo + itens_total) % itens_total);
-      }
-
-      /* ---------------------------------------------------------
-         Relógio: um setTimeout por troca, nunca um loop.
-         Ele só existe quando a barra está visível, a aba está em
-         primeiro plano, ninguém está interagindo e a pessoa não
-         pediu pausa.
-      --------------------------------------------------------- */
-      function pararRelogio() {
-        if (timer) { window.clearTimeout(timer); timer = null; }
-      }
-
-      function podeGirar() {
-        return (
-          !menosMovimento &&
-          !pausadoPelaPessoa &&
-          naTela &&
-          !document.hidden &&
-          !raiz.matches(':hover') &&
-          !raiz.contains(document.activeElement)
-        );
-      }
-
-      function agendar() {
-        pararRelogio();
-        if (!podeGirar()) return;
-        timer = window.setTimeout(function () {
-          irPara(1);
-          agendar();
-        }, intervalo);
-      }
-
-      /* ---------------------------------------------------------
-         Controles
-      --------------------------------------------------------- */
-      // Com um aviso só não há carrossel: a medida acima já foi feita
-      // e é tudo de que a barra precisa.
-      if (itens_total < 2) return;
-
-      var prev = raiz.querySelector('[data-aviso-prev]');
-      var next = raiz.querySelector('[data-aviso-next]');
-      var pausa = raiz.querySelector('[data-aviso-pausa]');
-
-      if (prev) prev.addEventListener('click', function () { irPara(-1); agendar(); });
-      if (next) next.addEventListener('click', function () { irPara(1); agendar(); });
-
-      if (pausa) {
-        pausa.addEventListener('click', function () {
-          pausadoPelaPessoa = !pausadoPelaPessoa;
-          pausa.setAttribute('aria-pressed', pausadoPelaPessoa ? 'true' : 'false');
-          pausa.textContent = pausadoPelaPessoa
-            ? pausa.getAttribute('data-rotulo-retomar')
-            : pausa.getAttribute('data-rotulo-pausar');
-          agendar();
-        });
-      }
-
-      /* Interação pausa o giro: ninguém perde a mensagem que estava
-         lendo (ou prestes a clicar) porque o relógio disparou. */
-      raiz.addEventListener('mouseenter', pararRelogio);
-      raiz.addEventListener('mouseleave', agendar);
-      raiz.addEventListener('focusin', pararRelogio);
-      raiz.addEventListener('focusout', function (evento) {
-        if (!raiz.contains(evento.relatedTarget)) agendar();
-      });
-
-      document.addEventListener('visibilitychange', agendar);
-
-      /* Fora da tela, relógio desligado. A barra fica no topo:
-         depois do primeiro deslize ela não volta mais, e sem isto
-         continuaria trocando mensagens para ninguém até o fim da
-         visita. */
-      if ('IntersectionObserver' in window) {
-        new IntersectionObserver(function (entradas) {
-          naTela = entradas[0].isIntersecting;
-          agendar();
-        }).observe(raiz);
-      }
-
-      /* ---------------------------------------------------------
-         Arraste no toque — Pointer Events, listener passivo.
-         Passivo é o detalhe importante: o navegador não precisa
-         esperar este código decidir se vai chamar preventDefault,
-         então a rolagem vertical continua começando no mesmo
-         instante em que o dedo se move.
-      --------------------------------------------------------- */
-      if (window.PointerEvent) {
-        var inicioX = null;
-        var inicioY = null;
-
-        raiz.addEventListener('pointerdown', function (evento) {
-          if (evento.pointerType === 'mouse') return;
-          inicioX = evento.clientX;
-          inicioY = evento.clientY;
-          pararRelogio();
-        }, { passive: true });
-
-        raiz.addEventListener('pointerup', function (evento) {
-          if (inicioX === null) return;
-          var dx = evento.clientX - inicioX;
-          var dy = evento.clientY - inicioY;
-          inicioX = null;
-          // Só conta como arraste horizontal: movimento mais
-          // vertical que horizontal é rolagem da página.
-          if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) irPara(dx < 0 ? 1 : -1);
-          agendar();
-        }, { passive: true });
-
-        raiz.addEventListener('pointercancel', function () { inicioX = null; agendar(); }, { passive: true });
-      }
-
-      agendar();
-    })();
-  </script>
 {%- endif -%}
 
 {% schema %}
 {
-  "name": "Barra de avisos",
-  "class": "section-aviso",
+  "name": "Marquee de avisos",
+  "class": "section-aviso-marquee",
   "settings": [
     {
       "type": "header",
-      "content": "Carrossel"
+      "content": "Animação"
     },
     {
       "type": "range",
-      "id": "interval",
-      "min": 3,
-      "max": 10,
-      "step": 1,
+      "id": "speed",
+      "min": 10,
+      "max": 60,
+      "step": 5,
       "unit": "s",
-      "label": "Tempo de cada aviso",
-      "info": "Quanto cada mensagem fica na tela antes de trocar. A troca pausa sozinha quando alguém passa o mouse, navega por teclado ou sai da página.",
-      "default": 5
+      "label": "Tempo de rotação",
+      "info": "Menos segundos = rolagem mais rápida. A rolagem pausa ao passar o mouse.",
+      "default": 25
     },
     {
       "type": "header",
@@ -634,7 +295,7 @@
   ],
   "presets": [
     {
-      "name": "Barra de avisos",
+      "name": "Marquee de avisos",
       "blocks": [
         { "type": "announcement", "settings": { "text": "FRETE GRÁTIS ACIMA DE R$ 585" } },
         { "type": "announcement", "settings": { "text": "10% OFF NA PRIMEIRA COMPRA" } },
