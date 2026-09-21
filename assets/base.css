@@ -156,15 +156,6 @@ html.rolou [class*='section-aviso'].aviso-fixa { transform: translate3d(0, -100%
 html.rolou [class*='section-aviso']:has(+ .section-header) { transform: translate3d(0, -100%, 0); }
 html.rolou .section-header { transform: none; }
 
-/* Barra recolhida = marquise parada.
-
-   Enquanto a faixa está fora de vista, uma animação infinita
-   continuaria acordando o compositor a cada frame para deslizar um
-   texto que ninguém vê — e disputando justamente com a rolagem.
-   animation-play-state não reinicia o ciclo: ao voltar ao topo, o
-   texto continua de onde parou. */
-html.rolou [class*='section-aviso'] .aviso-marquee__track { animation-play-state: paused; }
-
 /* SÓ a barra que está colada na header entra na pilha.
    Duas condições, uma para cada cenário:
 
