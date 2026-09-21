@@ -33,47 +33,62 @@
         "height": "tall"
       }
     },
-    "announcement_bar_tXfDTN": {
-      "type": "announcement-bar",
+    "marquee_below_hero_M8HkFV": {
+      "type": "marquee-below-hero",
       "blocks": {
-        "announcement_CwpNbc": {
+        "announcement_GmLeGb": {
           "type": "announcement",
           "settings": {
-            "text": "FRETE GRÁTIS EM COMPRAS ACIMA DE R$585",
+            "text": "FRETE GRÁTIS ACIMA DE R$585!",
             "link": ""
           }
         },
-        "announcement_MWGigf": {
+        "announcement_GxLLNk": {
           "type": "announcement",
           "settings": {
-            "text": "PARCELE EM ATÉ 10X SEM JUROS",
+            "text": "EM ATÉ 10X SEM JUROS",
             "link": ""
           }
         },
-        "announcement_GCfYtd": {
+        "announcement_DTPTkM": {
           "type": "announcement",
           "settings": {
-            "text": "QUALIDADE & ELEGÂNCIA EXCLUSIVA",
+            "text": "10% OFF NA PRIMEIRA COMPRA",
+            "link": ""
+          }
+        },
+        "announcement_KXEyXH": {
+          "type": "announcement",
+          "settings": {
+            "text": "ENVIAMOS PARA TODO O BRASIL",
             "link": ""
           }
         }
       },
       "block_order": [
-        "announcement_CwpNbc",
-        "announcement_MWGigf",
-        "announcement_GCfYtd"
+        "announcement_GmLeGb",
+        "announcement_GxLLNk",
+        "announcement_DTPTkM",
+        "announcement_KXEyXH"
       ],
-      "name": "Barra Contínua (Ouro)",
+      "name": "Marquee Pós-Hero",
       "settings": {
         "speed": 40,
-        "font_size": 10,
+        "item_gap": 28,
+        "enable_gold_effect": true,
         "enable_italic": true,
+        "font_size": 13,
         "font_weight": "700",
         "text_transform": "uppercase",
-        "letter_spacing": 1.5,
-        "enable_gold_effect": true,
+        "letter_spacing": 1.4,
+        "show_arrow": true,
+        "separator_symbol": "circle_outline",
+        "separator_custom": "•",
+        "bg_color": "#000000",
         "text_color": "#ffffff",
-        "bg_color": "#000000"
+        "separator_color": "#ffffff",
+        "border_color": "rgba(255, 255, 255, 0.15)",
+        "padding_vertical": 12
       }
     },
     "latest_drop": {
@@ -213,7 +228,7 @@
   },
   "order": [
     "hero",
-    "announcement_bar_tXfDTN",
+    "marquee_below_hero_M8HkFV",
     "latest_drop",
     "collections",
     "brand_story",
