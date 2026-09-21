@@ -55,7 +55,7 @@
         "settings": {
           "show_free_shipping": true,
           "free_shipping_threshold": 399,
-          "bump_mode": "auto",
+          "bump_mode": "off",
           "bump_product": "",
           "bump_title": "",
           "bump_text": "",
