@@ -31,13 +31,21 @@
 {%- endcomment -%}
 
 <div class="search page-width" data-section-id="{{ section.id }}">
-  <div class="search__header">
-    <h1 class="search__title">{{ 'templates.search.title' | t }}</h1>
+  <header class="page-header search__header">
+    <div class="page-header__inner">
+      <h1 class="page-header__title">{{ 'templates.search.title' | t }}</h1>
+    </div>
 
+    {%- comment -%}
+      Campo grande, com o ícone dentro e o botão como seta: a busca é
+      a tarefa da página, então ela tem o peso de um título — e não o
+      de um campo de formulário qualquer.
+    {%- endcomment -%}
     <form action="{{ routes.search_url }}" method="get" role="search" class="search__form">
       <label class="visually-hidden" for="SearchInput-{{ section.id }}">
         {{ 'general.search.search' | t }}
       </label>
+      <span class="search__icon" aria-hidden="true">{% render 'icon', name: 'search' %}</span>
       <input
         type="search"
         name="q"
@@ -45,21 +53,26 @@
         value="{{ search.terms | escape }}"
         placeholder="{{ 'general.search.placeholder' | t }}"
         spellcheck="false"
+        autocomplete="off"
         class="field__input search__input"
       >
-      <button type="submit" class="button search__submit">
-        {{ 'general.search.submit' | t }}
+      <button type="submit" class="search__submit" aria-label="{{ 'general.search.submit' | t }}">
+        {% render 'icon', name: 'arrow-right' %}
       </button>
     </form>
-  </div>
+  </header>
 
   {%- if search.performed -%}
     {%- if search.results_count == 0 -%}
-      <p class="search__empty">
-        {{ 'templates.search.no_results' | t: terms: search.terms }}
-      </p>
+      <div class="empty-state">
+        <p class="empty-state__titulo">{{ 'templates.search.no_results_title' | t }}</p>
+        <p class="empty-state__texto">{{ 'templates.search.no_results' | t: terms: search.terms }}</p>
+        <a href="{{ routes.all_products_collection_url }}" class="button">
+          {{ 'templates.search.browse_all' | t }}
+        </a>
+      </div>
     {%- else -%}
-      <p class="search__count">
+      <p class="toolbar__count search__count">
         {%- if search.results_count == 1 -%}
           {{ 'templates.search.results_with_count' | t: count: search.results_count, terms: search.terms }}
         {%- else -%}
@@ -127,99 +140,96 @@
 </div>
 
 <style>
-  #shopify-section-{{ section.id }} .search {
-    margin-top: 24px;
-    margin-bottom: var(--spacing-sections, 40px);
-  }
-  #shopify-section-{{ section.id }} .search__header {
-    text-align: center;
-    max-width: 640px;
-    margin: 0 auto 32px;
-  }
-  #shopify-section-{{ section.id }} .search__title {
-    font-size: var(--f6);
-    margin: 0 0 16px;
-  }
+  #shopify-section-{{ section.id }} .search { padding-bottom: var(--space-section); }
+  #shopify-section-{{ section.id }} .search__header { padding-bottom: var(--space-lg); }
+
   #shopify-section-{{ section.id }} .search__form {
+    position: relative;
     display: flex;
-    gap: 8px;
+    align-items: center;
+    max-width: 640px;
+    margin-top: var(--space-md);
   }
+  #shopify-section-{{ section.id }} .search__icon {
+    position: absolute;
+    left: 0;
+    display: inline-flex;
+    color: var(--color-text-muted);
+    pointer-events: none;
+  }
+  #shopify-section-{{ section.id }} .search__icon svg { width: 18px; height: 18px; }
+  /* Campo sem caixa: só um fio embaixo. Numa página cuja tarefa é
+     digitar, a moldura não acrescenta nada — o texto é que manda. */
   #shopify-section-{{ section.id }} .search__input {
     flex: 1;
+    min-height: 56px;
+    padding: 0 48px 0 30px;
+    font-size: var(--f4);
+    color: var(--color-text-primary);
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--color-border-strong);
+    border-radius: 0;
+    box-shadow: none;
   }
-  #shopify-section-{{ section.id }} .search__count,
-  #shopify-section-{{ section.id }} .search__empty {
-    font-size: var(--f3);
-    margin-bottom: 24px;
+  #shopify-section-{{ section.id }} .search__input:focus {
+    border-bottom-color: var(--color-accent);
+    box-shadow: none;
   }
-  #shopify-section-{{ section.id }} .search__result-link {
-    display: block;
-    text-decoration: none;
-    color: inherit;
-  }
-  #shopify-section-{{ section.id }} .search__result-media {
-    width: 100%;
-    aspect-ratio: 4 / 3;
-    overflow: hidden;
-    border-radius: var(--media-radius, 8px);
-    background-color: var(--color-surface);
-  }
-  #shopify-section-{{ section.id }} .search__result-image {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  #shopify-section-{{ section.id }} .search__result-info {
-    padding: 12px 4px;
-  }
-  #shopify-section-{{ section.id }} .search__result-title {
-    font-size: var(--f2);
-    font-weight: var(--font-weight-regular);
-    margin: 0 0 6px;
-  }
-  #shopify-section-{{ section.id }} .search__result-excerpt {
-    font-size: var(--f1);
-    opacity: 0.7;
-    margin: 0;
-  }
-  #shopify-section-{{ section.id }} .pagination {
-    margin-top: 40px;
-  }
-  #shopify-section-{{ section.id }} .pagination__list {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  #shopify-section-{{ section.id }} .pagination__item {
+  #shopify-section-{{ section.id }} .search__input::-webkit-search-cancel-button { display: none; }
+  #shopify-section-{{ section.id }} .search__submit {
+    position: absolute;
+    right: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 40px;
-    min-height: 40px;
-    padding: 0 8px;
-    font-size: var(--f2);
+    width: 44px;
+    height: 44px;
     color: var(--color-text-primary);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    transition: color var(--dur-normal) var(--ease-out), transform var(--dur-normal) var(--ease-out);
+  }
+  #shopify-section-{{ section.id }} .search__submit:hover { color: var(--color-accent-readable); transform: translateX(3px); }
+  #shopify-section-{{ section.id }} .search__submit svg { width: 18px; height: 18px; }
+
+  #shopify-section-{{ section.id }} .search__count {
+    display: block;
+    padding-block: var(--space-sm);
+    border-block: 1px solid var(--color-border);
+    margin-bottom: var(--space-lg);
+  }
+
+  #shopify-section-{{ section.id }} .search__results { margin: 0; padding: 0; list-style: none; }
+
+  /* Resultados que não são produto (artigo, página): linha simples */
+  #shopify-section-{{ section.id }} .search__result-link {
+    display: grid;
+    gap: var(--space-2xs);
+    color: inherit;
     text-decoration: none;
-    border: 1px solid transparent;
-    border-radius: var(--inputs-radius, 4px);
   }
-  #shopify-section-{{ section.id }} a.pagination__item:hover {
-    border-color: var(--color-border);
+  #shopify-section-{{ section.id }} .search__result-link img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--media-radius);
   }
-  #shopify-section-{{ section.id }} .pagination__item--current {
-    border-color: var(--color-accent);
-    font-weight: var(--font-weight-semibold);
+  #shopify-section-{{ section.id }} .search__result-title {
+    font-family: var(--font-ui-family);
+    font-size: var(--f2);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
   }
+  #shopify-section-{{ section.id }} .search__result-type {
+    font-size: var(--f0);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
   @media screen and (max-width: 1000px) {
-    #shopify-section-{{ section.id }} .search__form {
-      flex-direction: column;
-    }
+    #shopify-section-{{ section.id }} .search__input { min-height: 48px; font-size: var(--f3); }
   }
 </style>
 

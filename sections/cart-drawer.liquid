@@ -47,9 +47,21 @@
   contador, escassez inventada ou "X pessoas vendo" em lugar nenhum.
 {%- endcomment -%}
 {%- liquid
-  assign threshold = section.settings.free_shipping_threshold | times: 100 | round
+  # O valor passou a ser um setting GLOBAL do tema (Carrinho > Frete
+  # grátis), para a página do carrinho e o drawer nunca mostrarem
+  # contas diferentes. O setting antigo da section continua valendo
+  # como queda, para lojas que ainda não migraram o valor.
+  assign limite_reais = settings.free_shipping_threshold
+  if limite_reais == blank or limite_reais == 0
+    assign limite_reais = section.settings.free_shipping_threshold
+  endif
+  assign threshold = limite_reais | times: 100 | round
   assign show_progress = false
-  if section.settings.show_free_shipping and threshold > 0
+  assign mostrar_frete_cfg = settings.show_free_shipping
+  if settings.show_free_shipping == nil
+    assign mostrar_frete_cfg = section.settings.show_free_shipping
+  endif
+  if mostrar_frete_cfg and threshold > 0
     assign show_progress = true
     assign remaining = threshold | minus: cart.total_price
     if remaining <= 0
@@ -184,7 +196,13 @@
               aria-valuemax="100"
               aria-valuenow="{{ progress }}"
             >
-              <span class="cart-drawer__progress-bar" style="width: {{ progress }}%;"></span>
+              {%- comment -%}
+                --progresso é um NÚMERO de 0 a 1, não uma porcentagem:
+                scaleX() com unidade % só é entendido por parte dos
+                navegadores (é adição recente da especificação), e um
+                valor ignorado aqui deixaria a barra sempre vazia.
+              {%- endcomment -%}
+              <span class="cart-drawer__progress-bar" style="--progresso: {{ progress | divided_by: 100.0 }};"></span>
             </div>
           </div>
         {%- endif -%}
@@ -353,7 +371,7 @@
     inset: 0;
     background-color: var(--color-scrim);
     opacity: 0;
-    transition: opacity 340ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: opacity var(--dur-emphasis) var(--ease-out);
   }
   .cart-drawer.is-open .cart-drawer__scrim { opacity: 1; }
 
@@ -368,7 +386,7 @@
     background-color: var(--color-background);
     border-left: 1px solid var(--color-border);
     transform: translateX(100%);
-    transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform var(--dur-emphasis) var(--ease-out);
   }
   .cart-drawer.is-open .cart-drawer__panel { transform: none; }
 
@@ -400,7 +418,7 @@
     border: none;
     color: var(--color-text-secondary);
     cursor: pointer;
-    transition: color 200ms ease;
+    transition: color var(--dur-normal) var(--ease-out);
   }
   .cart-drawer__close:hover { color: var(--color-text-primary); }
   .cart-drawer__close svg { width: 18px; height: 18px; }
@@ -422,15 +440,25 @@
   .cart-drawer__progress.is-reached .cart-drawer__progress-label { color: var(--color-accent-readable); }
   .cart-drawer__progress-check { margin-right: 6px; }
   .cart-drawer__progress-track {
-    height: 2px;
+    position: relative;
+    height: 3px;
+    border-radius: var(--radius-pill);
     background-color: var(--color-border-strong);
     overflow: hidden;
   }
+  /* A barra cresce por TRANSFORM, não por width.
+     width é propriedade de layout: cada passo do preenchimento
+     obrigava o navegador a recalcular a caixa e repintar. scaleX é
+     resolvido pelo compositor — e aqui isso acontece bem no momento
+     em que o carrinho está atualizando outras coisas. */
   .cart-drawer__progress-bar {
+    position: absolute;
+    inset: 0;
     display: block;
-    height: 100%;
-    background-color: var(--color-accent);
-    transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform-origin: left center;
+    transform: scaleX(var(--progresso, 0));
+    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-readable));
+    transition: transform var(--dur-emphasis) var(--ease-out);
   }
 
   /* ---- Itens + bump: a UNICA regiao que rola ---- */
@@ -511,7 +539,7 @@
     font-size: var(--f2);
     line-height: 1;
     cursor: pointer;
-    transition: color 200ms ease;
+    transition: color var(--dur-normal) var(--ease-out);
   }
   .quantity-drawer__button:hover { color: var(--color-text-primary); }
   .quantity-drawer__value {
@@ -531,7 +559,7 @@
     text-transform: uppercase;
     color: var(--color-text-muted);
     cursor: pointer;
-    transition: color 200ms ease;
+    transition: color var(--dur-normal) var(--ease-out);
   }
   .cart-item-drawer__remove:hover { color: var(--color-text-primary); }
 
@@ -668,7 +696,7 @@
      desconfia. Agora ele pulsa no lugar, com a mesma linguagem de
      espera do resto do tema (.skeleton, em base.css), e mantém a
      própria largura: nada salta quando o novo valor chega. */
-  .cart-drawer[data-busy='true'] .cart-drawer__scroll { opacity: 0.55; transition: opacity 160ms ease; }
+  .cart-drawer[data-busy='true'] .cart-drawer__scroll { opacity: 0.55; transition: opacity var(--dur-normal) var(--ease-out); }
   .cart-drawer[data-busy='true'] .cart-drawer__panel { cursor: progress; }
   .cart-drawer[data-busy='true'] .cart-drawer__totals-value {
     color: transparent;

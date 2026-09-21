@@ -209,6 +209,18 @@
     gap: 8px;
   }
 
+  .cart__header { padding-top: var(--space-md); }
+  .cart__frete { margin-bottom: var(--space-sm); }
+  .cart__frete-label {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+    margin: 0 0 var(--space-2xs);
+  }
+  .cart__frete.is-ok .cart__frete-label { color: var(--color-accent-readable); }
+
   @media screen and (max-width: 1000px) {
     .cart__contents { flex-direction: column; gap: 32px; }
     .cart__summary { position: static; flex-basis: auto; width: 100%; }
@@ -218,11 +230,21 @@
 </style>
 
 <div class="cart page-width section-main-cart" id="main-cart-{{ section.id }}">
-  <h1 class="cart__title">{{ 'sections.cart.title' | t }}</h1>
+  <header class="page-header cart__header">
+    <div class="page-header__inner">
+      <h1 class="page-header__title">{{ 'sections.cart.title' | t }}</h1>
+      {%- if cart.item_count > 0 -%}
+        <p class="page-header__meta">
+          {{ 'sections.header.cart_count' | t: count: cart.item_count }}
+        </p>
+      {%- endif -%}
+    </div>
+  </header>
 
   {%- if cart.item_count == 0 -%}
-    <div class="cart--empty">
-      <p class="cart__empty-text">{{ 'sections.cart.empty' | t }}</p>
+    <div class="empty-state">
+      <p class="empty-state__titulo">{{ 'sections.cart.empty' | t }}</p>
+      <p class="empty-state__texto">{{ 'sections.cart.empty_text' | t }}</p>
       <a href="{{ routes.all_products_collection_url }}" class="button">
         {{ 'general.continue_shopping' | t }}
       </a>
@@ -391,6 +413,50 @@
                 <li>{{ discount.title | escape }} (-{{ discount.total_allocated_amount | money }})</li>
               {%- endfor -%}
             </ul>
+          {%- endif -%}
+
+          {%- comment -%}
+            O MESMO progresso de frete do drawer, lendo os MESMOS
+            settings globais do tema. Quem adiciona pelo drawer
+            e depois abre a página inteira precisa ver a mesma régua —
+            duas contas diferentes para o mesmo frete destruiriam a
+            confiança no número.
+          {%- endcomment -%}
+          {%- liquid
+            assign limite = settings.free_shipping_threshold | times: 100 | round
+            assign mostrar_frete = false
+            if settings.show_free_shipping and limite > 0
+              assign mostrar_frete = true
+              assign falta = limite | minus: cart.total_price
+              if falta <= 0
+                assign frete_ok = true
+                assign progresso = 1
+              else
+                assign frete_ok = false
+                assign progresso = cart.total_price | times: 1.0 | divided_by: limite
+                assign falta_money = falta | money
+              endif
+            endif
+          -%}
+          {%- if mostrar_frete -%}
+            <div class="cart__frete {% if frete_ok %}is-ok{% endif %}">
+              <p class="cart__frete-label">
+                {%- if frete_ok -%}
+                  {{ 'sections.cart.free_shipping_reached' | t }}
+                {%- else -%}
+                  {{ 'sections.cart.free_shipping_remaining_html' | t: amount: falta_money }}
+                {%- endif -%}
+              </p>
+              <div
+                class="progress"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="{{ progresso | times: 100 | round }}"
+              >
+                <span class="progress__fill" style="--progresso: {{ progresso }};"></span>
+              </div>
+            </div>
           {%- endif -%}
 
           <div class="cart__subtotal">

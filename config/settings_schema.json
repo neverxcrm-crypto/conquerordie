@@ -336,6 +336,27 @@
         "id": "cart_show_note",
         "default": true,
         "label": "t:settings_schema.cart.settings.cart_show_note.label"
+      },
+      {
+        "type": "header",
+        "content": "Frete grátis"
+      },
+      {
+        "type": "paragraph",
+        "content": "Vale para o carrinho lateral E para a página do carrinho — os dois leem daqui, para não mostrarem contas diferentes."
+      },
+      {
+        "type": "checkbox",
+        "id": "show_free_shipping",
+        "default": true,
+        "label": "Mostrar barra de progresso de frete grátis"
+      },
+      {
+        "type": "number",
+        "id": "free_shipping_threshold",
+        "default": 399,
+        "label": "Valor para frete grátis",
+        "info": "Em reais, sem centavos. Zero desliga a barra."
       }
     ]
   },

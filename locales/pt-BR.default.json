@@ -151,7 +151,9 @@
       "results_pages_with_count": {
         "one": "{{ count }} página",
         "other": "{{ count }} páginas"
-      }
+      },
+      "no_results_title": "Nada encontrado",
+      "browse_all": "Ver todos os produtos"
     },
     "cart": {
       "cart": "Carrinho"
@@ -221,7 +223,8 @@
       "secure_payment": "Pagamento seguro",
       "decrease": "Diminuir a quantidade de {{ title }}",
       "increase": "Aumentar a quantidade de {{ title }}",
-      "bump_title": "Complete o look"
+      "bump_title": "Complete o look",
+      "empty_text": "Ainda não encontrou o que procura? Comece pelas coleções."
     },
     "footer": {
       "payment": "Formas de pagamento",
