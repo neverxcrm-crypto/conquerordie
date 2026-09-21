@@ -23,8 +23,8 @@ Blocks · CSS · Vanilla JavaScript · i18n · SEO · Acessibilidade (WCAG).
   <img alt="Docs" src="https://img.shields.io/badge/docs-PT--BR-blue">
 </p>
 
-> Feita pela [Team Lecdt](https://lecdt.com). Use como ponto de partida para
-> qualquer nicho de loja (moda, eletrônicos, cosméticos, digital, etc.).
+Use como ponto de partida para qualquer nicho de loja (moda, eletrônicos,
+cosméticos, digital, etc.).
 
 ## Recursos
 
@@ -55,7 +55,7 @@ e acesso a uma loja Shopify (ou uma development store).
 
 ```bash
 # 1. Clonar a base
-git clone https://github.com/eduardolecdt/base-liquid-shopify.git minha-loja
+git clone URL-DO-SEU-REPOSITORIO.git minha-loja
 cd minha-loja
 
 # 2. Rodar localmente com hot reload (preview ao vivo)
@@ -313,7 +313,6 @@ shopify theme push --store SUA-LOJA.myshopify.com --unpublished
 
 ## Licença
 
-Uso livre pela [Team Lecdt](https://lecdt.com) e por quem clonar esta base.
 Adapte à vontade para os seus projetos.
 
 ---

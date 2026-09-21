@@ -238,8 +238,7 @@
     },
     "footer": {
       "payment": "Formas de pagamento",
-      "rights": "Todos os direitos reservados.",
-      "base_by_html": "Base por <a href=\"{{ link }}\" target=\"_blank\" rel=\"noopener\">Team Lecdt</a>"
+      "rights": "Todos os direitos reservados."
     },
     "collection_list": {
       "view_all": "Ver todas"

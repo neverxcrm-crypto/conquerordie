@@ -2,10 +2,7 @@
   {
     "name": "theme_info",
     "theme_name": "Base Liquid",
-    "theme_version": "1.0.0",
-    "theme_author": "Team Lecdt",
-    "theme_documentation_url": "https://lecdt.com",
-    "theme_support_url": "https://lecdt.com"
+    "theme_version": "1.0.0"
   },
   {
     "name": "t:settings_schema.logo.name",
