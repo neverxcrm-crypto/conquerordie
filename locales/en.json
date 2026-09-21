@@ -44,7 +44,8 @@
     },
     "breadcrumb": {
       "label": "Breadcrumb",
-      "home": "Home"
+      "home": "Home",
+      "collections": "Collections"
     }
   },
   "accessibility": {

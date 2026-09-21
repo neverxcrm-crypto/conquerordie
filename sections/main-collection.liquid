@@ -30,8 +30,9 @@
     via variável CSS inline --grid-columns.
   - Filtros e ordenação podem ser desligados pelos settings
     enable_filtering e enable_sorting.
-  - Estilos ficam inline no <style>, escopados por
-    #shopify-section-{{ section.id }}.
+  - Estilos inline, escopados por #shopify-section-{{ section.id }}.
+    Componentes compartilhados (toolbar, paginacao, estado vazio,
+    card de produto) vem de assets/base.css.
 {%- endcomment -%}
 
 {%- paginate collection.products by section.settings.products_per_page -%}
@@ -40,100 +41,131 @@
     data-section-id="{{ section.id }}"
     style="--grid-columns: {{ section.settings.columns_desktop }};"
   >
-    {%- if section.settings.enable_sorting or section.settings.enable_filtering -%}
-      <div class="collection__toolbar">
-        {%- if section.settings.enable_filtering and collection.filters.size > 0 -%}
-          <form method="get" class="collection__filters" id="CollectionFilters-{{ section.id }}">
-            {%- comment -%} Preserve current sort when filtering {%- endcomment -%}
-            {%- if collection.sort_by != blank -%}
-              <input type="hidden" name="sort_by" value="{{ collection.sort_by }}">
-            {%- endif -%}
+    {%- liquid
+      assign tem_filtros = false
+      if section.settings.enable_filtering and collection.filters.size > 0
+        assign tem_filtros = true
+      endif
 
-            {%- for filter in collection.filters -%}
-              <details class="collection__filter">
-                <summary class="collection__filter-summary">{{ filter.label | escape }}</summary>
-                <div class="collection__filter-content">
-                  {%- case filter.type -%}
-                    {%- when 'list', 'boolean' -%}
-                      <ul class="collection__filter-values" role="list">
-                        {%- for value in filter.values -%}
-                          <li class="collection__filter-value">
-                            <label>
-                              <input
-                                type="checkbox"
-                                name="{{ value.param_name }}"
-                                value="{{ value.value }}"
-                                {% if value.active %}checked{% endif %}
-                                {% if value.count == 0 and value.active == false %}disabled{% endif %}
-                              >
-                              <span>{{ value.label | escape }}</span>
-                              <span class="collection__filter-count">({{ value.count }})</span>
-                            </label>
-                          </li>
-                        {%- endfor -%}
-                      </ul>
+      # Filtros ativos viram "chips" removíveis acima da grade. Sem
+      # isso a pessoa filtra, rola a página e esquece o que aplicou —
+      # e conclui que a loja não tem produtos.
+      assign filtros_ativos = 0
+      for filtro in collection.filters
+        assign filtros_ativos = filtros_ativos | plus: filtro.active_values.size
+        if filtro.type == 'price_range'
+          if filtro.min_value.value or filtro.max_value.value
+            assign filtros_ativos = filtros_ativos | plus: 1
+          endif
+        endif
+      endfor
+    -%}
 
-                    {%- when 'price_range' -%}
-                      <div class="collection__filter-price">
-                        <div class="collection__filter-price-field">
-                          <label
-                            class="field__label"
-                            for="Filter-{{ filter.label | escape }}-min-{{ section.id }}"
-                          >
-                            {{ 'products.facets.from' | t }}
-                          </label>
-                          <input
-                            class="field__input"
-                            type="number"
-                            name="{{ filter.min_value.param_name }}"
-                            id="Filter-{{ filter.label | escape }}-min-{{ section.id }}"
-                            min="0"
-                            max="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
-                            {% if filter.min_value.value %}value="{{ filter.min_value.value | money_without_currency | replace: ',', '' }}"{% endif %}
-                            placeholder="0"
-                          >
-                        </div>
-                        <div class="collection__filter-price-field">
-                          <label
-                            class="field__label"
-                            for="Filter-{{ filter.label | escape }}-max-{{ section.id }}"
-                          >
-                            {{ 'products.facets.to' | t }}
-                          </label>
-                          <input
-                            class="field__input"
-                            type="number"
-                            name="{{ filter.max_value.param_name }}"
-                            id="Filter-{{ filter.label | escape }}-max-{{ section.id }}"
-                            min="0"
-                            max="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
-                            {% if filter.max_value.value %}value="{{ filter.max_value.value | money_without_currency | replace: ',', '' }}"{% endif %}
-                            placeholder="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
-                          >
-                        </div>
-                      </div>
-                  {%- endcase -%}
-                </div>
-              </details>
-            {%- endfor -%}
+    {%- if section.settings.enable_sorting or tem_filtros -%}
+      <div class="toolbar collection__toolbar">
+        <span class="toolbar__count">
+          {{- 'products.facets.product_count_simple' | t: count: collection.products_count -}}
+        </span>
 
-            <div class="collection__filter-actions">
-              <button type="submit" class="button">{{ 'products.facets.apply' | t }}</button>
-              <a href="{{ collection.url }}" class="button button--secondary">
-                {{ 'products.facets.clear_all' | t }}
-              </a>
-            </div>
-          </form>
-        {%- endif -%}
+        <div class="toolbar__actions">
+          {%- if tem_filtros -%}
+            {%- comment -%}
+              <details> em vez de um painel controlado por JS: abre e
+              fecha sozinho, funciona sem script e o navegador já
+              cuida de teclado e leitor de tela.
+            {%- endcomment -%}
+            <details class="filtros" data-filtros>
+              <summary class="link-button filtros__botao">
+                {{ 'products.facets.filter_button' | t }}
+                {%- if filtros_ativos > 0 -%}
+                  <span class="filtros__contador">{{ filtros_ativos }}</span>
+                {%- endif -%}
+                <svg viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false">
+                  <path d="M1 3h10M3 6h6M5 9h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+              </summary>
 
-        <div class="collection__toolbar-bar">
-          <span class="collection__count">
-            {{- 'products.facets.product_count_simple' | t: count: collection.products_count -}}
-          </span>
+              <div class="filtros__painel">
+                <form method="get" class="filtros__form" id="CollectionFilters-{{ section.id }}">
+                  {%- if collection.sort_by != blank -%}
+                    <input type="hidden" name="sort_by" value="{{ collection.sort_by }}">
+                  {%- endif -%}
+
+                  <div class="filtros__grupos">
+                    {%- for filter in collection.filters -%}
+                      <fieldset class="filtros__grupo">
+                        <legend class="filtros__titulo">{{ filter.label | escape }}</legend>
+                        {%- case filter.type -%}
+                          {%- when 'list', 'boolean' -%}
+                            <ul class="filtros__valores" role="list">
+                              {%- for value in filter.values -%}
+                                <li>
+                                  <label class="filtros__valor {% if value.count == 0 and value.active == false %}is-vazio{% endif %}">
+                                    <input
+                                      type="checkbox"
+                                      name="{{ value.param_name }}"
+                                      value="{{ value.value }}"
+                                      {% if value.active %}checked{% endif %}
+                                      {% if value.count == 0 and value.active == false %}disabled{% endif %}
+                                    >
+                                    <span class="filtros__marca" aria-hidden="true"></span>
+                                    <span>{{ value.label | escape }}</span>
+                                    <span class="filtros__contagem">{{ value.count }}</span>
+                                  </label>
+                                </li>
+                              {%- endfor -%}
+                            </ul>
+
+                          {%- when 'price_range' -%}
+                            <div class="filtros__preco">
+                              <div class="filtros__preco-campo">
+                                <label class="field__label" for="Filter-{{ filter.label | escape }}-min-{{ section.id }}">
+                                  {{ 'products.facets.from' | t }}
+                                </label>
+                                <input
+                                  class="field__input"
+                                  type="number"
+                                  name="{{ filter.min_value.param_name }}"
+                                  id="Filter-{{ filter.label | escape }}-min-{{ section.id }}"
+                                  min="0"
+                                  max="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
+                                  {% if filter.min_value.value %}value="{{ filter.min_value.value | money_without_currency | replace: ',', '' }}"{% endif %}
+                                  placeholder="0"
+                                >
+                              </div>
+                              <div class="filtros__preco-campo">
+                                <label class="field__label" for="Filter-{{ filter.label | escape }}-max-{{ section.id }}">
+                                  {{ 'products.facets.to' | t }}
+                                </label>
+                                <input
+                                  class="field__input"
+                                  type="number"
+                                  name="{{ filter.max_value.param_name }}"
+                                  id="Filter-{{ filter.label | escape }}-max-{{ section.id }}"
+                                  min="0"
+                                  max="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
+                                  {% if filter.max_value.value %}value="{{ filter.max_value.value | money_without_currency | replace: ',', '' }}"{% endif %}
+                                  placeholder="{{ filter.range_max | money_without_currency | replace: ',', '' }}"
+                                >
+                              </div>
+                            </div>
+                        {%- endcase -%}
+                      </fieldset>
+                    {%- endfor -%}
+                  </div>
+
+                  <div class="filtros__acoes">
+                    <button type="submit" class="button">{{ 'products.facets.apply' | t }}</button>
+                    <a href="{{ collection.url }}" class="link-button">{{ 'products.facets.clear_all' | t }}</a>
+                  </div>
+                </form>
+              </div>
+            </details>
+          {%- endif -%}
 
           {%- if section.settings.enable_sorting -%}
             <form method="get" class="collection__sort">
-              {%- comment -%} Preserve active filters when sorting {%- endcomment -%}
+              {%- comment -%} Mantém os filtros ativos ao reordenar {%- endcomment -%}
               {%- for filter in collection.filters -%}
                 {%- for value in filter.values -%}
                   {%- if value.active -%}
@@ -142,57 +174,71 @@
                 {%- endfor -%}
                 {%- if filter.type == 'price_range' -%}
                   {%- if filter.min_value.value -%}
-                    <input
-                      type="hidden"
-                      name="{{ filter.min_value.param_name }}"
-                      value="{{ filter.min_value.value | money_without_currency | replace: ',', '' }}"
-                    >
+                    <input type="hidden" name="{{ filter.min_value.param_name }}" value="{{ filter.min_value.value | money_without_currency | replace: ',', '' }}">
                   {%- endif -%}
                   {%- if filter.max_value.value -%}
-                    <input
-                      type="hidden"
-                      name="{{ filter.max_value.param_name }}"
-                      value="{{ filter.max_value.value | money_without_currency | replace: ',', '' }}"
-                    >
+                    <input type="hidden" name="{{ filter.max_value.param_name }}" value="{{ filter.max_value.value | money_without_currency | replace: ',', '' }}">
                   {%- endif -%}
                 {%- endif -%}
               {%- endfor -%}
 
-              <label class="field__label collection__sort-label" for="SortBy-{{ section.id }}">
+              <label class="visually-hidden" for="SortBy-{{ section.id }}">
                 {{ 'products.facets.sort_by_label' | t }}
               </label>
               <select
                 name="sort_by"
                 id="SortBy-{{ section.id }}"
-                class="select__select"
+                class="collection__sort-select"
                 onchange="this.form.submit()"
               >
                 {%- for option in collection.sort_options -%}
-                  <option
-                    value="{{ option.value }}"
-                    {% if option.value == collection.sort_by %}selected{% endif %}
-                  >
+                  <option value="{{ option.value }}" {% if option.value == collection.sort_by %}selected{% endif %}>
                     {{ option.name }}
                   </option>
                 {%- endfor -%}
               </select>
               <noscript>
-                <button type="submit" class="button button--secondary">
-                  {{ 'products.facets.apply' | t }}
-                </button>
+                <button type="submit" class="link-button">{{ 'products.facets.apply' | t }}</button>
               </noscript>
             </form>
           {%- endif -%}
         </div>
       </div>
+
+      {%- if filtros_ativos > 0 -%}
+        <ul class="chips" role="list">
+          {%- for filter in collection.filters -%}
+            {%- for value in filter.active_values -%}
+              <li>
+                <a href="{{ value.url_to_remove }}" class="chip">
+                  {{ value.label | escape }}
+                  <span class="chip__x" aria-hidden="true">&times;</span>
+                  <span class="visually-hidden">{{ 'products.facets.clear' | t }}</span>
+                </a>
+              </li>
+            {%- endfor -%}
+            {%- if filter.type == 'price_range' -%}
+              {%- if filter.min_value.value or filter.max_value.value -%}
+                <li>
+                  <a href="{{ filter.url_to_remove }}" class="chip">
+                    {{ filter.min_value.value | default: 0 | money }} &ndash; {{ filter.max_value.value | default: filter.range_max | money }}
+                    <span class="chip__x" aria-hidden="true">&times;</span>
+                    <span class="visually-hidden">{{ 'products.facets.clear' | t }}</span>
+                  </a>
+                </li>
+              {%- endif -%}
+            {%- endif -%}
+          {%- endfor -%}
+          <li><a href="{{ collection.url }}" class="chip chip--limpar">{{ 'products.facets.clear_all' | t }}</a></li>
+        </ul>
+      {%- endif -%}
     {%- endif -%}
 
     {%- if collection.products.size == 0 -%}
-      <div class="collection__empty">
-        <p>{{ 'sections.main_collection.empty' | t }}</p>
-        <a href="{{ routes.all_products_collection_url }}" class="button button--secondary">
-          {{ 'sections.main_collection.use_fewer_filters' | t }}
-        </a>
+      <div class="empty-state">
+        <p class="empty-state__titulo">{{ 'sections.main_collection.empty' | t }}</p>
+        <p class="empty-state__texto">{{ 'sections.main_collection.use_fewer_filters' | t }}</p>
+        <a href="{{ collection.url }}" class="button">{{ 'products.facets.clear_all' | t }}</a>
       </div>
     {%- else -%}
       {%- comment -%}
@@ -216,149 +262,214 @@
 
 <style>
   #shopify-section-{{ section.id }} .collection {
-    margin-bottom: var(--spacing-sections, 40px);
+    padding-bottom: var(--space-section);
   }
-  #shopify-section-{{ section.id }} .collection__toolbar {
-    margin-bottom: 24px;
-  }
-  #shopify-section-{{ section.id }} .collection__filters {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 12px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--color-border);
-  }
-  #shopify-section-{{ section.id }} .collection__filter {
-    position: relative;
-  }
-  #shopify-section-{{ section.id }} .collection__filter-summary {
+
+  /* ==========================================================
+     BARRA DE FERRAMENTAS
+     ==========================================================
+     Uma linha só: quantas peças de um lado; filtrar e ordenar do
+     outro. Antes os filtros eram um bloco de <details> soltos que
+     empurrava a primeira fileira de produtos para baixo da dobra —
+     numa página de catálogo, quem precisa aparecer primeiro é o
+     produto. */
+  #shopify-section-{{ section.id }} .collection__toolbar { position: relative; }
+
+  #shopify-section-{{ section.id }} .collection__sort-select {
+    min-height: 44px;
+    padding: 0 var(--space-md) 0 var(--space-2xs);
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-primary);
+    background-color: transparent;
+    border: 0;
     cursor: pointer;
-    padding: 8px 12px;
-    font-size: var(--f2);
-    border: 1px solid var(--color-border);
-    border-radius: var(--inputs-radius, 4px);
-    list-style: none;
-    user-select: none;
+    /* A seta é desenhada aqui para o campo não herdar o estilo do
+       sistema operacional, que muda de cara a cada plataforma. */
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                      linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position: calc(100% - 10px) 55%, calc(100% - 5px) 55%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
   }
-  #shopify-section-{{ section.id }} .collection__filter-summary::-webkit-details-marker {
-    display: none;
-  }
-  #shopify-section-{{ section.id }} .collection__filter-content {
-    margin-top: 8px;
-    padding: 12px;
-    border: 1px solid var(--color-border);
-    border-radius: var(--inputs-radius, 4px);
-    background-color: var(--color-background);
-  }
-  #shopify-section-{{ section.id }} .collection__filter-values {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    max-height: 260px;
-    overflow-y: auto;
-  }
-  #shopify-section-{{ section.id }} .collection__filter-value label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 0;
-    font-size: var(--f2);
-    cursor: pointer;
-  }
-  #shopify-section-{{ section.id }} .collection__filter-count {
-    opacity: 0.6;
-    font-size: var(--f1);
-  }
-  #shopify-section-{{ section.id }} .collection__filter-price {
-    display: flex;
-    gap: 12px;
-  }
-  #shopify-section-{{ section.id }} .collection__filter-price-field {
-    flex: 1;
-  }
-  #shopify-section-{{ section.id }} .collection__filter-actions {
-    display: flex;
-    gap: 8px;
-    align-items: flex-end;
-  }
-  #shopify-section-{{ section.id }} .collection__toolbar-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-top: 16px;
-  }
-  #shopify-section-{{ section.id }} .collection__count {
-    font-size: var(--f2);
-    opacity: 0.8;
-  }
-  #shopify-section-{{ section.id }} .collection__sort {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  #shopify-section-{{ section.id }} .collection__sort-label {
-    margin-bottom: 0;
-    white-space: nowrap;
-  }
-  #shopify-section-{{ section.id }} .collection__sort .select__select {
-    width: auto;
-    min-width: 200px;
-  }
-  #shopify-section-{{ section.id }} .collection__empty {
-    text-align: center;
-    padding: 60px 0;
-    font-size: var(--f3);
-  }
-  #shopify-section-{{ section.id }} .collection__empty .button {
-    margin-top: 20px;
-  }
-  #shopify-section-{{ section.id }} .pagination {
-    margin-top: 40px;
-  }
-  #shopify-section-{{ section.id }} .pagination__list {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  #shopify-section-{{ section.id }} .pagination__item {
+
+  /* ---------- Painel de filtros ---------- */
+  #shopify-section-{{ section.id }} .filtros { position: relative; }
+  #shopify-section-{{ section.id }} .filtros__botao { list-style: none; }
+  #shopify-section-{{ section.id }} .filtros__botao::-webkit-details-marker { display: none; }
+  #shopify-section-{{ section.id }} .filtros[open] .filtros__botao { color: var(--color-accent-readable); }
+  #shopify-section-{{ section.id }} .filtros__contador {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 40px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 10px;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-on-accent);
+    background-color: var(--color-accent);
+    border-radius: var(--radius-pill);
+  }
+
+  #shopify-section-{{ section.id }} .filtros__painel {
+    position: absolute;
+    top: calc(100% + var(--space-2xs));
+    right: 0;
+    z-index: 30;
+    width: min(680px, calc(100vw - var(--page-gutter) * 2));
+    padding: var(--space-md);
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+  }
+  #shopify-section-{{ section.id }} .filtros[open] .filtros__painel {
+    animation: filtrosEntra var(--dur-normal) var(--ease-out);
+  }
+  @keyframes filtrosEntra {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  #shopify-section-{{ section.id }} .filtros__grupos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-md);
+  }
+  #shopify-section-{{ section.id }} .filtros__grupo { border: 0; margin: 0; padding: 0; min-width: 0; }
+  #shopify-section-{{ section.id }} .filtros__titulo {
+    padding: 0;
+    margin-bottom: var(--space-2xs);
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+  #shopify-section-{{ section.id }} .filtros__valores {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  #shopify-section-{{ section.id }} .filtros__valor {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2xs);
     min-height: 40px;
-    padding: 0 8px;
     font-size: var(--f2);
     color: var(--color-text-primary);
+    cursor: pointer;
+  }
+  #shopify-section-{{ section.id }} .filtros__valor.is-vazio { color: var(--color-text-disabled); cursor: not-allowed; }
+  #shopify-section-{{ section.id }} .filtros__valor input { position: absolute; opacity: 0; pointer-events: none; }
+  /* Caixa de seleção desenhada: a nativa ignora a paleta da marca
+     na maior parte dos navegadores. */
+  #shopify-section-{{ section.id }} .filtros__marca {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius-xs);
+    box-shadow: inset 0 0 0 1px var(--color-border-strong);
+    transition: background-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  }
+  #shopify-section-{{ section.id }} .filtros__valor input:checked + .filtros__marca {
+    background-color: var(--color-accent);
+    box-shadow: inset 0 0 0 1px var(--color-accent);
+  }
+  #shopify-section-{{ section.id }} .filtros__valor input:focus-visible + .filtros__marca {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+  #shopify-section-{{ section.id }} .filtros__contagem {
+    margin-left: auto;
+    font-size: var(--f0);
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  #shopify-section-{{ section.id }} .filtros__preco { display: flex; gap: var(--space-2xs); }
+  #shopify-section-{{ section.id }} .filtros__preco-campo { flex: 1; min-width: 0; }
+  #shopify-section-{{ section.id }} .filtros__acoes {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--color-border);
+  }
+
+  /* ---------- Chips dos filtros ativos ---------- */
+  #shopify-section-{{ section.id }} .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs);
+    list-style: none;
+    margin: 0 0 var(--space-md);
+    padding: 0;
+  }
+  #shopify-section-{{ section.id }} .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    min-height: 32px;
+    padding: 0 var(--space-2xs) 0 var(--space-xs);
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-primary);
     text-decoration: none;
-    border: 1px solid transparent;
-    border-radius: var(--inputs-radius, 4px);
+    border-radius: var(--radius-pill);
+    box-shadow: inset 0 0 0 1px var(--color-border-strong);
+    transition: box-shadow var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
   }
-  #shopify-section-{{ section.id }} a.pagination__item:hover {
-    border-color: var(--color-border);
-  }
-  #shopify-section-{{ section.id }} .pagination__item--current {
-    border-color: var(--color-accent);
-    font-weight: var(--font-weight-semibold);
-  }
+  #shopify-section-{{ section.id }} .chip:hover { color: var(--color-accent-readable); box-shadow: inset 0 0 0 1px var(--color-border-accent); }
+  #shopify-section-{{ section.id }} .chip__x { font-size: var(--f2); line-height: 1; }
+  #shopify-section-{{ section.id }} .chip--limpar { color: var(--color-text-muted); box-shadow: none; text-decoration: underline; }
+
+  /* ==========================================================
+     CELULAR
+     ==========================================================
+     O painel deixa de flutuar e passa a ocupar a largura inteira,
+     ancorado abaixo da barra: num aparelho estreito, um dropdown de
+     680px viraria uma caixa cortada pela borda da tela. */
   @media screen and (max-width: 1000px) {
-    #shopify-section-{{ section.id }} .collection__toolbar-bar {
-      flex-direction: column;
-      align-items: stretch;
+    #shopify-section-{{ section.id }} .toolbar { gap: var(--space-2xs); }
+    #shopify-section-{{ section.id }} .filtros { position: static; }
+    #shopify-section-{{ section.id }} .filtros__painel {
+      left: 0;
+      right: 0;
+      width: auto;
+      max-height: 70vh;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: var(--space-sm);
     }
-    #shopify-section-{{ section.id }} .collection__sort .select__select {
-      min-width: 0;
-      flex: 1;
+    #shopify-section-{{ section.id }} .filtros__grupos { grid-template-columns: 1fr; gap: var(--space-sm); }
+    #shopify-section-{{ section.id }} .filtros__valores { max-height: none; }
+    /* O "Aplicar" fica ao alcance do polegar mesmo com a lista longa */
+    #shopify-section-{{ section.id }} .filtros__acoes {
+      position: sticky;
+      bottom: calc(var(--space-sm) * -1);
+      background-color: var(--color-background);
+      padding-bottom: var(--space-sm);
+      margin-bottom: calc(var(--space-sm) * -1);
     }
+    #shopify-section-{{ section.id }} .filtros__acoes .button { flex: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #shopify-section-{{ section.id }} .filtros[open] .filtros__painel { animation: none; }
   }
 </style>
+
 
 {% schema %}
 {

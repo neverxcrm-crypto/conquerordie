@@ -44,7 +44,8 @@
     },
     "breadcrumb": {
       "label": "Você está aqui",
-      "home": "Início"
+      "home": "Início",
+      "collections": "Coleções"
     }
   },
   "accessibility": {
