@@ -93,7 +93,8 @@
         "collection_1": {
           "type": "featured_collection",
           "settings": {
-            "collection": "",
+            "collection": "hydrogen",
+            "image": "shopify://shop_images/SaveClip.App_810281602_17968658025152191_7938405011699436052_n.jpg",
             "title": "",
             "text": ""
           }
@@ -101,7 +102,8 @@
         "collection_2": {
           "type": "featured_collection",
           "settings": {
-            "collection": "",
+            "collection": "automated-collection",
+            "image": "shopify://shop_images/SaveClip.App_810449347_17968657986152191_513672015450062490_n.jpg",
             "title": "",
             "text": ""
           }
@@ -110,6 +112,7 @@
           "type": "featured_collection",
           "settings": {
             "collection": "",
+            "image": "shopify://shop_images/SaveClip.App_810051836_17968657989152191_228375354436273095_n.jpg",
             "title": "",
             "text": ""
           }
@@ -118,6 +121,7 @@
           "type": "featured_collection",
           "settings": {
             "collection": "",
+            "image": "shopify://shop_images/SaveClip.App_809258737_17968657998152191_6658366200642838448_n_1.jpg",
             "title": "",
             "text": ""
           }
