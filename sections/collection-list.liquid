@@ -51,21 +51,28 @@
 >
   <div class="page-width">
     {%- if has_intro -%}
-      <header class="collection-list__intro" data-reveal>
+      {%- comment -%}
+        A entrada da intro é CSS puro (data-reveal, em base.css), não
+        GSAP: o título precisa animar em QUALQUER aparelho, inclusive
+        nos que não baixam o GSAP (ver carregar-movimento.liquid).
+        data-reveal-group faz a cascata contar eyebrow → linha 1 →
+        linha 2 → apoio, na ordem em que se lê.
+      {%- endcomment -%}
+      <header class="collection-list__intro" data-reveal-group>
         <div class="collection-list__intro-main">
           {%- if section.settings.eyebrow != blank -%}
-            <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+            <p class="eyebrow" data-reveal>{{ section.settings.eyebrow | escape }}</p>
           {%- endif -%}
           {%- if section.settings.heading != blank -%}
             {%- assign heading_lines = section.settings.heading | newline_to_br | split: '<br />' -%}
             <h2 class="collection-list__heading">
               {%- for line in heading_lines -%}
-                <span class="collection-list__line"><span class="collection-list__line-inner" data-collection-line>{{ line | strip }}</span></span>
+                <span class="collection-list__line" data-reveal="mask"><span class="collection-list__line-inner reveal-mask__inner">{{ line | strip }}</span></span>
               {%- endfor -%}
             </h2>
           {%- endif -%}
         </div>
-        <div class="collection-list__intro-aside">
+        <div class="collection-list__intro-aside" data-reveal>
           {%- if section.settings.text != blank -%}
             <p class="collection-list__text">{{ section.settings.text | escape }}</p>
           {%- endif -%}
@@ -662,20 +669,7 @@
             }
           );
 
-          var lines = section.querySelectorAll('[data-collection-line]');
-          if (lines.length) {
-            gsap.fromTo(lines,
-              { yPercent: 110, rotate: 2 },
-              {
-                yPercent: 0,
-                rotate: 0,
-                duration: 1.2,
-                ease: 'expo.out',
-                stagger: 0.1,
-                scrollTrigger: { trigger: section, start: 'top 78%', once: true }
-              }
-            );
-          }
+          // (A entrada do título é CSS — ver o markup da intro.)
         });
       }
 

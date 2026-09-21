@@ -118,11 +118,25 @@ summary:focus-visible,
    (já cumpriu seu papel na abertura) e a header ocupa o topo —
    uma transição de estado, não um sumiço.
 
-   --aviso-altura é medida pela própria barra (script da section) e
-   vale 0 quando não existe barra nenhuma: páginas sem ela ficam
-   exatamente como estavam. */
-.section-aviso.aviso-fixa,
-.section-aviso:has(+ .section-header) {
+   --aviso-altura é medida pelo script da header (nav.liquid), que
+   roda em todas as páginas, e vale 0 quando não existe barra
+   nenhuma: páginas sem ela ficam exatamente como estavam.
+
+   O seletor é [class*='section-aviso'] em vez do nome exato de uma
+   classe porque a section da barra já trocou de implementação (e de
+   classe: section-aviso → section-aviso-marquee). Casar pelo prefixo
+   faz a pilha continuar funcionando quando a faixa for reescrita de
+   novo — o que, para uma barra de campanha, é o normal. */
+/* ATENÇÃO — as regras com :has() ficam SEPARADAS das outras.
+
+   Um seletor inválido invalida a LISTA inteira em que está. Como
+   :has() só existe a partir do Chrome 105, Safari 15.4 e Firefox
+   121, juntar os dois seletores numa lista só faria com que, num
+   navegador mais antigo, a regra inteira fosse descartada — levando
+   junto o caminho .aviso-fixa, que é justamente o que o JavaScript
+   usa para cobrir esses navegadores. Separadas, cada uma cai ou
+   sobrevive sozinha. */
+[class*='section-aviso'].aviso-fixa {
   position: fixed;
   top: 0;
   left: 0;
@@ -130,9 +144,26 @@ summary:focus-visible,
   z-index: 499;
   transition: transform var(--dur-emphasis) var(--ease-out);
 }
-html.rolou .section-aviso.aviso-fixa,
-html.rolou .section-aviso:has(+ .section-header) { transform: translate3d(0, -100%, 0); }
+[class*='section-aviso']:has(+ .section-header) {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 499;
+  transition: transform var(--dur-emphasis) var(--ease-out);
+}
+html.rolou [class*='section-aviso'].aviso-fixa { transform: translate3d(0, -100%, 0); }
+html.rolou [class*='section-aviso']:has(+ .section-header) { transform: translate3d(0, -100%, 0); }
 html.rolou .section-header { transform: none; }
+
+/* Barra recolhida = marquise parada.
+
+   Enquanto a faixa está fora de vista, uma animação infinita
+   continuaria acordando o compositor a cada frame para deslizar um
+   texto que ninguém vê — e disputando justamente com a rolagem.
+   animation-play-state não reinicia o ciclo: ao voltar ao topo, o
+   texto continua de onde parou. */
+html.rolou [class*='section-aviso'] .aviso-marquee__track { animation-play-state: paused; }
 
 /* SÓ a barra que está colada na header entra na pilha.
    Duas condições, uma para cada cenário:
@@ -149,7 +180,7 @@ html.rolou .section-header { transform: none; }
    A altura reservada nasce estimada e é corrigida pela medida real
    assim que o script roda (ele escreve --aviso-altura no <html>).
    Estimar antes evita o salto de layout do primeiro paint. */
-html:has(.section-aviso + .section-header) { --aviso-altura: 40px; }
+html:has([class*='section-aviso'] + .section-header) { --aviso-altura: 40px; }
 
 .content-for-layout {
   /* O <main> reserva a pilha inteira: header + barra (0 sem barra). */
@@ -157,7 +188,7 @@ html:has(.section-aviso + .section-header) { --aviso-altura: 40px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .section-aviso,
+  [class*='section-aviso'],
   .section-header { transition-duration: 0.01ms; }
 }
 

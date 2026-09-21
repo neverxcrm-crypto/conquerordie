@@ -60,8 +60,16 @@
   var wrapper = document.getElementById('smooth-wrapper');
   var content = document.getElementById('smooth-content');
 
-  /* Tela de toque (celular/tablet): ponteiro grosso ou viewport
-     estreita. No toque o ScrollSmoother troca a rolagem nativa —
+  /* Tela de toque (celular/tablet): SEM mouse disponivel, ou
+     viewport estreita.
+
+     A pergunta e "existe algum ponteiro fino?" (any-pointer) e nao
+     "o ponteiro primario e fino?" (pointer). Num notebook com tela
+     sensivel ao toque o sistema costuma declarar o toque como
+     primario, e a maquina caia aqui mesmo tendo trackpad — perdendo
+     as animacoes sem nenhum motivo. Mesma regra usada em
+     snippets/carregar-movimento.liquid: as duas precisam concordar,
+     senao o tema baixaria as libs e nao as usaria. No toque o ScrollSmoother troca a rolagem nativa —
      com inercia e barra de endereco retratil — por um transform
      pintado em JS a cada frame. E o que fazia o site engasgar no
      celular. Aqui o efeito simplesmente nao liga.
@@ -69,7 +77,7 @@
      (snippets/carregar-movimento.liquid); esta guarda cobre o resto:
      janela de desktop redimensionada para estreita, cache antigo e
      o editor de temas em preview mobile. */
-  var toque = mq('(pointer: coarse)') || !mq('(min-width: 1001px)');
+  var toque = !(mq('(any-pointer: fine)') && mq('(any-hover: hover)')) || !mq('(min-width: 1001px)');
 
   /* Altura do que fica fixo no topo: header + barra de avisos (0
      quando não há barra). É o offset que âncoras e elementos

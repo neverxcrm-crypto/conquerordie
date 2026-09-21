@@ -17,9 +17,9 @@
      endereco. E a causa numero 1 de "travar no mobile".
 
   O QUE FAZ AGORA:
-  - Desktop com mouse (pointer: fine e >= 1001px — o mesmo
-    breakpoint que o CSS do tema usa), sem prefers-reduced-motion
-    e sem economia de dados:
+  - Desktop com mouse (any-pointer: fine e >= 1001px — o mesmo
+    breakpoint que o CSS do tema usa), sem prefers-reduced-motion,
+    sem economia de dados e sem sinais de aparelho fraco:
     carrega gsap + ScrollTrigger + ScrollSmoother + movimento.js,
     exatamente como antes. Nada muda na experiencia.
   - Celular / tablet / qualquer tela de toque:
@@ -58,42 +58,57 @@
     var economico = !!(conn && (conn.saveData || /(^|-)(2g|slow-2g)$/.test(conn.effectiveType || '')));
 
     /* ---------------------------------------------------------
-       Aparelho fraco — a peneira que faltava.
+       Aparelho fraco — a peneira.
 
-       Ter mouse e tela grande NAO quer dizer ter maquina. Um
-       notebook de entrada, ou um de 8 anos atras, passa nos testes
-       de ponteiro e largura e entao recebia a experiencia completa:
-       131 KB de JS mais o ScrollSmoother, que repinta a pagina a
-       cada frame de rolagem. E justamente a maquina que menos
-       aguenta isso.
+       Ter mouse e tela grande NAO quer dizer ter maquina: um
+       notebook de entrada passa nos testes de ponteiro e largura e
+       receberia o ScrollSmoother, que repinta a pagina a cada frame
+       de rolagem. Por outro lado, a peneira antiga era severa
+       demais e reprovava maquinas perfeitamente capazes — quem
+       usasse uma delas via metade das animacoes do site sumir.
 
-       Dois sinais que o navegador entrega de graca:
+       O que mudou e POR QUE:
 
-       hardwareConcurrency — nucleos logicos de CPU. Ate 4 e a faixa
-       dos processadores de entrada e dos notebooks antigos. O
-       ScrollSmoother divide a thread principal com o resto do
-       tema; com poucos nucleos nao ha para onde escoar.
+       deviceMemory arredonda PARA BAIXO ate a potencia de 2 mais
+       proxima. Um notebook de 6 GB responde "4". So o Chromium
+       implementa (Safari e Firefox devolvem undefined). Sozinho,
+       esse numero reprovava maquinas de 6 GB sem motivo.
 
-       deviceMemory — memoria RAM em GB, arredondada. Ate 4 GB e
-       aparelho de entrada. So o Chromium implementa, entao e
-       tratado como bonus: se vier undefined, o teste nao reprova
-       ninguem.
+       hardwareConcurrency <= 4 pegava qualquer quad-core. Um
+       quad-core moderno roda isto sem suar; um dual-core, nao.
 
-       Na duvida o tema fica com o caminho leve. Um efeito a menos
-       num aparelho capaz passa despercebido; a rolagem travando num
-       aparelho fraco, nao.
+       Agora os sinais precisam CONCORDAR: reprova de cara so quem
+       tem 2 nucleos ou menos; com 3 ou 4 nucleos, e preciso TAMBEM
+       ter pouca memoria. Na duvida (sinal ausente), aprova — um
+       efeito a mais num aparelho mediano passa despercebido, e o
+       modo leve continua valendo para quem realmente precisa.
     --------------------------------------------------------- */
     var nucleos = navigator.hardwareConcurrency;
     var memoria = navigator.deviceMemory;
-    var fraco =
-      (typeof nucleos === 'number' && nucleos > 0 && nucleos <= 4) ||
-      (typeof memoria === 'number' && memoria > 0 && memoria <= 4);
 
-    // Ponteiro fino + tela grande = desktop com mouse. Celular e
-    // tablet tem pointer: coarse e ficam de fora.
+    var poucosNucleos = typeof nucleos === 'number' && nucleos > 0 && nucleos <= 4;
+    var pouquissimosNucleos = typeof nucleos === 'number' && nucleos > 0 && nucleos <= 2;
+    var poucaMemoria = typeof memoria === 'number' && memoria > 0 && memoria <= 4;
+
+    var fraco = pouquissimosNucleos || (poucosNucleos && poucaMemoria);
+
+    /* ---------------------------------------------------------
+       Tem mouse? — any-pointer em vez de pointer.
+
+       'pointer' descreve o ponteiro PRIMARIO. Num notebook com tela
+       sensivel ao toque, o Windows costuma declarar o toque como
+       primario, e a maquina caia no modo leve mesmo com trackpad e
+       mouse ligados. 'any-pointer' pergunta se existe ALGUM
+       ponteiro fino disponivel, que e a pergunta certa: o hover so
+       precisa de um mouse em algum lugar.
+
+       A largura minima continua separando celular e tablet.
+    --------------------------------------------------------- */
+    var temMouse = mq('(any-pointer: fine)') && mq('(any-hover: hover)');
+
     var completo =
       mq('(min-width: 1001px)') &&
-      mq('(pointer: fine)') &&
+      temMouse &&
       !mq('(prefers-reduced-motion: reduce)') &&
       !economico &&
       !fraco;

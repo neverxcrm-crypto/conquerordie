@@ -265,12 +265,16 @@
      tamanho real. É transform puro (a GPU resolve sem repintar) e
      acontece UMA vez, na entrada do slide.
 
-     Só em html.motion-full: num aparelho de entrada, animar uma
-     imagem que ocupa a tela inteira no mesmo instante em que a
-     página está montando é justamente o que atrasa o primeiro
-     gesto de rolagem. Lá a foto entra parada — e ninguém sente
-     falta do que nunca viu. */
-  .motion-full .hero__slide.is-active .hero__image {
+     Vale em QUALQUER aparelho. Antes era exclusiva do
+     html.motion-full, e o resultado é que a mesma loja abria com
+     personalidade num computador e sem nenhuma num outro — sem que
+     o segundo ganhasse nada de verdade: é uma única camada já
+     composta, animada uma vez, que não repinta pixel nenhum e não
+     atrasa o LCP (transform não muda o momento da pintura).
+
+     O que continua restrito ao motion-full é o que custa POR FRAME:
+     rolagem suavizada e parallax. */
+  .hero__slide.is-active .hero__image {
     animation: heroFoto 1200ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
   }
   @keyframes heroFoto {
@@ -463,7 +467,7 @@
   @media (prefers-reduced-motion: reduce) {
     .js .hero__slide .hero__element { opacity: 1; }
     .js .hero__slide.is-active .hero__element,
-    .motion-full .hero__slide.is-active .hero__image { animation: none; }
+    .hero__slide.is-active .hero__image { animation: none; }
     .hero__slide { transition-duration: 0.01ms !important; }
   }
 </style>

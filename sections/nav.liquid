@@ -1031,6 +1031,38 @@
        A checagem acontece uma vez, na montagem, e de novo quando o
        editor de temas recria uma section.
     --------------------------------------------------------- */
+    /* ---------------------------------------------------------
+       A PILHA DO TOPO — medir a barra de avisos
+
+       A header é fixa e precisa ficar logo ABAIXO da faixa de
+       avisos; o <main> precisa reservar as duas (ver base.css).
+       Só a barra sabe sua altura real — ela muda com a fonte da
+       loja, com o zoom e com o tamanho do texto de cada campanha.
+
+       A medida mora aqui, e não na section da barra, por dois
+       motivos: este script roda em todas as páginas, e a faixa é o
+       tipo de section que é reescrita de tempos em tempos (já
+       trocou de marquise para carrossel e de volta). Quem depende
+       do número é a header, então é ela quem mede.
+
+       offsetHeight força layout: medimos na montagem e em resize,
+       nunca durante a rolagem.
+    --------------------------------------------------------- */
+    function medirAviso() {
+      var barra = document.querySelector('[class*="section-aviso"]');
+      var noTopo = barra && barra.nextElementSibling &&
+        barra.nextElementSibling.classList.contains('section-header');
+
+      if (!noTopo) {
+        document.documentElement.style.removeProperty('--aviso-altura');
+        if (barra) barra.classList.remove('aviso-fixa');
+        return;
+      }
+
+      barra.classList.add('aviso-fixa');
+      document.documentElement.style.setProperty('--aviso-altura', barra.offsetHeight + 'px');
+    }
+
     function conferirOverlay() {
       var primeira = document.querySelector('#MainContent > .shopify-section:first-child');
       var temOverlay = !!(primeira && primeira.querySelector('[data-header-overlay]'));
@@ -1126,7 +1158,15 @@
     }
 
     conferirOverlay();
-    document.addEventListener('shopify:section:load', conferirOverlay);
+    medirAviso();
+    window.addEventListener('resize', medirAviso);
+    /* A fonte da loja chega depois do primeiro paint e muda a
+       altura da linha da faixa: remede quando ela carregar. */
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(medirAviso);
+    document.addEventListener('shopify:section:load', function () {
+      conferirOverlay();
+      medirAviso();
+    });
 
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', remedir);
