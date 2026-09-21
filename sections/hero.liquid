@@ -12,7 +12,7 @@
   data-section-id="{{ section.id }}"
   {%- comment -%} A header fica transparente sobre esta section (ver nav.liquid). {%- endcomment -%}
   data-header-overlay
-  {% if slide_count > 1 %}data-hero-carousel role="region" aria-roledescription="carousel" aria-label="{{ shop.name | escape }}"{% endif %}
+  {% if slide_count > 1 %}data-hero-carousel role="region" aria-roledescription="carousel" aria-label="{{ shop.name | escape }}" tabindex="0"{% endif %}
 >
   <ul class="hero__slides" role="list">
     {%- for block in slides -%}
@@ -156,7 +156,7 @@
   .hero {
     margin-top: calc(-1 * var(--header-height, 70px));
     position: relative;
-    background-color: #000000;
+    background-color: var(--color-background, #000000);
     overflow: hidden;
   }
   .hero__slides { list-style: none; margin: 0; padding: 0; display: grid; }
@@ -190,7 +190,9 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: var(--photo-veil-side, linear-gradient(to right, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0) 100%));
+    background:
+      var(--photo-veil-bottom, linear-gradient(to top, rgba(0, 0, 0, 0.82), transparent 70%)),
+      var(--photo-veil-side, linear-gradient(to right, rgba(0, 0, 0, 0.76) 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0) 100%));
     pointer-events: none;
   }
 
@@ -199,7 +201,7 @@
     position: relative;
     z-index: 2;
     width: 100%;
-    padding-bottom: clamp(56px, 9vh, 120px);
+    padding-bottom: clamp(72px, 11vh, 148px);
   }
   @media screen and (min-width: 1001px) {
     .hero__content { padding-bottom: 0; }
@@ -207,7 +209,7 @@
 
   .hero__text-container {
     position: relative;
-    max-width: 34rem;
+    max-width: min(42rem, 52vw);
     width: 100%;
   }
 
@@ -346,10 +348,13 @@
 
   /* Tipografia */
   .hero__heading {
-    font-size: var(--f8);
+    max-width: 9ch;
+    font-size: clamp(3.2rem, 7.5vw, 7.2rem);
+    line-height: 0.9;
     margin: 0;
     color: var(--color-text-primary, #ffffff);
     text-shadow: 0 4px 16px rgba(0, 0, 0, 0.9);
+    text-wrap: balance;
   }
   .hero__subheading {
     font-family: var(--font-ui-family);
@@ -404,7 +409,7 @@
   .hero__indicator {
     position: absolute;
     right: var(--page-gutter, 20px);
-    bottom: clamp(56px, 9vh, 120px);
+    bottom: clamp(72px, 11vh, 148px);
     z-index: 3;
     display: flex;
     flex-direction: column;
@@ -453,13 +458,18 @@
     .hero--default .hero__slide { min-height: 70vh; }
     .hero--tall .hero__slide { min-height: 100vh; min-height: 100dvh; }
 
+    .hero__heading { max-width: 10ch; font-size: clamp(3rem, 16vw, 5rem); }
     .hero__heading-shadow { inset: -20px -20px; }
     .hero__cta-shadow { inset: -15px -20px; }
     .hero__text-container { max-width: 100%; }
     .hero__body { max-width: 100%; }
     .hero__element--cta { width: 100%; }
     .hero__cta { width: 100%; }
-    .hero__indicator { flex-direction: row; bottom: 20px; right: var(--page-gutter, 20px); }
+    .hero__indicator {
+      flex-direction: row;
+      bottom: max(20px, env(safe-area-inset-bottom, 0px));
+      right: var(--page-gutter, 20px);
+    }
     .hero__counter { flex-direction: row; gap: 4px; }
     .hero__counter-total::before { display: none; }
   }

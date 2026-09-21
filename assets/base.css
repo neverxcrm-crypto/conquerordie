@@ -1641,3 +1641,177 @@ a.pagination__item:hover { color: var(--color-text-primary); border-color: var(-
   contain-intrinsic-size: 600px;
   contain-intrinsic-size: auto 600px;
 }
+
+/* ==========================================================
+   POLIMENTO DO SISTEMA — ritmo visual, toque e performance
+   ==========================================================
+   Esta camada fica no fim do arquivo para manter compatibilidade com
+   sections antigas que ainda têm estilos locais. O objetivo é dar ao
+   tema uma linguagem única sem depender de JS para efeitos básicos.
+*/
+
+html {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  overflow-x: clip;
+}
+
+.shopify-section {
+  position: relative;
+  isolation: isolate;
+}
+
+.section-space,
+.featured-collection,
+.collection-list,
+.brand-story,
+.rich-text {
+  scroll-margin-top: calc(var(--header-height, 72px) + 24px);
+}
+
+.button,
+button.button,
+.arrow-link {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.button svg,
+.arrow-link svg,
+.header__action-button svg {
+  flex: none;
+  transition: transform var(--dur-normal, 240ms) var(--ease-out, ease-out);
+}
+
+.button:hover svg,
+.arrow-link:hover svg,
+.arrow-link:focus-visible svg {
+  transform: translateX(4px);
+}
+
+.button {
+  min-width: 148px;
+  border-radius: var(--buttons-radius, 4px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+}
+
+.button::before {
+  position: absolute;
+  inset: 1px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: inherit;
+  content: '';
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-fast, 160ms) var(--ease-out, ease-out);
+}
+
+.button:hover::before,
+.button:focus-visible::before {
+  opacity: 1;
+}
+
+.product-grid {
+  gap: clamp(16px, 2vw, 32px) clamp(12px, 2.2vw, 32px);
+}
+
+.card-product__media {
+  isolation: isolate;
+  box-shadow: 0 0 0 1px var(--color-border);
+  transition:
+    box-shadow var(--dur-emphasis, 360ms) var(--ease-out, ease-out),
+    transform var(--dur-emphasis, 360ms) var(--ease-out, ease-out);
+}
+
+.card-product__media::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 34%);
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-emphasis, 360ms) var(--ease-out, ease-out);
+}
+
+.card-product:hover .card-product__media,
+.card-product__link:focus-visible .card-product__media {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--color-border-strong);
+}
+
+.card-product:hover .card-product__media::after,
+.card-product__link:focus-visible .card-product__media::after {
+  opacity: 1;
+}
+
+.card-product__info {
+  padding-top: clamp(12px, 1.2vw, 18px);
+}
+
+.card-product__title {
+  transition: color var(--dur-fast, 160ms) var(--ease-out, ease-out);
+}
+
+.card-product__link:hover .card-product__title,
+.card-product__link:focus-visible .card-product__title {
+  color: var(--color-accent-readable);
+}
+
+.card-product__quick-add {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+}
+
+@media screen and (max-width: 1000px) {
+  :root {
+    --page-gutter: 18px;
+  }
+
+  .section-space,
+  .featured-collection,
+  .collection-list,
+  .brand-story,
+  .rich-text {
+    scroll-margin-top: calc(var(--header-height, 64px) + 16px);
+  }
+
+  .product-grid {
+    gap: 24px 12px;
+  }
+
+  .card-product__media {
+    box-shadow: 0 0 0 1px var(--color-border);
+  }
+}
+
+@media screen and (max-width: 560px) {
+  .page-width {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .product-grid {
+    gap: 22px 10px;
+  }
+
+  .card-product__info {
+    padding-top: 10px;
+  }
+
+  .card-product__title,
+  .price--card {
+    font-size: var(--f1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button::before,
+  .card-product__media::after,
+  .card-product__title {
+    transition: none;
+  }
+}

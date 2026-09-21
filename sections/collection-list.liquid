@@ -272,6 +272,7 @@
 
     #shopify-section-{{ section.id }} .collection-list__rail {
       overflow-x: auto;
+      touch-action: pan-x;
       overscroll-behavior-x: contain;
       scroll-snap-type: x mandatory;
       scroll-padding-inline: var(--page-gutter, 16px);
@@ -284,7 +285,7 @@
     }
     #shopify-section-{{ section.id }} .collection-list__rail::-webkit-scrollbar { display: none; }
     #shopify-section-{{ section.id }} .collection-list__item {
-      flex: 0 0 clamp(260px, 44vw, 380px);
+      flex: 0 0 clamp(270px, 44vw, 390px);
       scroll-snap-align: start;
     }
     #shopify-section-{{ section.id }} .collection-panel {

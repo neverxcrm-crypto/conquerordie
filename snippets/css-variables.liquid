@@ -504,7 +504,7 @@
        porque a header é fixed e sai do fluxo. O valor NÃO muda no
        estado comprimido de propósito: se o espaçador encolhesse
        junto, a página daria um salto de 12px no meio do scroll. */
-    --header-height: 68px;
+     --header-height: 72px;
 
     /* Layout */
     --page-width: {{ settings.page_width }}px;
@@ -530,8 +530,8 @@
     --cor-verde: var(--color-success);
   }
 
-  @media screen and (max-width: 749px) {
-    :root { --header-height: 58px; }
+  @media screen and (max-width: 1000px) {
+    :root { --header-height: 64px; }
   }
 
   body {
