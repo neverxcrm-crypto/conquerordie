@@ -1,86 +1,179 @@
 {%- comment -%}
   ============================================================
-  COLLECTION BANNER — cabeçalho da página de coleção
+  COLLECTION BANNER — abertura editorial da coleção
   ============================================================
 
   O QUE FAZ:
-  Exibe o topo da página de coleção: título da coleção e,
-  opcionalmente, a imagem e a descrição da coleção.
+  O topo da página de coleção: breadcrumb, rótulo, título, descrição
+  curta e contagem de peças. Duas composições, escolhidas pelo
+  material disponível:
+
+  COM IMAGEM  a foto ocupa a largura toda, o texto fica sobre ela com
+              um véu de contraste — mesma linguagem da Home.
+  SEM IMAGEM  cabeçalho tipográfico, no ritmo das outras páginas
+              internas (.page-header, em base.css).
+
+  Não é a Home encolhida: aqui a foto é um cabeçalho (altura curta),
+  não um hero de tela cheia. A página é um catálogo, e o produto
+  precisa começar acima da dobra.
 
   ONDE É USADA:
-  No template de coleção (templates/collection.json), geralmente
-  acima da section main-collection.
+  templates/collection.json, acima de main-collection.
 
-  PRINCIPAIS PARTES:
-  - Imagem (collection-banner__media): renderizada só se o setting
-    show_image estiver ligado e a coleção tiver imagem.
-  - Título (h1) com collection.title.
-  - Descrição (rte): renderizada só se show_description estiver
-    ligado e collection.description existir.
+  O RÓTULO ("COLLECTION 002"):
+  vem do setting `eyebrow` da section. Fica a cargo do lojista porque
+  é editorial — numeração de drop, temporada, o que fizer sentido.
 
   OBSERVAÇÕES:
-  - Usa os dados da coleção atual (objeto collection); não tem
-    campos de texto próprios no schema, apenas os toggles de
-    imagem e descrição.
-  - Estilos inline no <style>, escopados por
-    #shopify-section-{{ section.id }}.
+  - A imagem é o LCP quando existe: carrega eager, com fetchpriority
+    high e sizes 100vw.
+  - O véu é um degradê pintado de uma vez, não um blur: contraste de
+    texto sem custo por frame.
 {%- endcomment -%}
-
-<div class="collection-banner page-width" data-section-id="{{ section.id }}">
-  {%- if section.settings.show_image and collection.image -%}
-    <div class="collection-banner__media">
+{%- liquid
+  assign tem_imagem = false
+  if section.settings.show_image and collection.image
+    assign tem_imagem = true
+  endif
+-%}
+<div
+  class="col-hero {% if tem_imagem %}col-hero--foto scheme-dark{% endif %}"
+  data-section-id="{{ section.id }}"
+  {% if tem_imagem %}data-header-overlay{% endif %}
+>
+  {%- if tem_imagem -%}
+    <div class="col-hero__media">
       {{
         collection.image
-        | image_url: width: 1920
+        | image_url: width: 2400
         | image_tag:
           loading: 'eager',
+          fetchpriority: 'high',
           sizes: '100vw',
-          widths: '540, 720, 900, 1080, 1440, 1920',
-          class: 'collection-banner__image',
+          widths: '540, 720, 900, 1080, 1440, 1920, 2400',
+          class: 'col-hero__image',
           alt: collection.image.alt | default: collection.title | escape
       }}
     </div>
   {%- endif -%}
 
-  <div class="collection-banner__text">
-    <h1 class="collection-banner__title">{{ collection.title }}</h1>
-    {%- if section.settings.show_description and collection.description != blank -%}
-      <div class="collection-banner__description rte">{{ collection.description }}</div>
-    {%- endif -%}
+  <div class="col-hero__inner page-width">
+    <nav class="breadcrumb col-hero__breadcrumb" aria-label="{{ 'general.breadcrumb.label' | t }}">
+      <ol class="breadcrumb__list" role="list">
+        <li class="breadcrumb__item"><a href="{{ routes.root_url }}">{{ 'general.breadcrumb.home' | t }}</a></li>
+        <li class="breadcrumb__item"><a href="{{ routes.collections_url }}">{{ 'general.breadcrumb.collections' | t }}</a></li>
+        <li class="breadcrumb__item" aria-current="page">{{ collection.title | escape }}</li>
+      </ol>
+    </nav>
+
+    <div class="col-hero__texto">
+      {%- if section.settings.eyebrow != blank -%}
+        <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+      {%- endif -%}
+
+      <h1 class="col-hero__titulo">{{ collection.title }}</h1>
+
+      {%- if section.settings.show_description and collection.description != blank -%}
+        <div class="col-hero__descricao rte">{{ collection.description }}</div>
+      {%- endif -%}
+
+      {%- if collection.all_products_count > 0 -%}
+        <p class="col-hero__meta">
+          {{ 'products.facets.product_count_simple' | t: count: collection.all_products_count }}
+        </p>
+      {%- endif -%}
+    </div>
   </div>
 </div>
 
 <style>
-  #shopify-section-{{ section.id }} .collection-banner {
-    margin-top: 24px;
-    margin-bottom: 24px;
+  #shopify-section-{{ section.id }} .col-hero {
+    position: relative;
+    background-color: var(--color-background);
   }
-  #shopify-section-{{ section.id }} .collection-banner__media {
-    width: 100%;
-    margin-bottom: 20px;
-    overflow: hidden;
-    border-radius: var(--media-radius, 8px);
-    background-color: var(--color-surface);
+  #shopify-section-{{ section.id }} .col-hero__inner {
+    position: relative;
+    z-index: 2;
+    padding-top: var(--space-md);
+    padding-bottom: clamp(24px, 3.5vw, 48px);
   }
-  #shopify-section-{{ section.id }} .collection-banner__image {
-    display: block;
-    width: 100%;
-    height: auto;
+  #shopify-section-{{ section.id }} .col-hero__breadcrumb { margin-bottom: var(--space-md); }
+  #shopify-section-{{ section.id }} .col-hero__texto {
+    display: grid;
+    gap: var(--space-2xs);
+    max-width: 44rem;
   }
-  #shopify-section-{{ section.id }} .collection-banner__text {
-    text-align: center;
-    max-width: 720px;
-    margin: 0 auto;
-  }
-  #shopify-section-{{ section.id }} .collection-banner__title {
-    font-size: var(--f7);
+  #shopify-section-{{ section.id }} .col-hero__titulo {
+    font-family: var(--font-display-family);
+    font-size: var(--f8);
+    font-weight: var(--font-weight-bold);
+    line-height: 0.96;
+    letter-spacing: var(--tracking-display);
+    text-transform: uppercase;
     margin: 0;
   }
-  #shopify-section-{{ section.id }} .collection-banner__description {
-    margin-top: 12px;
-    font-size: var(--f2);
-    color: var(--color-text-primary);
-    opacity: 0.8;
+  #shopify-section-{{ section.id }} .col-hero__descricao {
+    font-size: var(--f3);
+    line-height: var(--leading-body);
+    color: var(--color-text-secondary);
+    max-width: 52ch;
+  }
+  #shopify-section-{{ section.id }} .col-hero__descricao > p { margin: 0; }
+  #shopify-section-{{ section.id }} .col-hero__meta {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+    margin: var(--space-2xs) 0 0;
+  }
+
+  /* ==========================================================
+     COM FOTO — cabeçalho, não hero
+     ==========================================================
+     Altura curta de propósito: 42vh no desktop deixa a primeira
+     fileira de produtos aparecer na abertura. Um hero de tela
+     cheia aqui empurraria o catálogo para baixo da dobra — bonito
+     e ruim de vender. */
+  #shopify-section-{{ section.id }} .col-hero--foto {
+    display: flex;
+    align-items: flex-end;
+    min-height: clamp(320px, 42vh, 520px);
+    /* Sobe para debaixo da header transparente (ver nav.liquid) */
+    margin-top: calc(-1 * var(--header-height));
+    overflow: hidden;
+  }
+  #shopify-section-{{ section.id }} .col-hero--foto .col-hero__inner {
+    padding-top: calc(var(--header-height) + var(--space-md));
+    padding-bottom: clamp(28px, 4vw, 56px);
+  }
+  #shopify-section-{{ section.id }} .col-hero__media {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  #shopify-section-{{ section.id }} .col-hero__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 35%;
+    display: block;
+  }
+  /* Véu: escuro embaixo, onde o texto encosta; transparente no alto,
+     onde está a foto. */
+  #shopify-section-{{ section.id }} .col-hero__media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--photo-veil-bottom);
+    pointer-events: none;
+  }
+
+  @media screen and (max-width: 1000px) {
+    #shopify-section-{{ section.id }} .col-hero--foto { min-height: 300px; }
+    #shopify-section-{{ section.id }} .col-hero__descricao { font-size: var(--f2); }
   }
 </style>
 
@@ -91,6 +184,12 @@
   "class": "section-collection-banner",
   "settings": [
     {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Rótulo",
+      "info": "Aparece acima do título. Ex.: COLLECTION 002, DROP 003, INVERNO."
+    },
+    {
       "type": "checkbox",
       "id": "show_description",
       "default": true,
@@ -99,8 +198,9 @@
     {
       "type": "checkbox",
       "id": "show_image",
-      "default": false,
-      "label": "t:sections.collection_banner.settings.show_image.label"
+      "default": true,
+      "label": "t:sections.collection_banner.settings.show_image.label",
+      "info": "Usa a imagem da coleção como fundo do cabeçalho."
     }
   ]
 }
