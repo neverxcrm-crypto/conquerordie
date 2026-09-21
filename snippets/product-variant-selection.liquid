@@ -30,6 +30,8 @@
     var jsonEl = section.querySelector('[data-variant-json]');
     if (!form || !jsonEl) return;
 
+    var menosMovimento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     var variants;
     try { variants = JSON.parse(jsonEl.textContent); } catch (e) { return; }
 
@@ -88,10 +90,23 @@
         }
       }
 
-      // Swap the featured media to the one tied to this variant.
+      // Parcelamento: o texto de cada variante vem pronto do servidor.
+      var parcelas = section.querySelector('[data-parcelas]');
+      if (parcelas && variant.installments_html) { parcelas.innerHTML = variant.installments_html; }
+
+      /* Leva a galeria até a mídia da variante.
+         'inline' entrou junto com 'block' porque no celular a galeria
+         rola na HORIZONTAL: sem ele, escolher outra cor não mexia a
+         foto — o eixo pedido não era o eixo que rola. */
       if (gallery && variant.featured_media_id) {
         var target = gallery.querySelector('[data-media-id="' + variant.featured_media_id + '"]');
-        if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+        if (target) {
+          target.scrollIntoView({
+            behavior: menosMovimento ? 'auto' : 'smooth',
+            block: 'nearest',
+            inline: 'nearest'
+          });
+        }
       }
 
       // Keep the URL shareable.
@@ -108,6 +123,14 @@
         option.querySelectorAll('.product__swatch').forEach(function (l) { l.classList.remove('is-selected'); });
         var label = input.closest('.product__swatch');
         if (label) label.classList.add('is-selected');
+
+        /* O nome do valor escolhido, ao lado do rótulo ("Cor: Preto").
+           Num swatch de cor o círculo não diz o nome, e é o nome que a
+           pessoa confere antes de comprar. */
+        var indice = input.getAttribute('data-option-index');
+        var rotulo = option.querySelector('[data-opcao-valor="' + indice + '"]');
+        if (rotulo) rotulo.textContent = input.value;
+
         updateUI();
       });
     });

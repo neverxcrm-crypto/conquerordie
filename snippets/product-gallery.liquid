@@ -1,0 +1,143 @@
+{%- comment -%}
+  ============================================================
+  product-gallery — interações da galeria e da compra (PDP)
+  ============================================================
+
+  O QUE FAZ:
+  1. Marca a mídia ativa (miniatura no desktop, indicador no
+     celular) conforme a galeria é percorrida, e leva até ela ao
+     clicar.
+  2. Zoom: abre a foto em tela cheia num <dialog> nativo.
+  3. Barra fixa de compra no celular: aparece quando o botão
+     principal sai da tela.
+
+  COMO USAR:
+  {% render 'product-gallery', section_id: section.id %}
+
+  POR QUE IntersectionObserver E NÃO scroll:
+  a galeria é percorrida com o dedo, no mesmo gesto da rolagem da
+  página. Um listener de scroll mediria posição a cada frame
+  justamente durante o gesto; o observer avisa só quando a mídia
+  em foco muda — que é o único momento em que há algo a fazer.
+
+  DEGRADAÇÃO:
+  Sem JavaScript, a galeria continua sendo uma lista de fotos que
+  rola (e desliza, no celular), o botão de compra do formulário
+  continua funcionando e o zoom simplesmente não existe. Nada
+  depende deste arquivo para comprar.
+{%- endcomment -%}
+<script>
+  (function () {
+    'use strict';
+
+    var secao = document.querySelector('.pdp[data-section-id="{{ section_id }}"]');
+    if (!secao) return;
+
+    var menosMovimento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var comportamento = menosMovimento ? 'auto' : 'smooth';
+
+    /* ---------------------------------------------------------
+       1. Mídia ativa: miniaturas + indicadores
+    --------------------------------------------------------- */
+    var lista = secao.querySelector('[data-galeria]');
+    var itens = lista ? Array.prototype.slice.call(lista.querySelectorAll('[data-media-id]')) : [];
+    var miniaturas = Array.prototype.slice.call(secao.querySelectorAll('[data-thumb]'));
+    var pontos = Array.prototype.slice.call(secao.querySelectorAll('[data-dot]'));
+
+    function irPara(indice) {
+      var alvo = itens[indice];
+      if (!alvo) return;
+      alvo.scrollIntoView({ behavior: comportamento, block: 'center', inline: 'center' });
+    }
+
+    function marcar(indice) {
+      miniaturas.forEach(function (b, i) { b.setAttribute('aria-current', i === indice ? 'true' : 'false'); });
+      pontos.forEach(function (b, i) { b.setAttribute('aria-current', i === indice ? 'true' : 'false'); });
+    }
+
+    miniaturas.forEach(function (botao, i) {
+      botao.addEventListener('click', function () { irPara(i); marcar(i); });
+    });
+    pontos.forEach(function (botao, i) {
+      botao.addEventListener('click', function () { irPara(i); marcar(i); });
+    });
+
+    if (itens.length > 1 && 'IntersectionObserver' in window) {
+      /* Guardamos a fração visível de cada mídia e marcamos a maior.
+         Um limiar fixo não serviria para as duas composições: no
+         desktop várias fotos ficam visíveis ao mesmo tempo, no
+         celular só uma. */
+      var visiveis = new Map();
+      var observador = new IntersectionObserver(
+        function (entradas) {
+          entradas.forEach(function (e) { visiveis.set(e.target, e.intersectionRatio); });
+          var melhor = null;
+          var maior = 0;
+          visiveis.forEach(function (razao, alvo) {
+            if (razao > maior) { maior = razao; melhor = alvo; }
+          });
+          if (melhor && maior > 0.25) marcar(itens.indexOf(melhor));
+        },
+        { threshold: [0, 0.25, 0.5, 0.75, 1] }
+      );
+      itens.forEach(function (item) { observador.observe(item); });
+    }
+
+    /* ---------------------------------------------------------
+       2. Zoom em <dialog>
+       O elemento nativo entrega foco preso, Esc e fundo inerte —
+       tudo o que uma modal precisa e que é fácil errar à mão.
+    --------------------------------------------------------- */
+    var lightbox = secao.querySelector('[data-lightbox]');
+    if (lightbox && typeof lightbox.showModal === 'function') {
+      var caixa = lightbox.querySelector('[data-lightbox-media]');
+      var fechar = lightbox.querySelector('[data-lightbox-fechar]');
+      var foto = null;
+
+      secao.querySelectorAll('[data-zoom]').forEach(function (botao) {
+        botao.addEventListener('click', function () {
+          /* A <img> nasce aqui, no primeiro zoom: enquanto ninguém
+             pedir, a foto em tamanho grande nem é baixada. */
+          if (!foto) {
+            foto = document.createElement('img');
+            foto.className = 'pdp__lightbox-img';
+            foto.addEventListener('click', function () { lightbox.classList.toggle('is-ampliada'); });
+            caixa.appendChild(foto);
+          }
+          foto.src = botao.getAttribute('data-zoom');
+          foto.alt = botao.getAttribute('data-zoom-alt') || '';
+          lightbox.classList.remove('is-ampliada');
+          lightbox.showModal();
+        });
+      });
+
+      // (O clique na foto para ampliar 2x é ligado na criação dela,
+      //  acima; no toque o pinça-para-ampliar nativo continua valendo.)
+      if (fechar) fechar.addEventListener('click', function () { lightbox.close(); });
+      // Clique fora da foto (no fundo da dialog) fecha.
+      lightbox.addEventListener('click', function (evento) {
+        if (evento.target === lightbox) lightbox.close();
+      });
+      lightbox.addEventListener('close', function () { lightbox.classList.remove('is-ampliada'); });
+    }
+
+    /* ---------------------------------------------------------
+       3. Barra fixa de compra (celular)
+    --------------------------------------------------------- */
+    var barra = document.querySelector('[data-sticky-buy="{{ section_id }}"]');
+    var compra = secao.querySelector('.product__buy-buttons');
+
+    if (barra && compra && 'IntersectionObserver' in window) {
+      new IntersectionObserver(
+        function (entradas) {
+          var e = entradas[0];
+          // Só aparece DEPOIS de passar do botão. Antes disso a
+          // pessoa ainda nem viu o preço — a barra seria pressa.
+          var passou = !e.isIntersecting && e.boundingClientRect.top < 0;
+          barra.classList.toggle('is-visivel', passou);
+        },
+        { threshold: 0 }
+      ).observe(compra);
+    }
+  })();
+</script>

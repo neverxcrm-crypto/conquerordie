@@ -481,6 +481,25 @@
        precisa terminar de entrar em menos de meio segundo. */
     --stagger: 70ms;
 
+    /* ==========================================================
+       APELIDOS --cod-* — os nomes usados na documentação da marca
+       ==========================================================
+       NÃO são tokens novos: apontam para os canônicos acima. Existem
+       porque a marca documenta o sistema com esses nomes, e é melhor
+       ter um apelido de uma linha do que dois valores concorrentes
+       que um dia saem de sincronia. Ao escrever CSS novo, tanto faz
+       qual usar — os dois resolvem no mesmo lugar. */
+    --cod-radius-sm: var(--radius-sm);
+    --cod-radius-md: var(--radius-md);
+    --cod-radius-lg: var(--radius-lg);
+
+    --cod-container: var(--page-width);
+    --cod-gutter: var(--page-gutter);
+
+    --cod-transition-fast: var(--dur-fast) var(--ease-out);
+    --cod-transition-normal: var(--dur-normal) var(--ease-out);
+    --cod-transition-slow: var(--dur-emphasis) var(--ease-out);
+
     /* Altura da header — o <main> reserva exatamente este espaço,
        porque a header é fixed e sai do fluxo. O valor NÃO muda no
        estado comprimido de propósito: se o espaçador encolhesse

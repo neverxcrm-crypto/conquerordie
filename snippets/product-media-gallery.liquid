@@ -1,40 +1,112 @@
 {%- comment -%}
   ============================================================
-  product-media-gallery — estilos da página de produto
+  product-media-gallery — CSS da página de produto
   ============================================================
 
   O QUE FAZ:
-  Bloco <style> com todo o CSS da página de produto: galeria de mídia,
-  coluna de informações, título/vendor/preço, swatches de opção, seletor
-  de quantidade, botões de compra e responsividade (breakpoint 1000px).
+  Bloco <style> com o CSS da PDP: galeria (miniaturas + mídia),
+  coluna de informação, opções/variantes, quantidade, compra,
+  accordions, barra fixa de compra no celular e a lightbox de zoom.
 
   COMO USAR:
   {% render 'product-media-gallery', section_id: section.id %}
 
-  PARÂMETROS:
-  - section_id: id da section (recebido por consistência com a section de
-    produto; o CSS usa classes fixas .product__*).
+  O QUE **NÃO** ESTÁ AQUI:
+  Componentes compartilhados com o resto do tema — botões, campos,
+  preço, badge, breadcrumb, accordion, trust row — moram em
+  assets/base.css. Esta folha só ajusta o que é da PDP. A regra:
+  se outra página também usa, não é daqui.
 
-  OBSERVAÇÕES:
-  É apenas CSS — não gera HTML. As classes casam com a marcação da section
-  main-product e com o snippet product-variant-selection.
+  DUAS COMPOSIÇÕES, NÃO UMA ENCOLHIDA:
+  - Desktop: miniaturas numa coluna fina, mídia grande ao lado e a
+    coluna de informação acompanhando a rolagem.
+  - Celular: a galeria vira um carrossel horizontal com encaixe e
+    indicadores, e a compra ganha uma barra fixa no rodapé — o
+    caminho "ver foto → escolher tamanho → comprar" cabe numa tela
+    só, sem rolar de volta.
 {%- endcomment -%}
 <style>
-  .section-main-product .product {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 40px;
-    padding-top: var(--spacing-sections);
-    padding-bottom: var(--spacing-sections);
+  /* ==========================================================
+     LAYOUT
+     ========================================================== */
+  .pdp {
+    padding-top: var(--space-md);
+    padding-bottom: var(--space-section);
   }
-  .product__media-wrapper { width: 55%; }
-  .product__media-item {
+  .pdp__breadcrumb { margin-bottom: var(--space-md); }
+
+  .pdp__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+    gap: clamp(28px, 4vw, 72px);
+    align-items: start;
+  }
+
+  /* ==========================================================
+     GALERIA
+     ========================================================== */
+  .pdp__media {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: var(--space-sm);
+    align-items: start;
+  }
+  .pdp__media--unica { grid-template-columns: minmax(0, 1fr); }
+
+  /* Miniaturas: acompanham a rolagem porque a coluna de mídia é
+     longa — sem isso elas somem na primeira foto e a navegação
+     deixa de existir justamente quando é mais necessária. */
+  .pdp__thumbs {
+    position: sticky;
+    top: calc(var(--header-height) + var(--aviso-altura, 0px) + var(--space-sm));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-height: calc(100vh - var(--header-height) - var(--space-xl));
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .pdp__thumbs::-webkit-scrollbar { display: none; }
+  .pdp__thumb {
+    display: block;
     width: 100%;
-    margin-bottom: 16px;
-    border-radius: var(--media-radius);
+    aspect-ratio: 3 / 4;
+    padding: 0;
     overflow: hidden;
-    background-color: var(--color-background-contrast);
+    border: 0;
+    border-radius: var(--radius-xs);
+    background-color: var(--color-surface);
+    cursor: pointer;
+    opacity: 0.55;
+    transition:
+      opacity var(--dur-normal) var(--ease-out),
+      box-shadow var(--dur-normal) var(--ease-out);
+  }
+  .pdp__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pdp__thumb:hover { opacity: 0.85; }
+  /* A miniatura ativa é marcada por opacidade cheia E por um fio de
+     ouro: cor sozinha não pode ser a única pista (WCAG 1.4.1). */
+  .pdp__thumb[aria-current='true'] {
+    opacity: 1;
+    box-shadow: inset 0 0 0 2px var(--color-accent);
+  }
+
+  .product__media-list {
+    display: grid;
+    gap: var(--space-2xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .product__media-item {
+    position: relative;
+    margin: 0;
+    overflow: hidden;
+    border-radius: var(--media-radius);
+    background-color: var(--color-surface);
   }
   .product__media-item img,
   .product__media-item iframe,
@@ -44,75 +116,215 @@
     width: 100%;
     height: auto;
   }
-  .product__info { width: 45%; }
-  .product__vendor {
-    font-size: var(--f1);
-    text-transform: uppercase;
-    color: var(--color-text);
-    opacity: 0.7;
-    margin-bottom: 8px;
-  }
-  .product__title {
-    font-size: var(--f6);
-    margin-bottom: 16px;
-  }
-  .product__option-name,
-  .product__unit-price,
-  .product__tax {
-    font-family: var(--font-ui-family);
-    line-height: var(--leading-ui);
-  }
-  .product__price { margin-bottom: 20px; }
-  .product__unit-price,
-  .product__tax { font-size: var(--f1); opacity: 0.7; margin-top: 6px; }
-  .product__description { margin: 24px 0; line-height: var(--leading-body); }
-  .product__option { border: 0; padding: 0; margin: 0 0 20px; }
-  .product__option-name {
-    display: block;
-    font-size: var(--f1);
-    font-weight: var(--font-weight-semibold);
-    letter-spacing: var(--tracking-label);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-  .product__swatch {
+  .product__media-placeholder { aspect-ratio: 3 / 4; display: grid; place-items: center; }
+
+  /* Botão de zoom: aparece sobre a foto no desktop. No toque ele
+     fica sempre visível, porque lá não existe hover para revelá-lo. */
+  .pdp__zoom {
+    position: absolute;
+    right: var(--space-2xs);
+    bottom: var(--space-2xs);
+    z-index: 2;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 44px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    color: var(--cod-white);
+    background-color: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 50%;
+    cursor: zoom-in;
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+      opacity var(--dur-normal) var(--ease-out),
+      transform var(--dur-normal) var(--ease-out),
+      background-color var(--dur-normal) var(--ease-out);
+  }
+  .pdp__zoom svg { width: 16px; height: 16px; }
+  .product__media-item:hover .pdp__zoom,
+  .pdp__zoom:focus-visible { opacity: 1; transform: none; }
+  .pdp__zoom:hover { background-color: rgba(0, 0, 0, 0.75); }
+  @media (hover: none) {
+    .pdp__zoom { opacity: 1; transform: none; }
+  }
+
+  /* Indicadores do carrossel — só existem no celular */
+  .pdp__dots { display: none; }
+
+  /* ==========================================================
+     COLUNA DE INFORMAÇÃO
+     ========================================================== */
+  .pdp__info { min-width: 0; }
+  .pdp__info-inner { display: grid; gap: var(--space-sm); }
+
+  .product__vendor,
+  .pdp__eyebrow {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-accent-readable);
+    margin: 0;
+  }
+  .product__title {
+    font-family: var(--font-display-family);
+    font-size: var(--f7);
+    font-weight: var(--font-weight-bold);
+    line-height: 1.02;
+    letter-spacing: var(--tracking-display);
+    margin: 0;
+  }
+
+  .product__price { display: grid; gap: var(--space-3xs); margin: 0; }
+  .pdp__parcelas,
+  .product__unit-price,
+  .product__tax {
+    font-family: var(--font-ui-family);
+    font-size: var(--f1);
+    line-height: var(--leading-ui);
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+  .pdp__parcelas strong {
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .product__description { margin: 0; }
+
+  /* ---------- Opções / variantes ---------- */
+  .product__variants { display: grid; gap: var(--space-sm); }
+  .product__option { border: 0; padding: 0; margin: 0; }
+  .product__option-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-2xs);
+  }
+  .product__option-name {
+    display: block;
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    padding: 0;
+  }
+  .product__option-name strong {
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-semibold);
+  }
+  .product__option-values { display: flex; flex-wrap: wrap; gap: var(--space-2xs); }
+
+  .product__swatch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
     min-height: 44px;
-    padding: 0 14px;
-    margin: 0 8px 8px 0;
-    border: 1px solid var(--color-border);
+    padding: 0 var(--space-xs);
+    font-family: var(--font-ui-family);
+    font-size: var(--f1);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
     border-radius: var(--inputs-radius);
     cursor: pointer;
-    transition: border-color 0.15s ease;
+    /* A borda é box-shadow, não border: trocar a espessura da borda
+       no estado selecionado mudaria o tamanho da caixa e faria a
+       fileira inteira dançar a cada clique. */
+    box-shadow: inset 0 0 0 1px var(--color-border);
+    transition:
+      box-shadow var(--dur-normal) var(--ease-out),
+      color var(--dur-normal) var(--ease-out),
+      background-color var(--dur-normal) var(--ease-out);
   }
-  .product__swatch.is-selected { border-color: var(--color-accent); border-width: 2px; }
-  .product__swatch.is-unavailable { opacity: 0.4; }
+  .product__swatch:hover { box-shadow: inset 0 0 0 1px var(--color-border-strong); }
+  .product__swatch.is-selected {
+    box-shadow: inset 0 0 0 2px var(--color-accent);
+    background-color: var(--color-accent-muted);
+  }
+  /* Esgotada: fica legível e clicável (o cliente precisa saber que
+     existe), com um risco diagonal que não depende de cor. */
+  .product__swatch.is-unavailable { color: var(--color-text-disabled); }
+  .product__swatch.is-unavailable::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to top right,
+      transparent calc(50% - 0.5px),
+      var(--color-border-strong) calc(50% - 0.5px),
+      var(--color-border-strong) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    );
+    border-radius: inherit;
+  }
+  .product__swatch:has(input:focus-visible) {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+  /* Swatch de cor: o círculo é o conteúdo, o anel é o estado */
+  .product__swatch--cor { min-width: 44px; padding: 6px; }
   .product__swatch-color,
   .product__swatch-media {
-    width: 28px; height: 28px; border-radius: 50%;
-    background-size: cover; background-position: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
     display: block;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
   }
-  .product__quantity { margin: 20px 0; }
+
+  .pdp__guia {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    border-bottom: 1px solid var(--color-border-strong);
+    transition: color var(--dur-normal) var(--ease-out), border-color var(--dur-normal) var(--ease-out);
+  }
+  .pdp__guia:hover { color: var(--color-accent-readable); border-color: var(--color-border-accent); }
+
+  /* ---------- Quantidade ---------- */
+  .product__quantity { display: grid; gap: var(--space-2xs); }
   .quantity-selector {
     display: inline-flex;
     align-items: center;
-    border: 1px solid var(--color-border);
+    width: fit-content;
     border-radius: var(--inputs-radius);
+    box-shadow: inset 0 0 0 1px var(--color-border);
     overflow: hidden;
   }
   .quantity__button {
-    width: 44px; height: 44px;
-    background: none; border: none; cursor: pointer;
+    width: 44px;
+    height: 44px;
+    background: none;
+    border: none;
+    cursor: pointer;
     font-size: var(--f3);
+    line-height: 1;
+    color: var(--color-text-primary);
     font-family: var(--font-ui-family);
+    transition: background-color var(--dur-fast) var(--ease-out);
   }
+  .quantity__button:hover { background-color: var(--color-surface); }
   .quantity__input {
-    width: 56px; height: 44px;
-    text-align: center; border: none;
+    width: 52px;
+    height: 44px;
+    text-align: center;
+    border: none;
+    background: none;
+    color: var(--color-text-primary);
     -moz-appearance: textfield;
     font-family: var(--font-ui-family);
     font-size: var(--f2);
@@ -121,27 +333,196 @@
   }
   .quantity__input::-webkit-outer-spin-button,
   .quantity__input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .product__buy-buttons { margin: 24px 0; }
-  .product__add-to-cart { width: 100%; margin-bottom: 12px; }
-  .product__buy-buttons .shopify-payment-button { margin-top: 8px; }
-  .product__share { margin-top: 20px; }
 
-  .price { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: var(--f5); }
-  .price__compare { opacity: 0.6; font-size: var(--f3); }
-  .price__sale { color: var(--color-text-primary); }
-  .price__badge {
-    font-size: var(--f0);
-    padding: 2px 8px;
-    letter-spacing: var(--tracking-label);
-    color: var(--color-text-on-accent);
-    background-color: var(--color-accent);
-    border-radius: 2px;
-    text-transform: uppercase;
+  /* ---------- Compra ---------- */
+  .product__buy-buttons { display: grid; gap: var(--space-2xs); }
+  .product__add-to-cart { width: 100%; }
+  .product__buy-buttons .shopify-payment-button { display: grid; }
+  .product__buy-buttons .shopify-payment-button__button--unbranded {
+    width: 100%;
+    min-height: 44px;
+    padding: 12px 24px;
+    font-family: var(--font-ui-family);
+    font-size: var(--f2);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-button-secondary-text);
+    background-color: var(--color-button-secondary-background);
+    border: 1px solid var(--color-button-secondary-border);
+    border-radius: var(--buttons-radius);
+    transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+  }
+  .product__buy-buttons .shopify-payment-button__button--unbranded:hover {
+    background-color: var(--color-button-secondary-background-hover);
+    border-color: var(--color-button-secondary-border-hover);
   }
 
+  .pdp__trust { margin-top: var(--space-2xs); }
+  .product__share { margin-top: var(--space-2xs); }
+
+  /* ==========================================================
+     BARRA FIXA DE COMPRA — celular
+     ==========================================================
+     Aparece quando o botão principal sai da tela. É o que evita a
+     rolagem de volta ao topo para comprar — o gesto que mais custa
+     conversão no celular. Fica fora do fluxo e não empurra nada. */
+  .pdp__sticky {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 400;
+    display: none;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-2xs) var(--page-gutter) calc(var(--space-2xs) + env(safe-area-inset-bottom, 0px));
+    background-color: rgba(10, 10, 12, 0.92);
+    border-top: 1px solid var(--color-border);
+    transform: translateY(110%);
+    transition: transform var(--dur-emphasis) var(--ease-out);
+  }
+  .motion-full .pdp__sticky {
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+  }
+  .pdp__sticky.is-visivel { transform: none; }
+  .pdp__sticky-info { display: grid; gap: 2px; min-width: 0; flex: 1; }
+  .pdp__sticky-titulo {
+    font-family: var(--font-ui-family);
+    font-size: var(--f1);
+    font-weight: var(--font-weight-medium);
+    color: var(--cod-white);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pdp__sticky .price { font-size: var(--f1); color: var(--cod-white); }
+  .pdp__sticky .price__compare { color: var(--cod-gray-300); }
+  .pdp__sticky .button { flex: none; padding-inline: var(--space-md); }
+
+  /* ==========================================================
+     LIGHTBOX — zoom da foto
+     ==========================================================
+     <dialog> nativo: o navegador entrega de graça o foco preso
+     dentro dela, o fechamento com Esc e o fundo inerte. Escrever
+     isso à mão seria mais código e menos acessível. */
+  .pdp__lightbox {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    padding: 0;
+    border: 0;
+    background-color: var(--cod-black);
+    overflow: hidden;
+  }
+  .pdp__lightbox::backdrop { background-color: rgba(0, 0, 0, 0.92); }
+  .pdp__lightbox-media {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+  }
+  .pdp__lightbox-img {
+    max-width: 100%;
+    max-height: 100dvh;
+    object-fit: contain;
+    cursor: zoom-in;
+    transition: transform var(--dur-emphasis) var(--ease-out);
+  }
+  .pdp__lightbox.is-ampliada .pdp__lightbox-img {
+    transform: scale(2);
+    cursor: zoom-out;
+  }
+  .pdp__lightbox-fechar {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    color: var(--cod-white);
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color var(--dur-normal) var(--ease-out);
+  }
+  .pdp__lightbox-fechar:hover { background-color: rgba(255, 255, 255, 0.2); }
+  .pdp__lightbox-fechar svg { width: 16px; height: 16px; }
+
+  /* ==========================================================
+     TABLET E CELULAR
+     ==========================================================
+     Não é o desktop encolhido: a galeria troca de eixo (vira um
+     carrossel horizontal), as miniaturas dão lugar a indicadores e
+     a compra migra para a barra fixa. */
   @media screen and (max-width: 1000px) {
-    .section-main-product .product { flex-direction: column; gap: 24px; }
-    .product__media-wrapper,
-    .product__info { width: 100%; }
+    .pdp__grid { grid-template-columns: 1fr; gap: var(--space-lg); }
+
+    .pdp__media { grid-template-columns: 1fr; gap: var(--space-2xs); }
+    .pdp__thumbs { display: none; }
+
+    .product__media-list {
+      grid-auto-flow: column;
+      grid-auto-columns: 100%;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      overscroll-behavior-x: contain;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      /* Sangria: a foto encosta nas bordas da tela, como em catálogo */
+      margin-inline: calc(var(--page-gutter) * -1);
+    }
+    .product__media-list::-webkit-scrollbar { display: none; }
+    .product__media-item {
+      scroll-snap-align: center;
+      border-radius: 0;
+    }
+
+    .pdp__dots {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .pdp__dot {
+      width: 6px;
+      height: 6px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background-color: var(--color-border-strong);
+      transition:
+        background-color var(--dur-normal) var(--ease-out),
+        transform var(--dur-normal) var(--ease-out);
+    }
+    .pdp__dot[aria-current='true'] {
+      background-color: var(--color-accent);
+      transform: scale(1.5);
+    }
+
+    .product__title { font-size: var(--f6); }
+    .pdp__sticky { display: flex; }
+    /* Espaço para a barra fixa não cobrir o fim da página */
+    .pdp { padding-bottom: calc(var(--space-section) + 64px); }
+  }
+
+  @media screen and (max-width: 480px) {
+    .pdp__sticky .button { padding-inline: var(--space-sm); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pdp__zoom,
+    .pdp__sticky,
+    .pdp__lightbox-img,
+    .product__swatch,
+    .pdp__thumb { transition-duration: 0.01ms; }
   }
 </style>

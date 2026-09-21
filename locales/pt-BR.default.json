@@ -41,6 +41,10 @@
     "slider": {
       "previous": "Slide anterior",
       "next": "Próximo slide"
+    },
+    "breadcrumb": {
+      "label": "Você está aqui",
+      "home": "Início"
     }
   },
   "accessibility": {
@@ -116,7 +120,9 @@
         "play_video": "Reproduzir o vídeo"
       },
       "choose_options": "Escolher opções",
-      "choose_product_options": "Escolher opções de {{ product_name }}"
+      "choose_product_options": "Escolher opções de {{ product_name }}",
+      "installments_html": "ou <strong>{{ count }}x de {{ price }}</strong> sem juros",
+      "size_guide": "Guia de tamanhos"
     },
     "facets": {
       "sort_by_label": "Ordenar por:",

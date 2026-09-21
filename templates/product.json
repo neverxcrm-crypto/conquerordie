@@ -22,7 +22,10 @@
         },
         "price": {
           "type": "price",
-          "settings": {}
+          "settings": {
+            "show_installments": true,
+            "installments_count": 10
+          }
         },
         "variant_picker": {
           "type": "variant_picker",
@@ -40,21 +43,59 @@
         },
         "description": {
           "type": "description",
-          "settings": {}
+          "settings": {
+            "in_accordion": true,
+            "accordion_title": "Descrição",
+            "open_by_default": false
+          }
         },
         "share": {
           "type": "share",
           "settings": {}
+        },
+        "eyebrow": {
+          "type": "eyebrow",
+          "settings": {}
+        },
+        "trust": {
+          "type": "trust",
+          "settings": {
+            "item_1": "Envio em até 24h",
+            "icon_1": "shipping",
+            "item_2": "Compra 100% segura",
+            "icon_2": "secure",
+            "item_3": "Troca em até 30 dias",
+            "icon_3": "quality"
+          }
+        },
+        "entrega": {
+          "type": "accordion",
+          "settings": {
+            "title": "Entrega e devolução",
+            "content": "<p>Enviamos para todo o Brasil. Prazo e valor calculados no checkout. Trocas e devoluções em até 30 dias.</p>",
+            "open_by_default": false
+          }
+        },
+        "detalhes": {
+          "type": "accordion",
+          "settings": {
+            "title": "Detalhes do produto",
+            "content": "<p>Composição, modelagem e cuidados de lavagem.</p>",
+            "open_by_default": false
+          }
         }
       },
       "block_order": [
-        "vendor",
+        "eyebrow",
         "title",
         "price",
         "variant_picker",
         "quantity",
         "buy_buttons",
+        "trust",
         "description",
+        "entrega",
+        "detalhes",
         "share"
       ],
       "settings": {}

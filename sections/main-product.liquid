@@ -1,281 +1,520 @@
 {%- comment -%}
   ============================================================
-  MAIN PRODUCT — página nativa de produto (Shopify OS 2.0)
+  MAIN PRODUCT — página de produto
   ============================================================
 
   O QUE FAZ:
   Renderiza a página completa de um produto: galeria de mídias
-  (imagem, vídeo, vídeo externo e modelo 3D), seletor de variantes
-  e o formulário nativo de adicionar ao carrinho. O conteúdo é
-  montado por blocks configuráveis no editor de temas.
+  (imagem, vídeo, vídeo externo e modelo 3D), seletor de variantes,
+  formulário nativo de adicionar ao carrinho e os blocos de apoio
+  (parcelamento, garantias, accordions). O conteúdo é montado por
+  blocks configuráveis no editor de temas.
 
   ONDE É USADA:
-  No template de produto (templates/product.json), como section
-  principal da página de produto.
+  templates/product.json, como section principal.
 
-  PRINCIPAIS PARTES:
-  - product__media-wrapper: percorre product.media e monta cada
-    mídia conforme o media_type (image/video/external_video/model).
-  - {% form 'product' %}: form nativo com input hidden da variante
-    selecionada (current_variant) que dispara o add-to-cart.
-  - Loop de section.blocks (case block.type) que renderiza cada
-    parte: vendor, title, price, description, variant_picker,
-    quantity, buy_buttons, share, custom_liquid e blocos de app.
-  - variant_picker: gera swatches por opção e um <script
-    data-variant-json> com os dados das variantes (id, options,
-    available, mídia e HTML do preço) consumido pelo JS.
-  - Renders finais: 'product-media-gallery' e
-    'product-variant-selection' cuidam da interatividade (troca
-    de mídia ao selecionar variante, etc.).
+  COMPOSIÇÃO:
+  - Desktop: miniaturas + mídia grande à esquerda, informação à
+    direita acompanhando a rolagem (o pin é do movimento.js, via
+    data-smooth-sticky, porque position: sticky não funciona dentro
+    do conteúdo transformado pelo ScrollSmoother).
+  - Celular: galeria vira carrossel com encaixe e indicadores, e a
+    compra ganha uma barra fixa no rodapé.
 
-  OBSERVAÇÕES:
-  - A lógica JS de galeria/seleção de variante vive nos snippets
-    renderizados no fim do arquivo, não aqui.
-  - buy_buttons tem setting show_dynamic_checkout para exibir os
-    botões de checkout dinâmico (payment_button).
-  - Preço usa o snippet 'price'; ajuste lá para mudar formatação.
+  ORDEM DA INFORMAÇÃO (preset):
+  coleção → nome → preço → parcelamento → descrição curta →
+  variantes → quantidade → compra → garantias → accordions.
+  O lojista pode reordenar no editor; o preset já nasce nessa
+  ordem porque é a sequência de perguntas que o comprador faz.
+
+  O QUE **NÃO** ESTÁ AQUI:
+  - CSS: snippets/product-media-gallery.
+  - Interações da galeria, zoom e barra fixa: snippets/product-gallery.
+  - Variantes, preço por variante e quantidade: snippets/product-variant-selection.
 {%- endcomment -%}
 
 {%- liquid
   assign product_form_id = 'product-form-' | append: section.id
   assign current_variant = product.selected_or_first_available_variant
+  assign media_count = product.media.size
+
+  # Coleção de origem: a que trouxe a pessoa até aqui, ou a primeira
+  # do produto. Serve ao breadcrumb e ao rótulo acima do nome.
+  assign colecao_origem = collection
+  if colecao_origem == blank
+    assign colecao_origem = product.collections.first
+  endif
 -%}
 
-<section class="product page-width" data-section-id="{{ section.id }}">
-  <div class="product__media-wrapper">
-    {%- if product.featured_media != blank -%}
-      <div class="product__media-list" id="ProductMedia-{{ section.id }}">
-        {%- comment -%}
-          A PRIMEIRA foto carrega eager + fetchpriority high; as
-          demais ficam lazy.
+<section class="pdp page-width" data-section-id="{{ section.id }}">
+  <nav class="breadcrumb pdp__breadcrumb" aria-label="{{ 'general.breadcrumb.label' | t }}">
+    <ol class="breadcrumb__list" role="list">
+      <li class="breadcrumb__item"><a href="{{ routes.root_url }}">{{ 'general.breadcrumb.home' | t }}</a></li>
+      {%- if colecao_origem != blank -%}
+        <li class="breadcrumb__item"><a href="{{ colecao_origem.url }}">{{ colecao_origem.title | escape }}</a></li>
+      {%- endif -%}
+      <li class="breadcrumb__item" aria-current="page">{{ product.title | escape }}</li>
+    </ol>
+  </nav>
 
-          Ela é o elemento de LCP da página de produto — a maior
-          coisa visível na abertura, e a que o comprador está
-          esperando para decidir. Como `loading="lazy"`, ela ficava
-          invisível para o preload scanner do navegador (o passe que
-          lê o HTML e já vai buscando os recursos antes do CSS
-          terminar): o download só começava depois do layout
-          concluir que ela estava na tela. Era atraso puro, no pior
-          lugar possível, e mais caro ainda no 4G.
+  <div class="pdp__grid">
+    {%- comment -%} ---------- GALERIA ---------- {%- endcomment -%}
+    <div class="pdp__media {% if media_count < 2 %}pdp__media--unica{% endif %}">
+      {%- if media_count > 1 -%}
+        <ul class="pdp__thumbs" role="list" aria-label="{{ 'products.product.media.gallery_viewer' | t }}">
+          {%- for media in product.media -%}
+            <li>
+              <button
+                type="button"
+                class="pdp__thumb"
+                data-thumb
+                aria-current="{% if forloop.first %}true{% else %}false{% endif %}"
+                aria-label="{{ 'products.product.media.load_image' | t: index: forloop.index }}"
+              >
+                <img
+                  src="{{ media.preview_image | image_url: width: 200 }}"
+                  alt=""
+                  loading="lazy"
+                  width="76"
+                  height="101"
+                >
+              </button>
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
 
-          As outras fotos da galeria seguem lazy — essas sim só
-          aparecem se a pessoa navegar pela galeria.
-        {%- endcomment -%}
-        {%- for media in product.media -%}
-          {%- if forloop.first -%}
-            {%- assign media_loading = 'eager' -%}
-            {%- assign media_priority = 'high' -%}
-          {%- else -%}
-            {%- assign media_loading = 'lazy' -%}
-            {%- assign media_priority = 'auto' -%}
-          {%- endif -%}
-          <div class="product__media-item" data-media-id="{{ media.id }}">
-            {%- case media.media_type -%}
-              {%- when 'image' -%}
-                {{
-                  media
-                  | image_url: width: 1920
-                  | image_tag:
-                    loading: media_loading,
-                    fetchpriority: media_priority,
-                    sizes: '(min-width: 1000px) 55vw, 100vw',
-                    widths: '360, 540, 720, 900, 1080, 1440, 1920',
-                    alt: media.alt | default: product.title | escape
-                }}
-              {%- when 'external_video' -%}
-                {{ media | external_video_tag }}
-              {%- when 'video' -%}
-                {{ media | video_tag: controls: true, image_size: '1920x' }}
-              {%- when 'model' -%}
-                {{ media | model_viewer_tag }}
+      <div class="pdp__media-main">
+        {%- if product.featured_media != blank -%}
+          <ul class="product__media-list" id="ProductMedia-{{ section.id }}" data-galeria role="list">
+            {%- for media in product.media -%}
+              {%- comment -%}
+                A PRIMEIRA foto carrega eager + fetchpriority high; as
+                demais ficam lazy. Ela é o elemento de LCP da página —
+                a maior coisa visível na abertura e a que o comprador
+                está esperando para decidir. Como `loading="lazy"` ela
+                ficava invisível para o preload scanner e o download só
+                começava depois do layout: atraso puro, no pior lugar.
+              {%- endcomment -%}
+              {%- if forloop.first -%}
+                {%- assign media_loading = 'eager' -%}
+                {%- assign media_priority = 'high' -%}
               {%- else -%}
-                {{ media | media_tag }}
-            {%- endcase -%}
+                {%- assign media_loading = 'lazy' -%}
+                {%- assign media_priority = 'auto' -%}
+              {%- endif -%}
+              <li class="product__media-item" data-media-id="{{ media.id }}">
+                {%- case media.media_type -%}
+                  {%- when 'image' -%}
+                    {{
+                      media
+                      | image_url: width: 1920
+                      | image_tag:
+                        loading: media_loading,
+                        fetchpriority: media_priority,
+                        sizes: '(min-width: 1001px) 50vw, 100vw',
+                        widths: '360, 540, 720, 900, 1080, 1440, 1920',
+                        alt: media.alt | default: product.title | escape
+                    }}
+                    <button
+                      type="button"
+                      class="pdp__zoom"
+                      data-zoom="{{ media | image_url: width: 2400 }}"
+                      data-zoom-alt="{{ media.alt | default: product.title | escape }}"
+                      aria-label="{{ 'products.product.media.open_media' | t: index: forloop.index }}"
+                    >
+                      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+                        <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.4"/>
+                        <path d="M10.8 10.8L14 14M7 5v4M5 7h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                      </svg>
+                    </button>
+                  {%- when 'external_video' -%}
+                    {{ media | external_video_tag }}
+                  {%- when 'video' -%}
+                    {{ media | video_tag: controls: true, image_size: '1920x' }}
+                  {%- when 'model' -%}
+                    {{ media | model_viewer_tag }}
+                  {%- else -%}
+                    {{ media | media_tag }}
+                {%- endcase -%}
+              </li>
+            {%- endfor -%}
+          </ul>
+
+          {%- if media_count > 1 -%}
+            <ul class="pdp__dots" role="list" aria-hidden="true">
+              {%- for media in product.media -%}
+                <li>
+                  <button
+                    type="button"
+                    class="pdp__dot alvo-44"
+                    data-dot
+                    tabindex="-1"
+                    aria-current="{% if forloop.first %}true{% else %}false{% endif %}"
+                  ></button>
+                </li>
+              {%- endfor -%}
+            </ul>
+          {%- endif -%}
+        {%- else -%}
+          <div class="product__media-item product__media-placeholder">
+            {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
           </div>
-        {%- endfor -%}
+        {%- endif -%}
       </div>
-    {%- else -%}
-      <div class="product__media-item product__media-placeholder">
-        {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
+    </div>
+
+    {%- comment -%}
+      ---------- INFORMAÇÃO ----------
+      data-smooth-sticky: acompanha a rolagem no desktop. O pin é do
+      GSAP porque o ScrollSmoother transforma o conteúdo e anula o
+      position: sticky do CSS (ver assets/movimento.js).
+
+      A coluna NÃO entra com animação: a mídia ao lado é o LCP e o
+      preço é a informação que a pessoa veio buscar — nada aqui deve
+      esperar para aparecer.
+    {%- endcomment -%}
+    <div class="pdp__info" data-smooth-sticky="1001">
+      <div class="pdp__info-inner">
+        {%- form 'product',
+          product,
+          id: product_form_id,
+          class: 'product__form pdp__info-inner',
+          novalidate: 'novalidate',
+          data-type: 'add-to-cart-form'
+        -%}
+          <input
+            type="hidden"
+            name="id"
+            value="{{ current_variant.id }}"
+            {% if current_variant.available == false %}disabled{% endif %}
+            class="product-variant-id"
+          >
+
+          {%- for block in section.blocks -%}
+            {%- case block.type -%}
+              {%- when '@app' -%}
+                {% render block %}
+
+              {%- when 'eyebrow' -%}
+                {%- if colecao_origem != blank -%}
+                  <p class="pdp__eyebrow" {{ block.shopify_attributes }}>{{ colecao_origem.title | escape }}</p>
+                {%- endif -%}
+
+              {%- when 'vendor' -%}
+                {%- if product.vendor != blank -%}
+                  <p class="product__vendor" {{ block.shopify_attributes }}>{{ product.vendor }}</p>
+                {%- endif -%}
+
+              {%- when 'title' -%}
+                <h1 class="product__title" {{ block.shopify_attributes }}>{{ product.title | escape }}</h1>
+
+              {%- when 'price' -%}
+                <div class="product__price" {{ block.shopify_attributes }}>
+                  {% render 'price', product: product, use_variant: true, show_compare: true, price_class: 'price--pdp' %}
+
+                  {%- comment -%}
+                    Parcelamento: no Brasil ele é parte do preço, não um
+                    detalhe. Fica logo abaixo do valor porque é a segunda
+                    coisa que o comprador procura.
+                  {%- endcomment -%}
+                  {%- if block.settings.show_installments and current_variant.price > 0 -%}
+                    {%- assign vezes = block.settings.installments_count -%}
+                    {%- assign parcela = current_variant.price | divided_by: vezes | money -%}
+                    <p class="pdp__parcelas" data-parcelas>
+                      {{ 'products.product.installments_html' | t: count: vezes, price: parcela }}
+                    </p>
+                  {%- endif -%}
+
+                  {%- if current_variant.unit_price_measurement -%}
+                    <p class="product__unit-price">
+                      {{ current_variant.unit_price | money }}
+                      <span aria-hidden="true">/</span>
+                      {%- if current_variant.unit_price_measurement.reference_value != 1 -%}
+                        {{ current_variant.unit_price_measurement.reference_value }}
+                      {%- endif -%}
+                      {{ current_variant.unit_price_measurement.reference_unit }}
+                    </p>
+                  {%- endif -%}
+
+                  {%- if cart.taxes_included or shop.shipping_policy.body != blank -%}
+                    <p class="product__tax">
+                      {%- if cart.taxes_included -%}
+                        {{ 'products.product.include_taxes' | t }}
+                      {%- endif -%}
+                      {%- if shop.shipping_policy.body != blank -%}
+                        {{ 'products.product.shipping_policy_html' | t: link: shop.shipping_policy.url }}
+                      {%- endif -%}
+                    </p>
+                  {%- endif -%}
+                </div>
+
+              {%- when 'description' -%}
+                {%- if product.description != blank -%}
+                  {%- if block.settings.in_accordion -%}
+                    <div class="accordion" {{ block.shopify_attributes }}>
+                      <details class="accordion__item" {% if block.settings.open_by_default %}open{% endif %}>
+                        <summary class="accordion__summary">
+                          {{ block.settings.accordion_title | default: 'products.product.description' | t }}
+                          <span class="accordion__icone" aria-hidden="true"></span>
+                        </summary>
+                        <div class="accordion__conteudo">
+                          <div class="product__description rte">{{ product.description }}</div>
+                        </div>
+                      </details>
+                    </div>
+                  {%- else -%}
+                    <div class="product__description rte" {{ block.shopify_attributes }}>
+                      {{ product.description }}
+                    </div>
+                  {%- endif -%}
+                {%- endif -%}
+
+              {%- when 'variant_picker' -%}
+                {%- unless product.has_only_default_variant -%}
+                  <div class="product__variants" {{ block.shopify_attributes }}>
+                    {%- for option in product.options_with_values -%}
+                      {%- liquid
+                        assign nome_opcao = option.name | downcase
+                        assign eh_cor = false
+                        if nome_opcao contains 'cor' or nome_opcao contains 'color' or nome_opcao contains 'colour'
+                          assign eh_cor = true
+                        endif
+                        assign eh_tamanho = false
+                        if nome_opcao contains 'tamanho' or nome_opcao contains 'size'
+                          assign eh_tamanho = true
+                        endif
+                      -%}
+                      <fieldset class="product__option">
+                        <div class="product__option-head">
+                          {%- comment -%}
+                            O valor escolhido aparece ao lado do rótulo
+                            ("Cor: Preto"). Num swatch de cor, o círculo
+                            sozinho não diz o nome — e é o nome que a
+                            pessoa confere antes de comprar.
+                          {%- endcomment -%}
+                          <legend class="product__option-name">
+                            {{ option.name }}:
+                            <strong data-opcao-valor="{{ forloop.index0 }}">{{ option.selected_value }}</strong>
+                          </legend>
+                          {%- if eh_tamanho and block.settings.size_guide != blank -%}
+                            <a href="{{ block.settings.size_guide }}" class="pdp__guia">
+                              {{ 'products.product.size_guide' | t }}
+                            </a>
+                          {%- endif -%}
+                        </div>
+
+                        <div class="product__option-values">
+                          {%- for value in option.values -%}
+                            {%- liquid
+                              assign option_disabled = true
+                              for variant in product.variants
+                                if variant.available and variant.options[forloop.parentloop.index0] == value
+                                  assign option_disabled = false
+                                  break
+                                endif
+                              endfor
+                            -%}
+                            <label class="product__swatch {% if eh_cor %}product__swatch--cor{% endif %} {% if option.selected_value == value %}is-selected{% endif %} {% if option_disabled %}is-unavailable{% endif %}">
+                              <input
+                                type="radio"
+                                name="{{ option.name }}"
+                                value="{{ value | escape }}"
+                                class="visually-hidden"
+                                {% if option.selected_value == value %}checked{% endif %}
+                                data-option-index="{{ forloop.parentloop.index0 }}"
+                              >
+                              {%- if value.swatch.image -%}
+                                <span class="product__swatch-media" style="background-image:url({{ value.swatch.image | image_url: width: 100 }})"></span>
+                                <span class="visually-hidden">{{ value }}</span>
+                              {%- elsif value.swatch.color -%}
+                                <span class="product__swatch-color" style="background-color:{{ value.swatch.color }}"></span>
+                                <span class="visually-hidden">{{ value }}</span>
+                              {%- else -%}
+                                <span class="product__swatch-label">{{ value }}</span>
+                              {%- endif -%}
+                            </label>
+                          {%- endfor -%}
+                        </div>
+                      </fieldset>
+                    {%- endfor -%}
+                  </div>
+
+                  {%- comment -%}
+                    O parcelamento de cada variante é calculado AQUI, no
+                    servidor, e não no navegador: formatar moeda em JS
+                    exigiria repetir as regras de moeda da loja (símbolo,
+                    separador, casas) e elas já existem no filtro `money`.
+                    O número de parcelas vem do bloco de preço.
+                  {%- endcomment -%}
+                  {%- assign bloco_preco = section.blocks | where: 'type', 'price' | first -%}
+                  {%- assign vezes_json = bloco_preco.settings.installments_count | default: 10 -%}
+                  <script type="application/json" data-variant-json>
+                    [
+                      {%- for variant in product.variants -%}
+                        {%- assign parcela_json = variant.price | divided_by: vezes_json | money -%}
+                        {
+                          "id": {{ variant.id | json }},
+                          "options": {{ variant.options | json }},
+                          "available": {{ variant.available | json }},
+                          "featured_media_id": {{ variant.featured_media.id | json }},
+                          "installments_html": {{ 'products.product.installments_html' | t: count: vezes_json, price: parcela_json | json }},
+                          "price_html": {%- capture variant_price_html -%}{% render 'price', product: variant, use_variant: false, show_compare: true, price_class: 'price--pdp' %}{%- endcapture -%}{{ variant_price_html | strip_newlines | json }}
+                        }{%- unless forloop.last -%},{%- endunless -%}
+                      {%- endfor -%}
+                    ]
+                  </script>
+                {%- endunless -%}
+
+              {%- when 'quantity' -%}
+                <div class="product__quantity" {{ block.shopify_attributes }}>
+                  <label class="field__label" for="Quantity-{{ section.id }}">
+                    {{ 'products.product.quantity.label' | t }}
+                  </label>
+                  <div class="quantity-selector">
+                    <button type="button" class="quantity__button" name="minus" aria-label="{{ 'products.product.quantity.decrease' | t: product: product.title | escape }}">&minus;</button>
+                    <input
+                      class="quantity__input"
+                      type="number"
+                      name="quantity"
+                      id="Quantity-{{ section.id }}"
+                      min="1"
+                      value="1"
+                      aria-label="{{ 'products.product.quantity.input_label' | t: product: product.title | escape }}"
+                    >
+                    <button type="button" class="quantity__button" name="plus" aria-label="{{ 'products.product.quantity.increase' | t: product: product.title | escape }}">&plus;</button>
+                  </div>
+                </div>
+
+              {%- when 'buy_buttons' -%}
+                <div class="product__buy-buttons" {{ block.shopify_attributes }}>
+                  <button
+                    type="submit"
+                    name="add"
+                    class="button product__add-to-cart"
+                    {% if current_variant.available == false %}disabled{% endif %}
+                  >
+                    <span>
+                      {%- if current_variant.available -%}
+                        {{ 'products.product.add_to_cart' | t }}
+                      {%- else -%}
+                        {{ 'products.product.sold_out' | t }}
+                      {%- endif -%}
+                    </span>
+                  </button>
+                  {%- if block.settings.show_dynamic_checkout -%}
+                    {{ form | payment_button }}
+                  {%- endif -%}
+                </div>
+
+              {%- when 'trust' -%}
+                <ul class="trust-row pdp__trust" role="list" {{ block.shopify_attributes }}>
+                  {%- for i in (1..3) -%}
+                    {%- liquid
+                      case i
+                        when 1
+                          assign item_texto = block.settings.item_1
+                          assign item_icone = block.settings.icon_1
+                        when 2
+                          assign item_texto = block.settings.item_2
+                          assign item_icone = block.settings.icon_2
+                        when 3
+                          assign item_texto = block.settings.item_3
+                          assign item_icone = block.settings.icon_3
+                      endcase
+                    -%}
+                    {%- if item_texto != blank -%}
+                      <li class="trust-row__item">
+                        {% render 'icon', name: item_icone %}
+                        <span>{{ item_texto | escape }}</span>
+                      </li>
+                    {%- endif -%}
+                  {%- endfor -%}
+                </ul>
+
+              {%- when 'accordion' -%}
+                {%- if block.settings.content != blank or block.settings.page != blank -%}
+                  <div class="accordion" {{ block.shopify_attributes }}>
+                    <details class="accordion__item" {% if block.settings.open_by_default %}open{% endif %}>
+                      <summary class="accordion__summary">
+                        {{ block.settings.title | escape }}
+                        <span class="accordion__icone" aria-hidden="true"></span>
+                      </summary>
+                      <div class="accordion__conteudo">
+                        <div class="rte">
+                          {{ block.settings.content }}
+                          {%- if block.settings.page != blank -%}
+                            {{ pages[block.settings.page].content }}
+                          {%- endif -%}
+                        </div>
+                      </div>
+                    </details>
+                  </div>
+                {%- endif -%}
+
+              {%- when 'share' -%}
+                <div class="product__share" {{ block.shopify_attributes }}>
+                  {% render 'share-button', share_link: product.url, share_title: product.title %}
+                </div>
+
+              {%- when 'custom_liquid' -%}
+                <div {{ block.shopify_attributes }}>{{ block.settings.custom_liquid }}</div>
+            {%- endcase -%}
+          {%- endfor -%}
+        {%- endform -%}
       </div>
-    {%- endif -%}
+    </div>
   </div>
 
   {%- comment -%}
-    Só a coluna de informação entra. A mídia fica de fora de
-    propósito: ela é o elemento de LCP da página de produto, e
-    atrasar a foto para animá-la pioraria a métrica sem ganho
-    nenhum — a foto já está lá quando a página abre.
+    Lightbox do zoom. Fica dentro da section (e não no fim do body)
+    porque <dialog> aberta vai para a "top layer" do navegador: ela
+    escapa de qualquer overflow, transform ou z-index da página.
   {%- endcomment -%}
-  <div class="product__info" data-reveal>
-    {%- form 'product',
-      product,
-      id: product_form_id,
-      class: 'product__form',
-      novalidate: 'novalidate',
-      data-type: 'add-to-cart-form'
-    -%}
-      <input
-        type="hidden"
-        name="id"
-        value="{{ current_variant.id }}"
-        {% if current_variant.available == false %}disabled{% endif %}
-        class="product-variant-id"
-      >
-
-      {%- for block in section.blocks -%}
-        {%- case block.type -%}
-          {%- when '@app' -%}
-            {% render block %}
-
-          {%- when 'vendor' -%}
-            {%- if product.vendor != blank -%}
-              <p class="product__vendor" {{ block.shopify_attributes }}>{{ product.vendor }}</p>
-            {%- endif -%}
-
-          {%- when 'title' -%}
-            <h1 class="product__title" {{ block.shopify_attributes }}>{{ product.title | escape }}</h1>
-
-          {%- when 'price' -%}
-            <div class="product__price" {{ block.shopify_attributes }}>
-              {% render 'price', product: product, use_variant: true, show_compare: true %}
-              {%- if current_variant.unit_price_measurement -%}
-                <div class="product__unit-price">
-                  {{ current_variant.unit_price | money }}
-                  <span aria-hidden="true">/</span>
-                  {%- if current_variant.unit_price_measurement.reference_value != 1 -%}
-                    {{ current_variant.unit_price_measurement.reference_value }}
-                  {%- endif -%}
-                  {{ current_variant.unit_price_measurement.reference_unit }}
-                </div>
-              {%- endif -%}
-              {%- if cart.taxes_included or shop.shipping_policy.body != blank -%}
-                <div class="product__tax caption">
-                  {%- if cart.taxes_included -%}
-                    {{ 'products.product.include_taxes' | t }}
-                  {%- endif -%}
-                  {%- if shop.shipping_policy.body != blank -%}
-                    {{ 'products.product.shipping_policy_html' | t: link: shop.shipping_policy.url }}
-                  {%- endif -%}
-                </div>
-              {%- endif -%}
-            </div>
-
-          {%- when 'description' -%}
-            {%- if product.description != blank -%}
-              <div class="product__description rte" {{ block.shopify_attributes }}>
-                {{ product.description }}
-              </div>
-            {%- endif -%}
-
-          {%- when 'variant_picker' -%}
-            {%- unless product.has_only_default_variant -%}
-              <div class="product__variants" {{ block.shopify_attributes }}>
-                {%- for option in product.options_with_values -%}
-                  <fieldset class="product__option">
-                    <legend class="product__option-name">{{ option.name }}</legend>
-                    {%- for value in option.values -%}
-                      {%- liquid
-                        assign option_disabled = true
-                        for variant in product.variants
-                          if variant.available and variant.options[forloop.parentloop.index0] == value
-                            assign option_disabled = false
-                            break
-                          endif
-                        endfor
-                      -%}
-                      <label class="product__swatch {% if option.selected_value == value %}is-selected{% endif %} {% if option_disabled %}is-unavailable{% endif %}">
-                        <input
-                          type="radio"
-                          name="{{ option.name }}"
-                          value="{{ value | escape }}"
-                          class="visually-hidden"
-                          {% if option.selected_value == value %}checked{% endif %}
-                          data-option-index="{{ forloop.parentloop.index0 }}"
-                        >
-                        {%- if value.swatch.image -%}
-                          <span class="product__swatch-media" style="background-image:url({{ value.swatch.image | image_url: width: 100 }})"></span>
-                        {%- elsif value.swatch.color -%}
-                          <span class="product__swatch-color" style="background-color:{{ value.swatch.color }}"></span>
-                        {%- else -%}
-                          <span class="product__swatch-label">{{ value }}</span>
-                        {%- endif -%}
-                      </label>
-                    {%- endfor -%}
-                  </fieldset>
-                {%- endfor -%}
-              </div>
-
-              <script type="application/json" data-variant-json>
-                [
-                  {%- for variant in product.variants -%}
-                    {
-                      "id": {{ variant.id | json }},
-                      "options": {{ variant.options | json }},
-                      "available": {{ variant.available | json }},
-                      "featured_media_id": {{ variant.featured_media.id | json }},
-                      "price_html": {%- capture variant_price_html -%}{% render 'price', product: variant, use_variant: false, show_compare: true %}{%- endcapture -%}{{ variant_price_html | strip_newlines | json }}
-                    }{%- unless forloop.last -%},{%- endunless -%}
-                  {%- endfor -%}
-                ]
-              </script>
-            {%- endunless -%}
-
-          {%- when 'quantity' -%}
-            <div class="product__quantity" {{ block.shopify_attributes }}>
-              <label class="field__label" for="Quantity-{{ section.id }}">
-                {{ 'products.product.quantity.label' | t }}
-              </label>
-              <div class="quantity-selector">
-                <button type="button" class="quantity__button" name="minus" aria-label="{{ 'products.product.quantity.decrease' | t: product: product.title | escape }}">&minus;</button>
-                <input
-                  class="quantity__input"
-                  type="number"
-                  name="quantity"
-                  id="Quantity-{{ section.id }}"
-                  min="1"
-                  value="1"
-                  aria-label="{{ 'products.product.quantity.input_label' | t: product: product.title | escape }}"
-                >
-                <button type="button" class="quantity__button" name="plus" aria-label="{{ 'products.product.quantity.increase' | t: product: product.title | escape }}">&plus;</button>
-              </div>
-            </div>
-
-          {%- when 'buy_buttons' -%}
-            <div class="product__buy-buttons" {{ block.shopify_attributes }}>
-              <button
-                type="submit"
-                name="add"
-                class="button product__add-to-cart"
-                {% if current_variant.available == false %}disabled{% endif %}
-              >
-                <span>
-                  {%- if current_variant.available -%}
-                    {{ 'products.product.add_to_cart' | t }}
-                  {%- else -%}
-                    {{ 'products.product.sold_out' | t }}
-                  {%- endif -%}
-                </span>
-              </button>
-              {%- if block.settings.show_dynamic_checkout -%}
-                {{ form | payment_button }}
-              {%- endif -%}
-            </div>
-
-          {%- when 'share' -%}
-            <div class="product__share" {{ block.shopify_attributes }}>
-              {% render 'share-button', share_link: product.url, share_title: product.title %}
-            </div>
-
-          {%- when 'custom_liquid' -%}
-            <div {{ block.shopify_attributes }}>{{ block.settings.custom_liquid }}</div>
-        {%- endcase -%}
-      {%- endfor -%}
-    {%- endform -%}
-  </div>
+  <dialog class="pdp__lightbox" data-lightbox aria-label="{{ 'products.product.media.gallery_viewer' | t }}">
+    <button type="button" class="pdp__lightbox-fechar" data-lightbox-fechar aria-label="{{ 'accessibility.close' | t }}">
+      <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" focusable="false">
+        <path d="M13.5 4.5L4.5 13.5M4.5 4.5L13.5 13.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+      </svg>
+    </button>
+    {%- comment -%}
+      A <img> é criada pelo JS no momento de abrir. Deixá-la aqui com
+      src vazio faria o navegador registrar um pedido inútil e o
+      theme check reclamar de imagem sem dimensões — para uma foto
+      que só existe quando alguém pede zoom.
+    {%- endcomment -%}
+    <div class="pdp__lightbox-media" data-lightbox-media></div>
+  </dialog>
 </section>
 
+{%- comment -%}
+  Barra fixa de compra (celular). Fica FORA da section para não
+  herdar o padding da página, e só aparece até 1000px — largura em
+  que o ScrollSmoother não está ativo, então position: fixed se
+  comporta normalmente.
+{%- endcomment -%}
+<div class="pdp__sticky" data-sticky-buy="{{ section.id }}">
+  <div class="pdp__sticky-info">
+    <p class="pdp__sticky-titulo">{{ product.title | escape }}</p>
+    {% render 'price', product: product, use_variant: true, show_compare: true %}
+  </div>
+  <button
+    type="submit"
+    form="{{ product_form_id }}"
+    name="add"
+    class="button"
+    {% if current_variant.available == false %}disabled{% endif %}
+  >
+    {%- if current_variant.available -%}
+      {{ 'products.product.add_to_cart' | t }}
+    {%- else -%}
+      {{ 'products.product.sold_out' | t }}
+    {%- endif -%}
+  </button>
+</div>
+
 {% render 'product-media-gallery', section_id: section.id %}
+{% render 'product-gallery', section_id: section.id %}
 {% render 'product-variant-selection', section_id: section.id, product_form_id: product_form_id %}
 
 {% schema %}
@@ -285,10 +524,40 @@
   "class": "section-main-product",
   "blocks": [
     { "type": "@app" },
+    { "type": "eyebrow", "name": "Coleção (rótulo)", "limit": 1 },
     { "type": "vendor", "name": "t:sections.main_product.blocks.vendor.name", "limit": 1 },
     { "type": "title", "name": "t:sections.main_product.blocks.title.name", "limit": 1 },
-    { "type": "price", "name": "t:sections.main_product.blocks.price.name", "limit": 1 },
-    { "type": "variant_picker", "name": "t:sections.main_product.blocks.variant_picker.name", "limit": 1 },
+    {
+      "type": "price",
+      "name": "t:sections.main_product.blocks.price.name",
+      "limit": 1,
+      "settings": [
+        { "type": "checkbox", "id": "show_installments", "default": true, "label": "Mostrar parcelamento" },
+        {
+          "type": "range",
+          "id": "installments_count",
+          "min": 2,
+          "max": 12,
+          "step": 1,
+          "unit": "x",
+          "default": 10,
+          "label": "Número de parcelas"
+        }
+      ]
+    },
+    {
+      "type": "variant_picker",
+      "name": "t:sections.main_product.blocks.variant_picker.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "url",
+          "id": "size_guide",
+          "label": "Guia de tamanhos",
+          "info": "Link exibido ao lado da opção de tamanho."
+        }
+      ]
+    },
     { "type": "quantity", "name": "t:sections.main_product.blocks.quantity.name", "limit": 1 },
     {
       "type": "buy_buttons",
@@ -304,7 +573,78 @@
         }
       ]
     },
-    { "type": "description", "name": "t:sections.main_product.blocks.description.name", "limit": 1 },
+    {
+      "type": "trust",
+      "name": "Garantias",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "item_1", "default": "Envio em até 24h", "label": "Item 1" },
+        {
+          "type": "select",
+          "id": "icon_1",
+          "default": "shipping",
+          "label": "Ícone 1",
+          "options": [
+            { "value": "shipping", "label": "Envio" },
+            { "value": "secure", "label": "Segurança" },
+            { "value": "quality", "label": "Qualidade" },
+            { "value": "support", "label": "Atendimento" }
+          ]
+        },
+        { "type": "text", "id": "item_2", "default": "Compra 100% segura", "label": "Item 2" },
+        {
+          "type": "select",
+          "id": "icon_2",
+          "default": "secure",
+          "label": "Ícone 2",
+          "options": [
+            { "value": "shipping", "label": "Envio" },
+            { "value": "secure", "label": "Segurança" },
+            { "value": "quality", "label": "Qualidade" },
+            { "value": "support", "label": "Atendimento" }
+          ]
+        },
+        { "type": "text", "id": "item_3", "default": "Troca em até 30 dias", "label": "Item 3" },
+        {
+          "type": "select",
+          "id": "icon_3",
+          "default": "quality",
+          "label": "Ícone 3",
+          "options": [
+            { "value": "shipping", "label": "Envio" },
+            { "value": "secure", "label": "Segurança" },
+            { "value": "quality", "label": "Qualidade" },
+            { "value": "support", "label": "Atendimento" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "description",
+      "name": "t:sections.main_product.blocks.description.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "in_accordion",
+          "default": true,
+          "label": "Mostrar dentro de um accordion",
+          "info": "Mantém a página curta: o comprador abre só o que quer ler."
+        },
+        { "type": "text", "id": "accordion_title", "default": "Descrição", "label": "Título do accordion" },
+        { "type": "checkbox", "id": "open_by_default", "default": false, "label": "Começar aberto" }
+      ]
+    },
+    {
+      "type": "accordion",
+      "name": "Accordion (entrega, detalhes...)",
+      "settings": [
+        { "type": "text", "id": "title", "default": "Entrega e devolução", "label": "Título" },
+        { "type": "richtext", "id": "content", "label": "Conteúdo" },
+        { "type": "page", "id": "page", "label": "Ou puxar de uma página", "info": "O conteúdo da página aparece dentro do accordion." },
+        { "type": "checkbox", "id": "open_by_default", "default": false, "label": "Começar aberto" }
+      ]
+    },
     { "type": "share", "name": "t:sections.main_product.blocks.share.name", "limit": 1 },
     {
       "type": "custom_liquid",
@@ -323,13 +663,15 @@
     {
       "name": "t:sections.main_product.name",
       "blocks": [
-        { "type": "vendor" },
+        { "type": "eyebrow" },
         { "type": "title" },
         { "type": "price" },
         { "type": "variant_picker" },
         { "type": "quantity" },
         { "type": "buy_buttons" },
+        { "type": "trust" },
         { "type": "description" },
+        { "type": "accordion" },
         { "type": "share" }
       ]
     }
