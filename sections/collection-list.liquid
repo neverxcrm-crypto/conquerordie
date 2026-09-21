@@ -344,6 +344,7 @@
 
 <script>
   (function () {
+    var raf = window.requestAnimationFrame || function (callback) { return window.setTimeout(callback, 16); };
     var SECTION_ID = 'shopify-section-{{ section.id }}';
 
     function init() {
@@ -387,14 +388,14 @@
       }
 
       rail.addEventListener('scroll', function () {
-        if (!progressTick) { progressTick = true; window.requestAnimationFrame(updateProgress); }
+        if (!progressTick) { progressTick = true; raf(updateProgress); }
       }, { passive: true });
       window.addEventListener('resize', remedirTrilho);
       window.addEventListener('load', remedirTrilho);
       document.addEventListener('shopify:section:load', remedirTrilho);
       remedirTrilho();
 
-      var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       var gsap = window.gsap;
       if (reduced || !gsap) return;
 
@@ -418,8 +419,11 @@
 
       /* DESKTOP — Acordeão com inércia */
       mm.add('(min-width: 1001px) and (hover: hover)', function () {
-        var ac = new AbortController();
-        var on = function (el, type, fn) { if (el) el.addEventListener(type, fn, { signal: ac.signal }); };
+        var ac = typeof window.AbortController === 'function' ? new AbortController() : null;
+        var on = function (el, type, fn) {
+          if (!el) return;
+          el.addEventListener(type, fn, ac ? { signal: ac.signal } : false);
+        };
         var active = null;
         var timer = null;
 
@@ -442,8 +446,8 @@
           panels.forEach(function (q) { q.rect = null; });
         }
 
-        window.addEventListener('scroll', invalidarRects, { passive: true, signal: ac.signal });
-        window.addEventListener('resize', invalidarRects, { passive: true, signal: ac.signal });
+        on(window, 'scroll', invalidarRects);
+        on(window, 'resize', invalidarRects);
 
         function setActive(index) {
           if (active === index) return;
@@ -492,14 +496,14 @@
 
         return function () {
           window.clearTimeout(timer);
-          ac.abort();
+          if (ac) ac.abort();
           rail.classList.remove('is-enhanced');
         };
       });
 
       /* TABLET / MOBILE — Profundidade no trilho */
       mm.add('(max-width: 1000px)', function () {
-        var ac = new AbortController();
+        var ac = typeof window.AbortController === 'function' ? new AbortController() : null;
         var tick = false;
         rail.classList.add('is-depth');
 
@@ -514,13 +518,14 @@
           });
         }
 
-        rail.addEventListener('scroll', function () {
-          if (!tick) { tick = true; window.requestAnimationFrame(paint); }
-        }, { passive: true, signal: ac.signal });
+        var onRailScroll = function () {
+          if (!tick) { tick = true; raf(paint); }
+        };
+        rail.addEventListener('scroll', onRailScroll, ac ? { passive: true, signal: ac.signal } : false);
 
         paint();
 
-        return function () { ac.abort(); rail.classList.remove('is-depth'); };
+        return function () { if (ac) ac.abort(); rail.classList.remove('is-depth'); };
       });
     }
 

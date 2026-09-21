@@ -636,6 +636,7 @@
   (function () {
     var header = document.querySelector('.header[data-section-id="{{ section.id }}"]');
     if (!header) return;
+    var raf = window.requestAnimationFrame || function (callback) { return window.setTimeout(callback, 16); };
 
     var progress = header.querySelector('[data-header-progress]');
     var search = header.querySelector('[data-header-search]');
@@ -687,7 +688,7 @@
     function onScroll() {
       if (!ticking) {
         ticking = true;
-        window.requestAnimationFrame(update);
+        raf(update);
       }
     }
 
@@ -728,7 +729,7 @@
       drawer.hidden = false;
       scrim.hidden = false;
       document.body.classList.add('bloquear');
-      window.requestAnimationFrame(function () {
+      raf(function () {
         drawer.classList.add('is-open');
         scrim.classList.add('is-open');
       });

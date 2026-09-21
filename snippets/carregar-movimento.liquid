@@ -150,26 +150,32 @@
     doc.addEventListener('DOMContentLoaded', despejar);
 
     /* ---------------------------------------------------------
-       Injecao: todos de uma vez, async = false preserva a ordem
-       de EXECUCAO mesmo com download paralelo.
-    --------------------------------------------------------- */
-    var restantes = fila.length;
+       Injecao sequencial.
 
-    function contar() {
-      restantes -= 1;
-      if (restantes > 0) return;
+       Scripts dinamicos com async=false sao ordenados nos browsers
+       atuais, mas algumas versoes antigas de WebKit e WebView ainda
+       executam o proximo arquivo antes de o anterior expor sua API.
+       Carregar o proximo apenas no load (ou erro) elimina a corrida
+       gsap -> ScrollTrigger -> smoother sem mudar o fallback.
+    --------------------------------------------------------- */
+    var indice = 0;
+
+    function finalizar() {
       scriptsProntos = true;
       root.classList.add('motion-loaded');
       despejar();
     }
 
-    fila.forEach(function (src) {
+    function carregarProximo() {
+      if (indice >= fila.length) { finalizar(); return; }
       var s = doc.createElement('script');
-      s.src = src;
+      s.src = fila[indice++];
       s.async = false;
-      s.onload = contar;
-      s.onerror = contar; // uma lib que falha nao pode travar a section
+      s.onload = carregarProximo;
+      s.onerror = carregarProximo; // uma lib que falha nao trava a section
       doc.head.appendChild(s);
-    });
+    }
+
+    carregarProximo();
   })();
 </script>

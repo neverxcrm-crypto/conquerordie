@@ -101,11 +101,15 @@
       if (gallery && variant.featured_media_id) {
         var target = gallery.querySelector('[data-media-id="' + variant.featured_media_id + '"]');
         if (target) {
-          target.scrollIntoView({
-            behavior: menosMovimento ? 'auto' : 'smooth',
-            block: 'nearest',
-            inline: 'nearest'
-          });
+          try {
+            target.scrollIntoView({
+              behavior: menosMovimento ? 'auto' : 'smooth',
+              block: 'nearest',
+              inline: 'nearest'
+            });
+          } catch (e) {
+            target.scrollIntoView();
+          }
         }
       }
 

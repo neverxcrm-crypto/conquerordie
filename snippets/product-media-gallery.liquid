@@ -409,12 +409,29 @@
   .pdp__lightbox {
     width: 100vw;
     max-width: 100vw;
+    height: 100vh;
     height: 100dvh;
+    max-height: 100vh;
     max-height: 100dvh;
     padding: 0;
     border: 0;
     background-color: var(--cod-black);
     overflow: hidden;
+  }
+  /* Fallback para Safari/WebView antigos sem showModal(). */
+  .pdp__lightbox.is-fallback {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    visibility: hidden;
+  }
+  .pdp__lightbox.is-fallback.is-open {
+    display: flex;
+    visibility: visible;
   }
   .pdp__lightbox::backdrop { background-color: rgba(0, 0, 0, 0.92); }
   .pdp__lightbox-media {
@@ -425,6 +442,7 @@
   }
   .pdp__lightbox-img {
     max-width: 100%;
+    max-height: 100vh;
     max-height: 100dvh;
     object-fit: contain;
     cursor: zoom-in;

@@ -47,7 +47,11 @@
     function irPara(indice) {
       var alvo = itens[indice];
       if (!alvo) return;
-      alvo.scrollIntoView({ behavior: comportamento, block: 'center', inline: 'center' });
+      try {
+        alvo.scrollIntoView({ behavior: comportamento, block: 'center', inline: 'center' });
+      } catch (e) {
+        alvo.scrollIntoView();
+      }
     }
 
     function marcar(indice) {
@@ -89,10 +93,22 @@
        tudo o que uma modal precisa e que é fácil errar à mão.
     --------------------------------------------------------- */
     var lightbox = secao.querySelector('[data-lightbox]');
-    if (lightbox && typeof lightbox.showModal === 'function') {
+    if (lightbox) {
       var caixa = lightbox.querySelector('[data-lightbox-media]');
       var fechar = lightbox.querySelector('[data-lightbox-fechar]');
       var foto = null;
+      var nativo = typeof lightbox.showModal === 'function';
+
+      if (!nativo) lightbox.classList.add('is-fallback');
+
+      function fecharLightbox() {
+        if (nativo) lightbox.close();
+        else {
+          lightbox.classList.remove('is-open');
+          lightbox.setAttribute('aria-hidden', 'true');
+          document.body.classList.remove('bloquear');
+        }
+      }
 
       secao.querySelectorAll('[data-zoom]').forEach(function (botao) {
         botao.addEventListener('click', function () {
@@ -107,18 +123,27 @@
           foto.src = botao.getAttribute('data-zoom');
           foto.alt = botao.getAttribute('data-zoom-alt') || '';
           lightbox.classList.remove('is-ampliada');
-          lightbox.showModal();
+          if (nativo) lightbox.showModal();
+          else {
+            lightbox.classList.add('is-open');
+            lightbox.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('bloquear');
+            if (fechar) fechar.focus();
+          }
         });
       });
 
       // (O clique na foto para ampliar 2x é ligado na criação dela,
       //  acima; no toque o pinça-para-ampliar nativo continua valendo.)
-      if (fechar) fechar.addEventListener('click', function () { lightbox.close(); });
+      if (fechar) fechar.addEventListener('click', fecharLightbox);
       // Clique fora da foto (no fundo da dialog) fecha.
       lightbox.addEventListener('click', function (evento) {
-        if (evento.target === lightbox) lightbox.close();
+        if (evento.target === lightbox) fecharLightbox();
       });
-      lightbox.addEventListener('close', function () { lightbox.classList.remove('is-ampliada'); });
+      if (nativo) lightbox.addEventListener('close', function () { lightbox.classList.remove('is-ampliada'); });
+      else document.addEventListener('keydown', function (evento) {
+        if (evento.key === 'Escape' && lightbox.classList.contains('is-open')) fecharLightbox();
+      });
     }
 
     /* ---------------------------------------------------------
