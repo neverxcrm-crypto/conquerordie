@@ -203,7 +203,9 @@
         "benefit_4"
       ],
       "settings": {
+        "image": "shopify://shop_images/ChatGPT_Image_21_de_set._de_2026_16_30_25.png",
         "image_position": "left",
+        "image_height": "full",
         "eyebrow": "The Brand",
         "heading": "Conquer or Die",
         "text": "<p>Não somos apenas uma marca de roupas. Somos um movimento. Uma mentalidade para aqueles que se recusam a ser comuns.</p><p>Conquiste. Evolua. Supere.</p>",
