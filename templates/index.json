@@ -65,8 +65,7 @@
       ],
       "name": "Barra Contínua (Ouro)",
       "settings": {
-        "speed": 45,
-        "pause_on_hover": true,
+        "speed": 40,
         "font_size": 10,
         "enable_italic": true,
         "font_weight": "700",
@@ -74,8 +73,7 @@
         "letter_spacing": 1.5,
         "enable_gold_effect": true,
         "text_color": "#ffffff",
-        "bg_color": "#000000",
-        "show_separator": true
+        "bg_color": "#000000"
       }
     },
     "latest_drop": {
