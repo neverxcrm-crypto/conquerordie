@@ -43,6 +43,7 @@
     "card_quick_add": true,
     "cart_type": "drawer",
     "cart_show_note": true,
+    "show_free_shipping": false,
     "social_instagram_link": "",
     "social_facebook_link": "",
     "social_linkedin_link": "",
@@ -55,7 +56,7 @@
         "settings": {
           "show_free_shipping": true,
           "free_shipping_threshold": 399,
-          "bump_mode": "auto",
+          "bump_mode": "off",
           "bump_product": "",
           "bump_title": "",
           "bump_text": "",

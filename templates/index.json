@@ -87,7 +87,7 @@
         "bg_color": "#000000",
         "text_color": "#ffffff",
         "separator_color": "#ffffff",
-        "border_color": "rgba(255, 255, 255, 0.15)",
+        "border_color": "#ffffff26",
         "padding_vertical": 12
       }
     },
