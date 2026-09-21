@@ -17,25 +17,8 @@
   snippets/collection-panel.liquid (markup) + base.css "Collection
   panel" (estilo). Aqui fica só o layout em volta: intro, acordeão,
   trilho mobile, entrada e progresso.
-
-  COMPORTAMENTO:
-  - Desktop (≥1001px): os painéis dividem a largura em flex. O painel
-    sob o cursor (ou com foco de teclado) cresce e os vizinhos
-    recuam — acordeão horizontal. A faixa ganha um fio de ouro que
-    desce de cima a baixo.
-  - Tablet/mobile: vira um trilho com scroll-snap horizontal, com
-    contador 01/04 e barra de progresso em ouro abaixo.
-  - Entrada: cada painel abre por clip-path em cascata (revelar.js
-    põe .is-revealed com 60ms de atraso entre irmãos).
-  - Parallax vertical leve na foto (assets/movimento.js).
-  - Com GSAP: acordeão com inércia, foto e brilho seguindo o cursor,
-    info em cascata, profundidade no trilho mobile e entrada ligada
-    ao scroll. Detalhes no script ao fim desta section.
-
-  OBSERVAÇÕES:
-  - prefers-reduced-motion: sem acordeão animado, sem clip-path,
-    sem parallax — tudo aparece pronto.
 {%- endcomment -%}
+
 {%- liquid
   assign has_intro = false
   if section.settings.heading != blank or section.settings.text != blank
@@ -44,6 +27,7 @@
   assign total = section.blocks.size
   assign total_label = total | prepend: '0' | slice: -2, 2
 -%}
+
 <div
   class="collection-list"
   data-section-id="{{ section.id }}"
@@ -51,13 +35,6 @@
 >
   <div class="page-width">
     {%- if has_intro -%}
-      {%- comment -%}
-        A entrada da intro é CSS puro (data-reveal, em base.css), não
-        GSAP: o título precisa animar em QUALQUER aparelho, inclusive
-        nos que não baixam o GSAP (ver carregar-movimento.liquid).
-        data-reveal-group faz a cascata contar eyebrow → linha 1 →
-        linha 2 → apoio, na ordem em que se lê.
-      {%- endcomment -%}
       <header class="collection-list__intro" data-reveal-group>
         <div class="collection-list__intro-main">
           {%- if section.settings.eyebrow != blank -%}
@@ -67,7 +44,9 @@
             {%- assign heading_lines = section.settings.heading | newline_to_br | split: '<br />' -%}
             <h2 class="collection-list__heading">
               {%- for line in heading_lines -%}
-                <span class="collection-list__line" data-reveal="mask"><span class="collection-list__line-inner reveal-mask__inner">{{ line | strip }}</span></span>
+                <span class="collection-list__line" data-reveal="mask">
+                  <span class="collection-list__line-inner reveal-mask__inner">{{ line | strip }}</span>
+                </span>
               {%- endfor -%}
             </h2>
           {%- endif -%}
@@ -88,11 +67,15 @@
 
     <ul class="collection-list__rail" role="list" data-collection-rail>
       {%- for block in section.blocks -%}
-        <li class="collection-list__item" data-reveal data-collection-item {{ block.shopify_attributes }}>
+        {%- assign collection_obj = block.settings.collection -%}
+        {%- assign card_image = block.settings.image | default: collection_obj.featured_image -%}
+        {%- assign card_title = block.settings.title | default: collection_obj.title -%}
+
+        <li class="collection-list__item is-revealed" data-reveal data-collection-item {{ block.shopify_attributes }}>
           {%- render 'collection-panel',
-            collection: block.settings.collection,
-            image: block.settings.image,
-            title: block.settings.title,
+            collection: collection_obj,
+            image: card_image,
+            title: card_title,
             text: block.settings.text,
             index: forloop.index,
             cta: section.settings.card_cta,
@@ -118,13 +101,14 @@
   #shopify-section-{{ section.id }} .collection-list {
     --cl-ease: cubic-bezier(0.22, 1, 0.36, 1);
     --cl-gap: clamp(8px, 0.9vw, 14px);
-    padding-top: var(--space-section);
-    padding-bottom: var(--space-section);
-    background-color: var(--color-background);
+    --cl-radius: 16px;
+    padding-top: var(--space-section, 60px);
+    padding-bottom: var(--space-section, 60px);
+    background-color: var(--color-background, #000000);
     overflow: hidden;
   }
 
-  /* ---------- Intro: título grande à esquerda, apoio à direita ---------- */
+  /* ---------- Intro ---------- */
   #shopify-section-{{ section.id }} .collection-list__intro {
     display: grid;
     grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
@@ -134,16 +118,15 @@
   }
   #shopify-section-{{ section.id }} .collection-list__intro .eyebrow { margin-bottom: 18px; }
   #shopify-section-{{ section.id }} .collection-list__heading {
-    font-family: var(--font-display-family);
-    font-size: var(--f8);
-    font-weight: var(--font-weight-bold);
+    font-family: var(--font-display-family, inherit);
+    font-size: var(--f8, 2.5rem);
+    font-weight: var(--font-weight-bold, 700);
     line-height: 0.95;
-    letter-spacing: var(--tracking-display);
+    letter-spacing: var(--tracking-display, -0.02em);
     text-transform: uppercase;
     margin: 0;
     text-wrap: balance;
   }
-  /* Cada linha é uma máscara; a linha interna sobe de dentro dela */
   #shopify-section-{{ section.id }} .collection-list__line {
     display: block;
     overflow: hidden;
@@ -160,11 +143,11 @@
     padding-bottom: 6px;
   }
   #shopify-section-{{ section.id }} .collection-list__text {
-    font-size: var(--f2);
-    color: var(--color-text-secondary);
+    font-size: var(--f2, 0.95rem);
+    color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
     margin: 0;
   }
-  #shopify-section-{{ section.id }} .collection-list__cta { color: var(--color-text-primary); }
+  #shopify-section-{{ section.id }} .collection-list__cta { color: var(--color-text-primary, #ffffff); }
 
   /* ---------- Trilho ---------- */
   #shopify-section-{{ section.id }} .collection-list__rail {
@@ -181,6 +164,60 @@
     min-width: 0;
   }
 
+  /* ---------- Correção e Garantia de Exibição das Imagens ---------- */
+  #shopify-section-{{ section.id }} .collection-panel {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: #141416;
+    overflow: hidden;
+    border-radius: var(--cl-radius);
+  }
+
+  #shopify-section-{{ section.id }} .collection-panel__frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+
+  #shopify-section-{{ section.id }} .collection-panel__image,
+  #shopify-section-{{ section.id }} .collection-panel img,
+  #shopify-section-{{ section.id }} .collection-panel svg {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    filter: brightness(0.95) contrast(1.05);
+  }
+
+  /* Garante que o sombreamento do painel seja um gradiente suave em vez de preto sólido */
+  #shopify-section-{{ section.id }} .collection-panel__shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.75) 0%,
+      rgba(0, 0, 0, 0.25) 50%,
+      rgba(0, 0, 0, 0) 100%
+    ) !important;
+    opacity: 0.65 !important;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  #shopify-section-{{ section.id }} .collection-list__item:hover .collection-panel__shade {
+    opacity: 0.35 !important;
+  }
+
+  /* Fallback visual caso nenhuma coleção/imagem esteja selecionada */
+  #shopify-section-{{ section.id }} .collection-panel:not(:has(img)):not(:has(svg)) .collection-panel__frame {
+    background: linear-gradient(135deg, #2a2a32 0%, #101014 100%);
+  }
+
   /* ---------- Progresso (trilho mobile) ---------- */
   #shopify-section-{{ section.id }} .collection-list__progress { display: none; }
 
@@ -189,8 +226,7 @@
      ========================================================== */
   @media screen and (min-width: 1001px) {
     #shopify-section-{{ section.id }} .collection-list__rail {
-      /* Nunca mais alto que a tela: o painel inteiro cabe na dobra. */
-      height: min(clamp(420px, 44vw, var(--cl-height, 600px)), calc(100vh - var(--header-height) - 48px));
+      height: min(clamp(420px, 44vw, var(--cl-height, 600px)), calc(100vh - var(--header-height, 80px) - 48px));
       min-height: 400px;
     }
     #shopify-section-{{ section.id }} .collection-list__item {
@@ -203,24 +239,17 @@
     #shopify-section-{{ section.id }} .collection-list__item:focus-within {
       flex-grow: 1.9;
     }
-    /* A info só entra depois que o painel já começou a abrir */
     #shopify-section-{{ section.id }} .collection-list__item:hover .collection-panel__info,
     #shopify-section-{{ section.id }} .collection-list__item:focus-within .collection-panel__info {
       transition-delay: 180ms;
     }
     #shopify-section-{{ section.id }} .collection-list__rail:hover .collection-list__item:not(:hover) .collection-panel__shade {
-      opacity: 0.38;
+      opacity: 0.75 !important;
     }
   }
 
-  /* ==========================================================
-     Modo animado (JS + GSAP ativos): o GSAP assume flex, sombra,
-     foto e info. As transições CSS saem para não haver duas
-     curvas brigando pela mesma propriedade (era o que deixava o
-     hover "seco" e travado ao cruzar painéis rapidamente).
-     ========================================================== */
+  /* Mode animado GSAP */
   #shopify-section-{{ section.id }} .collection-list__rail.is-enhanced .collection-list__item {
-    /* só o clip-path da entrada continua no CSS */
     transition: clip-path 1100ms var(--cl-ease) !important;
   }
   #shopify-section-{{ section.id }} .collection-list__rail.is-depth .collection-panel__shade,
@@ -230,18 +259,11 @@
     transition: none !important;
   }
   #shopify-section-{{ section.id }} .collection-list__rail.is-enhanced .collection-panel { cursor: pointer; }
-  #shopify-section-{{ section.id }} .collection-panel__arrow svg { will-change: transform; }
 
   /* ==========================================================
      TABLET / MOBILE — trilho com scroll-snap
      ========================================================== */
   @media screen and (max-width: 1000px) {
-    /* A seta magnetica e um efeito de hover do desktop. O
-       will-change global acima reservava uma camada de GPU para cada
-       seta do trilho — em toda pagina, para sempre — sem nada nunca
-       animar no toque. */
-    #shopify-section-{{ section.id }} .collection-panel__arrow svg { will-change: auto; }
-
     #shopify-section-{{ section.id }} .collection-list__intro {
       grid-template-columns: 1fr;
       align-items: start;
@@ -252,9 +274,9 @@
       overflow-x: auto;
       overscroll-behavior-x: contain;
       scroll-snap-type: x mandatory;
-      scroll-padding-inline: var(--page-gutter);
-      margin-inline: calc(var(--page-gutter) * -1);
-      padding-inline: var(--page-gutter);
+      scroll-padding-inline: var(--page-gutter, 16px);
+      margin-inline: calc(var(--page-gutter, 16px) * -1);
+      padding-inline: var(--page-gutter, 16px);
       padding-bottom: 28px;
       margin-bottom: -28px;
       scrollbar-width: none;
@@ -277,26 +299,26 @@
       margin-top: 24px;
     }
     #shopify-section-{{ section.id }} .collection-list__counter {
-      font-family: var(--font-ui-family);
-      font-size: var(--f0);
-      font-weight: var(--font-weight-medium);
-      letter-spacing: var(--tracking-label);
-      color: var(--color-text-muted);
+      font-family: var(--font-ui-family, inherit);
+      font-size: var(--f0, 0.75rem);
+      font-weight: 500;
+      letter-spacing: var(--tracking-label, 0.05em);
+      color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
     }
-    #shopify-section-{{ section.id }} .collection-list__counter [data-collection-current] { color: var(--color-text-primary); }
+    #shopify-section-{{ section.id }} .collection-list__counter [data-collection-current] { color: var(--color-text-primary, #ffffff); }
     #shopify-section-{{ section.id }} .collection-list__bar {
       position: relative;
       flex: 1;
       height: 1px;
-      background-color: var(--color-border-strong);
+      background-color: var(--color-border-strong, rgba(255, 255, 255, 0.2));
       overflow: hidden;
     }
     #shopify-section-{{ section.id }} .collection-list__bar-fill {
       position: absolute;
       inset: 0;
-      background-color: var(--color-accent);
+      background-color: var(--color-accent, #C9A24D);
       transform-origin: left center;
       transform: scaleX(calc(1 / var(--cl-count, 4)));
       transition: transform 200ms linear;
@@ -307,56 +329,20 @@
     #shopify-section-{{ section.id }} .collection-list__item { flex-basis: 78vw; }
   }
 
-  /* ==========================================================
-     Entrada — clip-path em cascata (substitui o fade padrão)
-     ========================================================== */
+  /* Entrada — Revelação sem bloquear o layout */
   .js #shopify-section-{{ section.id }} .collection-list__item[data-reveal] {
     opacity: 1;
     transform: none;
-    clip-path: inset(18% 0 0 0 round var(--cl-radius));
-    transition: clip-path 1100ms var(--cl-ease), flex-grow 800ms var(--cl-ease);
-  }
-  .js #shopify-section-{{ section.id }} .collection-list__item[data-reveal] .collection-panel__frame {
-    transform: scale(1.12);
-    transition: transform 1400ms var(--cl-ease);
-  }
-  /* Estado final com inset NEGATIVO: a área de corte passa a sobrar
-     para fora do painel, e a sombra dele não fica cortada. */
-  .js #shopify-section-{{ section.id }} .collection-list__item[data-reveal].is-revealed {
-    clip-path: inset(-15% -15% -15% -15% round 0);
-  }
-  .js #shopify-section-{{ section.id }} .collection-list__item[data-reveal].is-revealed .collection-panel__frame {
-    transform: none;
-  }
-  /* Com o parallax ativo, o GSAP assume o transform do frame. */
-  .has-smooth-scroll #shopify-section-{{ section.id }} .collection-list__item[data-reveal] .collection-panel__frame {
-    transition: none;
+    clip-path: inset(0 round var(--cl-radius)) !important;
   }
 
   @media (prefers-reduced-motion: reduce) {
     #shopify-section-{{ section.id }} .collection-list__item { transition-duration: 0.01ms !important; }
-    .js #shopify-section-{{ section.id }} .collection-list__item[data-reveal] { clip-path: none; }
-    .js #shopify-section-{{ section.id }} .collection-list__item[data-reveal] .collection-panel__frame { transform: none; }
+    .js #shopify-section-{{ section.id }} .collection-list__item[data-reveal] { clip-path: none !important; }
   }
 </style>
 
 <script>
-  /*
-    Interação da galeria. Tudo com GSAP para ter UMA curva por
-    propriedade, interrompível a qualquer momento (cruzar os painéis
-    rápido não trava nem "pula").
-
-    DESKTOP (mouse): acordeão com inércia, foto que acompanha o
-    cursor, brilho dourado, título sobe da máscara, texto e meta em
-    cascata, seta magnética, vizinhos escurecem.
-    TABLET/MOBILE: trilho com profundidade — o card fora do foco
-    encolhe e escurece conforme o deslize; barra de progresso.
-    SCROLL (todas as telas): cards entram em degraus ligados à rolagem
-    (scrub), título entra linha a linha.
-
-    Sem GSAP ou com prefers-reduced-motion: fica o CSS puro
-    (hover simples e trilho nativo), nada quebra.
-  */
   (function () {
     var SECTION_ID = 'shopify-section-{{ section.id }}';
 
@@ -371,23 +357,6 @@
       var bar = section.querySelector('[data-collection-bar]');
       var current = section.querySelector('[data-collection-current]');
 
-      /* ---------- Progresso do trilho (≤1000px) ----------
-
-         As medidas do trilho ficam em cache.
-
-         updateProgress roda a cada frame em que o dedo arrasta a
-         fileira — e lia rail.scrollWidth e rail.clientWidth ali
-         dentro. As duas sao propriedades de LAYOUT: le-las obriga o
-         navegador a recalcular o layout na hora, de forma sincrona,
-         antes de devolver o numero. Um reflow forcado por frame,
-         durante o unico gesto em que a pessoa esta olhando de perto
-         para a fluidez da fileira.
-
-         Largura do trilho e do conteudo so mudam quando algo muda
-         de TAMANHO — nunca por rolar. Entao sao medidas no resize,
-         quando as imagens lazy chegam e quando o editor recria a
-         section. Durante a rolagem sobra scrollLeft, que e leitura
-         barata, e uma escrita em transform, que vai para a GPU. */
       var trilho = { max: 0, visivel: 1 };
       function medirTrilho() {
         var total = Math.max(rail.scrollWidth, 1);
@@ -404,8 +373,6 @@
         var scale = trilho.visivel + (1 - trilho.visivel) * ratio;
         bar.style.transform = 'scaleX(' + Math.min(1, Math.max(0.04, scale)) + ')';
         if (current && items.length) {
-          // O numero muda a cada painel, nao a cada frame: sem esta
-          // guarda seria uma escrita no DOM por frame de rolagem.
           var indice = ('0' + (Math.round(ratio * (items.length - 1)) + 1)).slice(-2);
           if (indice !== ultimoIndice) {
             ultimoIndice = indice;
@@ -433,24 +400,23 @@
 
       var panels = items.map(function (item) {
         var panel = item.querySelector('.collection-panel');
+        if (!panel) return null;
         return {
           item: item,
           panel: panel,
-          img: panel.querySelector('.collection-panel__image'),
+          img: panel.querySelector('.collection-panel__image, img'),
           shade: panel.querySelector('.collection-panel__shade'),
           info: panel.querySelector('.collection-panel__info'),
-          title: panel.querySelector('.collection-panel__title-inner'),
+          title: panel.querySelector('.collection-panel__title-inner, .collection-panel__title'),
           text: panel.querySelector('.collection-panel__text'),
           meta: panel.querySelector('.collection-panel__meta'),
           arrow: panel.querySelector('.collection-panel__arrow svg')
         };
-      });
+      }).filter(Boolean);
 
       var mm = gsap.matchMedia();
 
-      /* ==========================================================
-         DESKTOP — acordeão com inércia
-         ========================================================== */
+      /* DESKTOP — Acordeão com inércia */
       mm.add('(min-width: 1001px) and (hover: hover)', function () {
         var ac = new AbortController();
         var on = function (el, type, fn) { if (el) el.addEventListener(type, fn, { signal: ac.signal }); };
@@ -460,44 +426,22 @@
         rail.classList.add('is-enhanced');
 
         panels.forEach(function (p) {
-          // Valores inline desde o início: os :hover do CSS (fallback)
-          // nunca chegam a aparecer por baixo do GSAP.
           gsap.set(p.item, { flexGrow: 1 });
-          gsap.set(p.shade, { opacity: 0 });
-          gsap.set(p.img, { scale: 1, xPercent: 0, yPercent: 0 });
-          gsap.set(p.info, { autoAlpha: 1, y: 0 });
-          gsap.set(p.title, { yPercent: 115 });
-          gsap.set([p.text, p.meta].filter(Boolean), { autoAlpha: 0, y: 18 });
+          if (p.shade) gsap.set(p.shade, { opacity: 0.65 });
+          if (p.img) gsap.set(p.img, { scale: 1, xPercent: 0, yPercent: 0 });
+          if (p.info) gsap.set(p.info, { autoAlpha: 1, y: 0 });
 
-          p.tl = gsap.timeline({ paused: true, defaults: { ease: 'expo.out' } })
-            .to(p.title, { yPercent: 0, duration: 1 }, 0.14)
-            .to([p.text, p.meta].filter(Boolean), { autoAlpha: 1, y: 0, duration: 0.9, stagger: 0.08 }, 0.24);
+          if (p.title) gsap.set(p.title, { yPercent: 0 });
+          if (p.text || p.meta) gsap.set([p.text, p.meta].filter(Boolean), { autoAlpha: 1, y: 0 });
 
-          // quickTo: segue o cursor com atraso macio, sem recriar tweens
-          p.imgX = gsap.quickTo(p.img, 'xPercent', { duration: 1.4, ease: 'power3.out' });
-          p.imgY = gsap.quickTo(p.img, 'yPercent', { duration: 1.4, ease: 'power3.out' });
-          if (p.arrow) {
-            p.arrowX = gsap.quickTo(p.arrow, 'x', { duration: 0.6, ease: 'power3.out' });
-            p.arrowY = gsap.quickTo(p.arrow, 'y', { duration: 0.6, ease: 'power3.out' });
-          }
+          if (p.img) p.imgX = gsap.quickTo(p.img, 'xPercent', { duration: 1.4, ease: 'power3.out' });
+          if (p.img) p.imgY = gsap.quickTo(p.img, 'yPercent', { duration: 1.4, ease: 'power3.out' });
         });
 
-        /* Os retangulos medidos ficam invalidos quando a fileira
-           muda de forma ou de lugar: o acordeao abrindo/fechando, a
-           pagina rolando, a janela redimensionando. Aqui so os
-           marcamos como vencidos (operacao de graca) — a proxima
-           mexida do mouse remede, uma vez. */
         function invalidarRects() {
           panels.forEach(function (q) { q.rect = null; });
         }
 
-        // O acordeao leva 1,15s para assentar: uma remedicao no fim
-        // devolve a precisao total depois da animacao.
-        var assentar = null;
-
-        // passive: avisa o navegador que estes handlers nunca vao
-        // chamar preventDefault, entao a rolagem nao precisa esperar
-        // por eles para comecar.
         window.addEventListener('scroll', invalidarRects, { passive: true, signal: ac.signal });
         window.addEventListener('resize', invalidarRects, { passive: true, signal: ac.signal });
 
@@ -505,10 +449,6 @@
           if (active === index) return;
           active = index;
           var idle = index === null;
-
-          invalidarRects();
-          if (assentar) assentar.kill();
-          assentar = gsap.delayedCall(1.2, invalidarRects);
 
           panels.forEach(function (p, i) {
             var isOn = i === index;
@@ -518,92 +458,30 @@
               ease: 'expo.out',
               overwrite: 'auto'
             });
-            gsap.to(p.shade, {
-              opacity: idle || isOn ? 0 : 0.4,
-              duration: 0.9,
-              ease: 'power2.out',
-              overwrite: 'auto'
-            });
-            gsap.to(p.img, {
-              scale: isOn ? 1.09 : 1,
-              duration: isOn ? 1.8 : 1.2,
-              ease: 'power3.out',
-              overwrite: 'auto'
-            });
-
-            if (isOn) {
-              p.tl.timeScale(1).play();
-            } else {
-              p.tl.timeScale(2.2).reverse();
-              p.imgX(0); p.imgY(0);
-              if (p.arrowX) { p.arrowX(0); p.arrowY(0); }
+            if (p.shade) {
+              gsap.to(p.shade, {
+                opacity: idle ? 0.65 : (isOn ? 0.35 : 0.85),
+                duration: 0.9,
+                ease: 'power2.out',
+                overwrite: 'auto'
+              });
+            }
+            if (p.img) {
+              gsap.to(p.img, {
+                scale: isOn ? 1.08 : 1,
+                duration: isOn ? 1.8 : 1.2,
+                ease: 'power3.out',
+                overwrite: 'auto'
+              });
             }
           });
         }
 
         panels.forEach(function (p, i) {
-          // Intenção: um pequeno atraso evita que cruzar o mouse por
-          // cima de todos os painéis dispare 4 aberturas seguidas.
           on(p.item, 'mouseenter', function () {
             window.clearTimeout(timer);
-            timer = window.setTimeout(function () { setActive(i); }, active === null ? 40 : 90);
+            timer = window.setTimeout(function () { setActive(i); }, active === null ? 40 : 80);
           });
-
-          /* ------------------------------------------------------
-             pointermove sem reflow forcado.
-
-             Antes este handler chamava getBoundingClientRect() do
-             painel A CADA EVENTO de movimento do mouse — e um
-             trackpad moderno dispara 120 ou mais por segundo.
-             getBoundingClientRect() e uma leitura de LAYOUT: obriga
-             o navegador a recalcular o layout ali, de forma
-             sincrona, antes de devolver o numero.
-
-             E pior do que parece: o acordeao anima flexGrow, ou
-             seja, o layout esta REALMENTE sujo durante a animacao.
-             Cada leitura pagava um recalculo de verdade da fileira
-             inteira, dezenas de vezes por segundo, no meio do
-             gesto. Num notebook fraco e isso que faz o acordeao
-             "engasgar" em vez de deslizar.
-
-             Agora: o retangulo e medido nos momentos em que ele
-             muda (entrada do mouse, fim da animacao do acordeao,
-             rolagem, resize) e o movimento so le a posicao do
-             cursor, que ja vem no evento. O movimento tambem passa
-             a ser processado no maximo uma vez por frame.
-
-             O leve atraso do retangulo durante a expansao move o
-             parallax da foto em fracoes de pixel — o deslocamento
-             total e de 3,5%. Imperceptivel.
-          ------------------------------------------------------ */
-          p.rect = null;
-          p.medir = function () { p.rect = p.panel.getBoundingClientRect(); };
-
-          var pendente = null;
-          var frame = false;
-
-          function aplicar() {
-            frame = false;
-            if (!p.rect || !pendente) return;
-            var r = p.rect;
-            var rx = (pendente.x - r.left) / r.width;
-            var ry = (pendente.y - r.top) / r.height;
-            p.imgX((0.5 - rx) * 3.5);
-            p.imgY((0.5 - ry) * 3.5);
-            if (p.arrowX) {
-              p.arrowX((rx - 0.5) * 6);
-              p.arrowY((ry - 0.5) * 10);
-            }
-          }
-
-          on(p.panel, 'pointermove', function (event) {
-            // Só mouse/caneta: num toque isso nem deve começar.
-            if (event.pointerType === 'touch') return;
-            pendente = { x: event.clientX, y: event.clientY };
-            if (!p.rect) p.medir();
-            if (!frame) { frame = true; window.requestAnimationFrame(aplicar); }
-          });
-
           on(p.item, 'focusin', function () { window.clearTimeout(timer); setActive(i); });
         });
 
@@ -611,24 +489,15 @@
           window.clearTimeout(timer);
           timer = window.setTimeout(function () { setActive(null); }, 140);
         });
-        on(rail, 'focusout', function (event) {
-          if (!rail.contains(event.relatedTarget)) setActive(null);
-        });
 
-        // Saindo do desktop: o matchMedia reverte os tweens; aqui só
-        // limpamos listeners e o modo animado.
         return function () {
           window.clearTimeout(timer);
-          if (assentar) assentar.kill();
           ac.abort();
           rail.classList.remove('is-enhanced');
-          panels.forEach(function (p) { p.tl.kill(); });
         };
       });
 
-      /* ==========================================================
-         TABLET / MOBILE — profundidade no trilho
-         ========================================================== */
+      /* TABLET / MOBILE — Profundidade no trilho */
       mm.add('(max-width: 1000px)', function () {
         var ac = new AbortController();
         var tick = false;
@@ -640,55 +509,21 @@
           panels.forEach(function (p) {
             var box = p.item.getBoundingClientRect();
             var d = Math.min(1, Math.abs(box.left - anchor) / Math.max(box.width, 1));
-            gsap.set(p.panel, { scale: 1 - d * 0.07 });
-            gsap.set(p.shade, { opacity: d * 0.35 });
+            gsap.set(p.panel, { scale: 1 - d * 0.05 });
+            if (p.shade) gsap.set(p.shade, { opacity: 0.5 + d * 0.3 });
           });
         }
+
         rail.addEventListener('scroll', function () {
           if (!tick) { tick = true; window.requestAnimationFrame(paint); }
         }, { passive: true, signal: ac.signal });
-        window.addEventListener('resize', paint, { signal: ac.signal });
+
         paint();
 
         return function () { ac.abort(); rail.classList.remove('is-depth'); };
       });
-
-      /* ==========================================================
-         SCROLL — entrada ligada à rolagem (todas as telas)
-         ========================================================== */
-      if (window.ScrollTrigger) {
-        mm.add('all', function () {
-          // Cada card sobe de um degrau diferente e todos se alinham
-          // juntos: a fileira "assenta" enquanto a pessoa rola.
-          gsap.fromTo(items,
-            { yPercent: function (i) { return 8 + i * 7; } },
-            {
-              yPercent: 0,
-              ease: 'none',
-              scrollTrigger: { trigger: rail, start: 'top bottom', end: 'top 40%', scrub: 1.2 }
-            }
-          );
-
-          // (A entrada do título é CSS — ver o markup da intro.)
-        });
-      }
-
-      // Theme editor: section recriada => desmonta tudo desta instância.
-      document.addEventListener('shopify:section:unload', function (event) {
-        if (event.target && event.target.id === SECTION_ID) mm.revert();
-      });
     }
 
-    /*
-      Antes: DOMContentLoaded. O GSAP era uma tag script defer fixa, então
-      já existia nesse momento. Agora ele é injetado sob demanda
-      (snippets/carregar-movimento.liquid) e pode chegar DEPOIS do
-      DOMContentLoaded — init() rodaria sem gsap e o desktop cairia no
-      fallback sem efeito. CODReady só chama quando o DOM está pronto E
-      a decisão de carregar (ou não) as libs já foi resolvida.
-      No celular ela resolve sem baixar nada: init() roda, não acha
-      gsap e mantém o CSS puro — que é exatamente o que se quer lá.
-    */
     if (typeof window.CODReady === 'function') {
       window.CODReady(init);
     } else if (document.readyState === 'loading') {
@@ -701,15 +536,15 @@
 
 {% schema %}
 {
-  "name": "t:sections.collection_list.name",
+  "name": "Lista de coleções",
   "tag": "section",
   "class": "section-collection-list",
   "settings": [
-    { "type": "text", "id": "eyebrow", "label": "t:sections.collection_list.settings.eyebrow.label" },
-    { "type": "textarea", "id": "heading", "default": "Collections", "label": "t:sections.collection_list.settings.heading.label", "info": "t:sections.collection_list.settings.heading.info" },
-    { "type": "text", "id": "text", "label": "t:sections.collection_list.settings.text.label" },
-    { "type": "text", "id": "button_label", "label": "t:sections.collection_list.settings.button_label.label" },
-    { "type": "url", "id": "button_link", "label": "t:sections.collection_list.settings.button_link.label" },
+    { "type": "text", "id": "eyebrow", "label": "Subtítulo / Eyebrow", "default": "NARRATIVA" },
+    { "type": "textarea", "id": "heading", "default": "ESCOLHA\nSEU LADO", "label": "Título Principal" },
+    { "type": "text", "id": "text", "label": "Texto Descritivo" },
+    { "type": "text", "id": "button_label", "label": "Texto do Botão", "default": "Ver Coleções" },
+    { "type": "url", "id": "button_link", "label": "Link do Botão" },
     {
       "type": "range",
       "id": "panel_height",
@@ -718,29 +553,28 @@
       "step": 20,
       "unit": "px",
       "default": 600,
-      "label": "t:sections.collection_list.settings.panel_height.label",
-      "info": "t:sections.collection_list.settings.panel_height.info"
+      "label": "Altura dos Painéis (Desktop)"
     },
-    { "type": "text", "id": "card_cta", "default": "Explorar", "label": "t:sections.collection_list.settings.card_cta.label" },
-    { "type": "checkbox", "id": "show_count", "default": true, "label": "t:sections.collection_list.settings.show_count.label" },
-    { "type": "text", "id": "count_label", "default": "peças", "label": "t:sections.collection_list.settings.count_label.label" }
+    { "type": "text", "id": "card_cta", "default": "Explorar", "label": "Texto da Tag dos Cards" },
+    { "type": "checkbox", "id": "show_count", "default": true, "label": "Exibir Contagem de Itens" },
+    { "type": "text", "id": "count_label", "default": "peças", "label": "Rótulo de Contagem" }
   ],
   "blocks": [
     {
       "type": "featured_collection",
-      "name": "t:sections.collection_list.blocks.featured_collection.name",
+      "name": "Coleção",
       "settings": [
-        { "type": "collection", "id": "collection", "label": "t:sections.collection_list.blocks.featured_collection.settings.collection.label" },
-        { "type": "image_picker", "id": "image", "label": "t:sections.collection_list.blocks.featured_collection.settings.image.label", "info": "t:sections.collection_list.blocks.featured_collection.settings.image.info" },
-        { "type": "text", "id": "title", "label": "t:sections.collection_list.blocks.featured_collection.settings.title.label", "info": "t:sections.collection_list.blocks.featured_collection.settings.title.info" },
-        { "type": "text", "id": "text", "label": "t:sections.collection_list.blocks.featured_collection.settings.text.label" }
+        { "type": "collection", "id": "collection", "label": "Coleção" },
+        { "type": "image_picker", "id": "image", "label": "Imagem Personalizada" },
+        { "type": "text", "id": "title", "label": "Título Personalizado" },
+        { "type": "text", "id": "text", "label": "Descrição Curta" }
       ]
     }
   ],
   "max_blocks": 6,
   "presets": [
     {
-      "name": "t:sections.collection_list.name",
+      "name": "Lista de Coleções (Escolha seu lado)",
       "blocks": [
         { "type": "featured_collection" },
         { "type": "featured_collection" },

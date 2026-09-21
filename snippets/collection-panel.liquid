@@ -35,8 +35,12 @@
   (acordeão, trilho, grade) é de cada section.
 {%- endcomment -%}
 {%- liquid
-  assign panel_image = image | default: collection.featured_image
-  if panel_image == blank and collection != blank
+  assign panel_image = blank
+  if image != blank
+    assign panel_image = image
+  elsif collection != blank and collection.featured_image != blank
+    assign panel_image = collection.featured_image
+  elsif collection != blank
     assign panel_image = collection.products.first.featured_image
   endif
 
@@ -68,16 +72,19 @@
   <div class="collection-panel__media" {% if parallax %}data-parallax="0.08"{% endif %}>
     <div class="collection-panel__frame" data-parallax-target>
       {%- if panel_image != blank -%}
-        {{
-          panel_image
-          | image_url: width: 1400
-          | image_tag:
-            loading: 'lazy',
-            class: 'collection-panel__image',
-            widths: '360, 540, 720, 960, 1200, 1400',
-            sizes: panel_sizes,
-            alt: panel_image.alt | default: panel_title | escape_once
-        }}
+        <img
+          src="{{ panel_image | image_url: width: 1400 }}"
+          srcset="
+            {%- assign panel_widths = '360,540,720,960,1200,1400' | split: ',' -%}
+            {%- for panel_width in panel_widths -%}
+              {{ panel_image | image_url: width: panel_width }} {{ panel_width }}w{% unless forloop.last %}, {% endunless %}
+            {%- endfor -%}
+          "
+          sizes="{{ panel_sizes }}"
+          loading="lazy"
+          class="collection-panel__image"
+          alt="{{ panel_image.alt | default: panel_title | escape }}"
+        >
       {%- else -%}
         {{ 'collection-1' | placeholder_svg_tag: 'collection-panel__image placeholder-svg' }}
       {%- endif -%}
