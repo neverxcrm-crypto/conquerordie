@@ -20,7 +20,7 @@
       --aviso-caixa: {{ section.settings.text_transform }};
       --aviso-tracking: {{ section.settings.letter_spacing }}px;
       --aviso-italico: {% if section.settings.enable_italic %}italic{% else %}normal{% endif %};
-      --aviso-duracao: {{ section.settings.speed }}s;
+      --aviso-duracao: {{ section.settings.speed | default: 25 }}s;
     "
   >
     <div class="aviso-marquee__container">
@@ -72,11 +72,14 @@
     }
 
     .aviso-marquee__track {
-      display: flex;
+      display: inline-flex;
+      width: fit-content;
       width: max-content;
+      min-width: max-content;
       white-space: nowrap;
       will-change: transform;
       animation: aviso-marquee-loop var(--aviso-duracao, 25s) linear infinite;
+      animation-play-state: running;
     }
 
     .aviso-marquee__group {
