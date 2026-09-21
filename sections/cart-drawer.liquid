@@ -354,13 +354,20 @@
 </div>
 
 <style>
+  /* O wrapper Shopify cria um stacking context para cada section.
+     O drawer precisa elevar esse wrapper, não apenas o painel interno. */
+  body > .shopify-section:has(> #CartDrawer) {
+    z-index: 10000;
+    isolation: auto;
+  }
+
   /* ==========================================================
      Raiz: cobre o viewport, mas so intercepta cliques aberta.
      ========================================================== */
   .cart-drawer {
     position: fixed;
     inset: 0;
-    z-index: 900;
+    z-index: 10000;
     visibility: hidden;
     pointer-events: none;
   }
