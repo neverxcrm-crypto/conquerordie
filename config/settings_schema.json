@@ -2,7 +2,8 @@
   {
     "name": "theme_info",
     "theme_name": "Base Liquid",
-    "theme_version": "1.0.0"
+    "theme_version": "1.0.0",
+    "theme_support_url": "https://github.com/neverxcrm-crypto/conquerordie"
   },
   {
     "name": "t:settings_schema.logo.name",
