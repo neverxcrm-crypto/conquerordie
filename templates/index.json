@@ -80,7 +80,7 @@
       "type": "featured-collection",
       "settings": {
         "eyebrow": "Últimos lançamentos",
-        "heading": "The Latest Drop",
+        "heading": "Produtos mais procurados",
         "collection": "automated-collection",
         "products_to_show": 4,
         "columns_desktop": 4,
