@@ -1,26 +1,41 @@
 /*
   ============================================================
-  revelar.js — reveal on scroll
+  revelar.js — entrada de conteudo ao rolar
   ============================================================
 
   O QUE FAZ:
   Revela elementos marcados com [data-reveal] quando eles entram no
-  viewport, adicionando a classe .is-revealed (a transicao em si esta
-  em assets/base.css). Usa IntersectionObserver e para de observar
-  cada elemento depois do primeiro reveal — nada fica preso a um
-  listener de scroll.
+  viewport, adicionando a classe .is-revealed. A transicao em si
+  (subir 10px + aparecer) esta em assets/base.css, junto com as
+  variantes — aqui so existe a decisao de QUANDO.
 
-  POR QUE ASSIM:
-  - E um ecommerce, nao um site de apresentacao: o efeito e curto e
-    acontece uma vez. Elementos irmaos ganham um atraso minimo
-    (60ms) para a fileira aparecer em cascata leve, nunca em bloco.
-  - Quem pediu menos movimento (prefers-reduced-motion) ou esta sem
-    IntersectionObserver recebe o conteudo visivel de imediato.
-  - O CSS so esconde [data-reveal] quando html tem a classe "js",
-    entao sem JavaScript nada desaparece.
-  - shopify:section:load: o theme editor recria a section inteira ao
-    editar, e sem re-observar os elementos novos eles ficariam
-    presos em opacity 0.
+  Usa IntersectionObserver e para de observar cada elemento depois
+  do primeiro reveal: nada fica preso a um listener de scroll e o
+  custo por frame de rolagem e zero.
+
+  CASCATA SEM TIMER:
+  Elementos irmaos entram em degraus. Antes cada um agendava um
+  setTimeout para atrasar a propria entrada — uma fileira de 8
+  cards criava 8 timers que disputavam a thread justamente durante
+  a rolagem. Agora o indice vai para a custom property --reveal-i e
+  quem atrasa e o transition-delay do CSS, que roda no compositor.
+
+  O indice e escrito UMA vez, quando o elemento entra no observer,
+  e nunca mais: escrever style so quando algo muda evita recalculo
+  de estilo a cada quadro.
+
+  Um pai com [data-reveal-group] numera os proprios filhos — util
+  quando os itens da cascata nao sao irmaos diretos no DOM.
+
+  QUEM NAO ANIMA:
+  - prefers-reduced-motion: tudo nasce visivel.
+  - Sem IntersectionObserver: idem.
+  - Sem JavaScript: o CSS so esconde [data-reveal] dentro de .js,
+    entao o conteudo aparece normalmente. O reveal nunca pode ser
+    a razao de alguem nao ver um produto.
+
+  shopify:section:load: o theme editor recria a section inteira ao
+  editar; sem re-observar, os elementos novos ficariam em opacity 0.
 */
 (function () {
   'use strict';
@@ -29,44 +44,82 @@
   var supported = 'IntersectionObserver' in window;
 
   function revealAll(items) {
-    items.forEach(function (el) { el.classList.add('is-revealed'); });
+    Array.prototype.forEach.call(items, function (el) { el.classList.add('is-revealed'); });
   }
 
   if (reduced || !supported) {
-    revealAll(Array.prototype.slice.call(document.querySelectorAll('[data-reveal]')));
-    // No theme editor, conteudo novo tambem precisa aparecer.
+    revealAll(document.querySelectorAll('[data-reveal]'));
     document.addEventListener('shopify:section:load', function (event) {
-      revealAll(Array.prototype.slice.call(event.target.querySelectorAll('[data-reveal]')));
+      revealAll(event.target.querySelectorAll('[data-reveal]'));
     });
     return;
+  }
+
+  /* Indice da cascata. Teto de 6: passando disso a espera comeca a
+     parecer atraso, e a fileira inteira precisa terminar de entrar
+     em menos de meio segundo. */
+  function indexar(el) {
+    if (el.hasAttribute('data-reveal-i')) return;
+    var grupo = el.closest('[data-reveal-group]');
+    var irmaos = grupo
+      ? grupo.querySelectorAll('[data-reveal]')
+      : (el.parentElement ? el.parentElement.children : [el]);
+    var posicao = Array.prototype.indexOf.call(irmaos, el);
+    var i = Math.min(Math.max(posicao, 0), 6);
+    if (i > 0) el.style.setProperty('--reveal-i', i);
+    el.setAttribute('data-reveal-i', i);
+  }
+
+  /* ---------------------------------------------------------
+     O que JÁ ESTÁ na tela na abertura não anima.
+
+     Dois motivos, nesta ordem:
+
+     1. LCP. O maior elemento visível costuma ser uma foto de
+        produto ou o título do hero. Se ele nasce em opacity 0 e
+        só aparece 560ms depois, o navegador conta o LCP a partir
+        do momento em que ficou visível — a nota piora sem que
+        nada tenha ficado mais lento de verdade.
+
+     2. Sentido. Reveal é para conteúdo que a pessoa ALCANÇA
+        rolando. O que já estava na tela quando a página abriu não
+        "chega": ele simplesmente está lá. Animá-lo faz a abertura
+        inteira piscar.
+  --------------------------------------------------------- */
+  function jaVisivel(el) {
+    var r = el.getBoundingClientRect();
+    return r.top < window.innerHeight * 0.95 && r.bottom > 0;
   }
 
   var observer = new IntersectionObserver(
     function (entries) {
       entries.forEach(function (entry) {
         if (!entry.isIntersecting) return;
-        var el = entry.target;
-        // Cascata leve entre irmaos: a fileira nao aparece de uma vez.
-        var siblings = Array.prototype.slice.call(el.parentElement ? el.parentElement.children : []);
-        var position = siblings.indexOf(el);
-        var delay = Math.min(position, 5) * 60;
-        setTimeout(function () { el.classList.add('is-revealed'); }, delay);
-        observer.unobserve(el);
+        entry.target.classList.add('is-revealed');
+        observer.unobserve(entry.target);
       });
     },
-    { rootMargin: '0px 0px -12% 0px', threshold: 0.08 }
+    /* Margem negativa embaixo: o elemento so conta como "entrou"
+       depois de subir um pouco na tela, nao no instante em que a
+       primeira linha de pixels aparece. */
+    { rootMargin: '0px 0px -10% 0px', threshold: 0.05 }
   );
 
-  function observe(scope) {
+  function observe(scope, abertura) {
     scope.querySelectorAll('[data-reveal]').forEach(function (el) {
-      if (!el.classList.contains('is-revealed')) observer.observe(el);
+      if (el.classList.contains('is-revealed')) return;
+      if (abertura && jaVisivel(el)) {
+        // .sem-anim desliga a transicao: aparece pronto, sem fade.
+        el.classList.add('sem-anim', 'is-revealed');
+        return;
+      }
+      indexar(el);
+      observer.observe(el);
     });
   }
 
-  observe(document);
+  observe(document, true);
 
-  // O theme editor recria a section inteira: os novos elementos
-  // precisam voltar para o observer, senao ficariam invisiveis.
   document.addEventListener('shopify:section:load', function (event) {
     observe(event.target);
   });

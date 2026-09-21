@@ -659,8 +659,26 @@
   .cart-drawer__suggestion-link:hover .cart-drawer__suggestion-title { text-decoration: underline; }
 
   /* Estado ocupado: feedback de que algo esta acontecendo, sem spinner */
+  /* ==========================================================
+     ATUALIZANDO — o valor que vai mudar avisa que está mudando
+     ==========================================================
+     A lista inteira já perdia presença enquanto o fetch acontecia.
+     Faltava o subtotal: ele continuava firme mostrando um número
+     VELHO, que muda um instante depois — a pessoa lê duas vezes e
+     desconfia. Agora ele pulsa no lugar, com a mesma linguagem de
+     espera do resto do tema (.skeleton, em base.css), e mantém a
+     própria largura: nada salta quando o novo valor chega. */
   .cart-drawer[data-busy='true'] .cart-drawer__scroll { opacity: 0.55; transition: opacity 160ms ease; }
   .cart-drawer[data-busy='true'] .cart-drawer__panel { cursor: progress; }
+  .cart-drawer[data-busy='true'] .cart-drawer__totals-value {
+    color: transparent;
+    border-radius: var(--radius-xs);
+    background-color: var(--color-surface-elevated);
+    animation: skeletonPulse 1.6s var(--ease-in-out) infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cart-drawer[data-busy='true'] .cart-drawer__totals-value { animation: none; }
+  }
 
   @media screen and (max-width: 749px) {
     /* Largura total; o painel usa a altura real do viewport para o

@@ -195,9 +195,15 @@
         </a>
       </div>
     {%- else -%}
-      <ul class="product-grid" role="list">
+      {%- comment -%}
+        data-reveal-group: a cascata conta os itens da GRADE, não os
+        irmãos diretos — assim a ordem dos degraus acompanha a
+        leitura da fileira. Cards já visíveis na abertura aparecem
+        prontos (ver assets/revelar.js).
+      {%- endcomment -%}
+      <ul class="product-grid" role="list" data-reveal-group>
         {%- for product in collection.products -%}
-          <li class="product-grid__item">
+          <li class="product-grid__item" data-reveal>
             {% render 'card-product', card_product: product %}
           </li>
         {%- endfor -%}

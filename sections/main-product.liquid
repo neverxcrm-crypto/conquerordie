@@ -101,7 +101,13 @@
     {%- endif -%}
   </div>
 
-  <div class="product__info">
+  {%- comment -%}
+    Só a coluna de informação entra. A mídia fica de fora de
+    propósito: ela é o elemento de LCP da página de produto, e
+    atrasar a foto para animá-la pioraria a métrica sem ganho
+    nenhum — a foto já está lá quando a página abre.
+  {%- endcomment -%}
+  <div class="product__info" data-reveal>
     {%- form 'product',
       product,
       id: product_form_id,

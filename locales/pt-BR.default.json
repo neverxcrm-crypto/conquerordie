@@ -233,6 +233,13 @@
       "hours": "Horas",
       "minutes": "Min",
       "seconds": "Seg"
+    },
+    "announcement": {
+      "label": "Avisos da loja",
+      "previous": "Aviso anterior",
+      "next": "Próximo aviso",
+      "pause": "Pausar avisos",
+      "play": "Retomar avisos"
     }
   },
   "customer": {

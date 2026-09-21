@@ -10,6 +10,8 @@
 <div
   class="hero scheme-dark hero--{{ section.settings.height }}"
   data-section-id="{{ section.id }}"
+  {%- comment -%} A header fica transparente sobre esta section (ver nav.liquid). {%- endcomment -%}
+  data-header-overlay
   {% if slide_count > 1 %}data-hero-carousel role="region" aria-roledescription="carousel" aria-label="{{ shop.name | escape }}"{% endif %}
 >
   <ul class="hero__slides" role="list">
@@ -218,6 +220,65 @@
   .hero__element--cta { margin-top: 8px; display: inline-block; }
 
   /* ==========================================================
+     ENTRADA DO HERO — a coreografia da primeira impressão
+     ==========================================================
+     Os elementos entram na ordem em que se lê: eyebrow, título,
+     subtítulo, texto, botão. Cada um sobe 14px e aparece, 70ms
+     depois do anterior. A sequência inteira termina em menos de
+     0,9s — tempo de uma frase, não de uma abertura de filme.
+
+     POR QUE CSS E NÃO JS:
+     a animação começa no primeiro paint, sem esperar script
+     nenhum baixar, e o navegador pode rodá-la no compositor. É
+     também o que permite que ela se repita na troca de slides de
+     graça: quem liga é a classe .is-active, que o carrossel já
+     coloca.
+
+     POR QUE animation E NÃO transition:
+     transition precisa de um estado inicial pintado e uma troca
+     depois; no primeiro paint não há troca nenhuma. A animação
+     com fill: both cobre os dois casos com uma regra só.
+
+     SEM JS a regra não existe (depende de .js): o texto nasce
+     visível. E o título continua legível para o LCP — o atraso
+     máximo antes dele é de 70ms.
+     ========================================================== */
+  .js .hero__slide .hero__element {
+    opacity: 0;
+  }
+  .js .hero__slide.is-active .hero__element {
+    animation: heroEntrada var(--dur-reveal, 560ms) var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+    animation-delay: calc(var(--hero-i, 0) * 70ms);
+  }
+  .hero__element--eyebrow { --hero-i: 0; }
+  .hero__element--heading { --hero-i: 1; }
+  .hero__element--subheading { --hero-i: 2; }
+  .hero__element--body { --hero-i: 3; }
+  .hero__element--cta { --hero-i: 4; }
+
+  @keyframes heroEntrada {
+    from { opacity: 0; transform: translate3d(0, 14px, 0); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* A foto assenta junto com o texto: começa 4% maior e volta ao
+     tamanho real. É transform puro (a GPU resolve sem repintar) e
+     acontece UMA vez, na entrada do slide.
+
+     Só em html.motion-full: num aparelho de entrada, animar uma
+     imagem que ocupa a tela inteira no mesmo instante em que a
+     página está montando é justamente o que atrasa o primeiro
+     gesto de rolagem. Lá a foto entra parada — e ninguém sente
+     falta do que nunca viu. */
+  .motion-full .hero__slide.is-active .hero__image {
+    animation: heroFoto 1200ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+  @keyframes heroFoto {
+    from { transform: scale(1.04); }
+    to { transform: none; }
+  }
+
+  /* ==========================================================
      DEGRADÊS/SOMBRAS ATRÁS DO TEXTO — sem filter: blur()
      ==========================================================
      Os dois halos abaixo usavam radial-gradient + filter: blur().
@@ -400,6 +461,9 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .js .hero__slide .hero__element { opacity: 1; }
+    .js .hero__slide.is-active .hero__element,
+    .motion-full .hero__slide.is-active .hero__image { animation: none; }
     .hero__slide { transition-duration: 0.01ms !important; }
   }
 </style>

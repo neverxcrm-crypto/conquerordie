@@ -71,8 +71,14 @@
      o editor de temas em preview mobile. */
   var toque = mq('(pointer: coarse)') || !mq('(min-width: 1001px)');
 
+  /* Altura do que fica fixo no topo: header + barra de avisos (0
+     quando não há barra). É o offset que âncoras e elementos
+     fixados precisam descontar para não pararem embaixo do menu. */
   function headerHeight() {
-    return parseFloat(getComputedStyle(root).getPropertyValue('--header-height')) || 68;
+    var estilo = getComputedStyle(root);
+    var header = parseFloat(estilo.getPropertyValue('--header-height')) || 68;
+    var aviso = parseFloat(estilo.getPropertyValue('--aviso-altura')) || 0;
+    return header + aviso;
   }
 
   if (gsap && ScrollTrigger) gsap.registerPlugin(ScrollTrigger);

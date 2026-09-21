@@ -97,10 +97,68 @@ summary:focus-visible,
   left: 0;
   right: 0;
   z-index: 500;
+  /* Deslocada para baixo da barra de avisos enquanto ela estiver na
+     tela. translate em vez de top: transform não recalcula layout e
+     é a mesma propriedade que a barra usa para sair — as duas se
+     movem no mesmo frame, como uma peça só. */
+  transform: translate3d(0, var(--aviso-altura, 0px), 0);
+  transition: transform var(--dur-emphasis) var(--ease-out);
 }
 
+/* ==========================================================
+   A PILHA DO TOPO — barra de avisos + header
+   ==========================================================
+   A header é fixed desde sempre. A barra de avisos, não: ela ficava
+   no fluxo normal, no topo do body, ou seja, EXATAMENTE embaixo da
+   header fixa — invisível, cobrindo-se com o próprio menu. Quem
+   colocasse a barra no grupo da header simplesmente não a via.
+
+   Agora as duas formam uma pilha fixa: a barra por cima do
+   conteúdo, a header logo abaixo dela. Ao rolar, a barra sobe e sai
+   (já cumpriu seu papel na abertura) e a header ocupa o topo —
+   uma transição de estado, não um sumiço.
+
+   --aviso-altura é medida pela própria barra (script da section) e
+   vale 0 quando não existe barra nenhuma: páginas sem ela ficam
+   exatamente como estavam. */
+.section-aviso.aviso-fixa,
+.section-aviso:has(+ .section-header) {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 499;
+  transition: transform var(--dur-emphasis) var(--ease-out);
+}
+html.rolou .section-aviso.aviso-fixa,
+html.rolou .section-aviso:has(+ .section-header) { transform: translate3d(0, -100%, 0); }
+html.rolou .section-header { transform: none; }
+
+/* SÓ a barra que está colada na header entra na pilha.
+   Duas condições, uma para cada cenário:
+
+   :has(+ .section-header) — a barra imediatamente antes da header.
+   Resolve sem JavaScript, inclusive no primeiro paint. Se o
+   lojista arrastar a barra para o meio da página, a regra
+   simplesmente não casa e ela volta a ser uma faixa no fluxo.
+
+   .aviso-fixa — a mesma decisão tomada pelo script da section, para
+   navegadores sem :has() e para quando a ordem das sections do
+   grupo mudar em tempo de execução no editor de temas.
+
+   A altura reservada nasce estimada e é corrigida pela medida real
+   assim que o script roda (ele escreve --aviso-altura no <html>).
+   Estimar antes evita o salto de layout do primeiro paint. */
+html:has(.section-aviso + .section-header) { --aviso-altura: 40px; }
+
 .content-for-layout {
-  padding-top: var(--header-height);
+  /* O <main> reserva a pilha inteira: header + barra (0 sem barra). */
+  padding-top: calc(var(--header-height) + var(--aviso-altura, 0px));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-aviso,
+  .section-header { transition-duration: 0.01ms; }
 }
 
 /* Ritmo vertical padrao das secoes editoriais */
@@ -112,6 +170,7 @@ summary:focus-visible,
 /* Shared button */
 .button,
 button.button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -128,14 +187,55 @@ button.button {
   border-radius: var(--buttons-radius, 4px);
   cursor: pointer;
   text-decoration: none;
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  /* transform entra na lista para o :active ter resposta imediata.
+     Cor e transform na mesma duração: o botão reage como uma peça
+     só, não em duas camadas com ritmos diferentes. */
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-normal) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
 
 .button:hover {
   color: var(--color-button-primary-text-hover);
   background-color: var(--color-button-primary-background-hover);
   border-color: var(--color-button-primary-background-hover);
+  box-shadow: var(--shadow-sm);
 }
+
+/* Pressionado: 1px para baixo e sombra apagada. É o feedback que
+   diz "o toque foi registrado" antes mesmo da página responder —
+   principal no celular, onde não existe hover para confirmar. */
+.button:active {
+  transform: translateY(1px);
+  box-shadow: none;
+  transition-duration: var(--dur-fast);
+}
+
+/* Carregando: o rótulo perde presença e um anel gira no lugar.
+   aria-busy é o mesmo atributo que o leitor de tela anuncia, então
+   o estado visual e o acessível nascem juntos. O anel só existe
+   enquanto o atributo estiver lá — nenhuma animação sobra rodando. */
+.button[aria-busy='true'] {
+  color: transparent;
+  pointer-events: none;
+}
+.button[aria-busy='true'] > * { opacity: 0; }
+.button[aria-busy='true']::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: var(--color-button-primary-text);
+  color: var(--color-button-primary-text);
+  opacity: 0.35;
+  animation: buttonSpin 620ms linear infinite;
+}
+@keyframes buttonSpin { to { transform: rotate(360deg); } }
 
 /* Variante de acento — para UM CTA por página, no máximo.
    Existe para casos como "entrar no clube"; não é o botão padrão. */
@@ -165,6 +265,8 @@ button.button {
   background-color: var(--color-surface);
   border-color: var(--color-border);
   cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 /* Shared form inputs */
@@ -190,10 +292,59 @@ textarea.field__input::placeholder {
   color: var(--color-text-muted);
 }
 
+.field__input,
+.select__select,
+textarea.field__input {
+  transition:
+    border-color var(--dur-normal) var(--ease-out),
+    box-shadow var(--dur-normal) var(--ease-out),
+    background-color var(--dur-normal) var(--ease-out);
+}
+
+.field__input:hover,
+.select__select:hover,
+textarea.field__input:hover { border-color: var(--color-border-strong); }
+
+/* Foco do campo: borda de acento + um halo de 3px. O halo usa
+   box-shadow (não outline) para acompanhar o border-radius e não
+   empurrar layout nenhum. O outline global de foco continua
+   valendo para navegação por teclado. */
 .field__input:focus,
 .select__select:focus,
 textarea.field__input:focus {
-  border-color: var(--color-border-strong);
+  border-color: var(--color-border-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-muted);
+  outline: none;
+}
+
+/* Erro e sucesso: cor + o próprio texto de apoio abaixo do campo.
+   Nunca só a cor — quem não distingue vermelho de verde precisa
+   ler a mensagem (WCAG 1.4.1). */
+.field__input[aria-invalid='true'],
+textarea.field__input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+.field__input[aria-invalid='true']:focus {
+  box-shadow: 0 0 0 3px rgba(163, 74, 66, 0.18);
+}
+.field__error,
+.field__success {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: var(--f1);
+  line-height: var(--leading-ui);
+}
+.field__error { color: var(--color-error); }
+.field__success { color: var(--color-success); }
+
+.field__input[disabled],
+.select__select[disabled],
+textarea.field__input[disabled] {
+  color: var(--color-text-disabled);
+  background-color: var(--color-surface-muted);
+  cursor: not-allowed;
 }
 
 .field__label {
@@ -213,6 +364,32 @@ textarea.field__input:focus {
   min-width: 44px;
   min-height: 44px;
 }
+
+/* ==========================================================
+   ÁREA DE TOQUE INVISÍVEL
+   ==========================================================
+   Alguns controles precisam ser pequenos no desenho (uma seta de
+   7px na barra de avisos, o "+" de 36px do card) e grandes no
+   dedo. Esticar o elemento resolveria o toque e estragaria o
+   desenho; então quem cresce é um retângulo transparente por cima,
+   via ::after.
+
+   Vale para qualquer controle: .alvo-44 dá os 44px do WCAG 2.5.5
+   sem mexer um pixel no visual. */
+.alvo-44 { position: relative; }
+.alvo-44::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+
+/* Links de texto em fileira (arrow-link) precisam de 24px de
+   altura mínima para o critério 2.5.8 (alvo de tamanho mínimo). */
+.arrow-link { min-height: 24px; }
 
 /* Eyebrow — microcopy de secao (label pequeno, uppercase, tracking).
    Em ouro: e o ponto onde o acento entra em toda seccao da home,
@@ -239,9 +416,11 @@ textarea.field__input:focus {
 
 /* Link com seta — CTA discreto, a seta e quem se move no hover */
 .arrow-link {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  padding-bottom: 3px;
   font-family: var(--font-ui-family);
   font-size: var(--f0);
   font-weight: var(--font-weight-medium);
@@ -249,30 +428,134 @@ textarea.field__input:focus {
   text-transform: uppercase;
   color: var(--color-text-primary);
   text-decoration: none;
-  transition: opacity 200ms ease;
+  transition: color var(--dur-normal) var(--ease-out);
 }
+/* Sublinhado que cresce da esquerda e recolhe pela direita: o
+   traço "sai" para o mesmo lado em que a seta anda, então o gesto
+   inteiro aponta na direção do clique. scaleX é de graça na GPU;
+   animar width/border custaria layout a cada frame. */
+.arrow-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.45;
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform var(--dur-emphasis) var(--ease-out);
+}
+.arrow-link:hover::after,
+.arrow-link:focus-visible::after { transform: scaleX(1); transform-origin: left center; }
 .arrow-link svg {
   width: 14px;
   height: 14px;
   color: var(--color-accent-readable);
-  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--dur-normal) var(--ease-out);
 }
 .arrow-link:hover svg,
 .arrow-link:focus-visible svg { transform: translateX(4px); }
 
 /* A seta dentro de .button tambem acompanha o hover */
-.button svg { width: 14px; height: 14px; margin-left: 10px; transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1); }
+.button svg { width: 14px; height: 14px; margin-left: 10px; transition: transform var(--dur-normal) var(--ease-out); }
 .button:hover svg { transform: translateX(4px); }
 
-/* Scroll reveal — so age quando ha JS; sem JS o conteudo ja nasce visivel */
+/* ==========================================================
+   Texto em linha — sublinhado discreto para links de corpo
+   ========================================================== */
+.link-underline {
+  color: inherit;
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  transition: background-size var(--dur-emphasis) var(--ease-out);
+}
+.link-underline:hover,
+.link-underline:focus-visible { background-size: 100% 1px; }
+
+/* ==========================================================
+   ENTRADA AO ROLAR — a linguagem de movimento do tema
+   ==========================================================
+   Uma regra só, para todo o site: sobe 10px e aparece. É curta
+   (um reveal, não uma animação), usa transform + opacity (as duas
+   propriedades que a GPU resolve sem recalcular layout) e acontece
+   uma vez por elemento — o revelar.js para de observar depois.
+
+   A CASCATA agora é CSS: revelar.js só escreve o índice do
+   elemento em --reveal-i e o transition-delay se resolve sozinho.
+   Antes era um setTimeout por elemento — dezenas de timers
+   competindo com a rolagem só para atrasar uma transição.
+
+   Sem JS nada disso existe (a regra depende de .js), então o
+   conteúdo nasce visível: o reveal nunca pode ser a razão de
+   alguém não ver um produto. */
 .js [data-reveal] {
   opacity: 0;
-  transform: translateY(12px);
-  transition: opacity 520ms cubic-bezier(0.22, 1, 0.36, 1), transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateY(10px);
+  transition:
+    opacity var(--dur-reveal) var(--ease-out),
+    transform var(--dur-reveal) var(--ease-out);
+  transition-delay: calc(var(--reveal-i, 0) * var(--stagger));
 }
 .js [data-reveal].is-revealed {
   opacity: 1;
   transform: none;
+}
+/* Estava visível quando a página abriu: aparece pronto, sem
+   transição (ver revelar.js — protege o LCP). */
+.js [data-reveal].sem-anim,
+.js [data-reveal].sem-anim > .reveal-mask__inner {
+  transition: none !important;
+  transform: none;
+}
+
+/* Variantes — mesma duração e curva, direções diferentes.
+   Três no total: mais que isso vira sopa de movimento. */
+.js [data-reveal='fade'] { transform: none; }
+.js [data-reveal='right'] { transform: translateX(-14px); }
+.js [data-reveal='right'].is-revealed { transform: none; }
+
+/* Máscara: o conteúdo sobe de dentro de uma janela que o corta.
+   É o reveal mais "editorial" do conjunto — reservado a títulos.
+   Precisa de um filho: <span class="reveal-mask__inner">. */
+.js [data-reveal='mask'] { opacity: 1; transform: none; overflow: hidden; }
+.js [data-reveal='mask'] > .reveal-mask__inner {
+  display: block;
+  transform: translateY(105%);
+  transition: transform var(--dur-reveal) var(--ease-out);
+  transition-delay: calc(var(--reveal-i, 0) * var(--stagger));
+}
+.js [data-reveal='mask'].is-revealed > .reveal-mask__inner { transform: none; }
+
+/* ==========================================================
+   SKELETON — espera com a forma do conteúdo
+   ==========================================================
+   Sem varredura de brilho: aquele gradiente que desliza anima
+   background-position, que o navegador repinta a cada frame, em
+   vários blocos ao mesmo tempo. Aqui é só a opacidade pulsando
+   (composição pura) e num ritmo lento, que lê como "carregando"
+   sem puxar o olho.
+
+   Quem usa precisa dar ao bloco a DIMENSÃO REAL do conteúdo que
+   vai chegar, senão o skeleton resolve a espera e cria um salto
+   de layout no lugar (CLS). */
+.skeleton {
+  background-color: var(--color-surface-elevated);
+  border-radius: var(--radius-xs);
+  animation: skeletonPulse 1.6s var(--ease-in-out) infinite;
+}
+.skeleton--text { height: 1em; margin-block: 0.25em; }
+.skeleton--media { width: 100%; aspect-ratio: 3 / 4; border-radius: var(--media-radius, 0); }
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; opacity: 0.85; }
 }
 
 /* Parallax (assets/movimento.js) — o wrapper corta o excesso da
@@ -296,7 +579,19 @@ textarea.field__input:focus {
   }
 }
 
-/* Product card */
+/* ==========================================================
+   PRODUCT CARD
+   ==========================================================
+   O card inteiro é a foto: nada de moldura, sombra pesada ou
+   fundo — numa grade de moda, quem separa um produto do outro é
+   o espaço em branco, não a borda. O hover levanta a peça um
+   milímetro e troca a foto; o resto é tipografia. */
+.card-product {
+  position: relative;
+  /* isolation: o :focus-visible e o badge ficam acima da mídia
+     sem precisar de z-index disputado com a grade. */
+  isolation: isolate;
+}
 .card-product__link { text-decoration: none; color: inherit; display: block; }
 .card-product__media-wrap { position: relative; }
 .card-product__media {
@@ -305,7 +600,23 @@ textarea.field__input:focus {
   overflow: hidden;
   border-radius: var(--media-radius, 0);
   background-color: var(--color-surface);
+  transition:
+    box-shadow var(--dur-emphasis) var(--ease-out),
+    transform var(--dur-emphasis) var(--ease-out);
 }
+
+/* Foco de teclado: o anel abraça a mídia inteira, não só o texto
+   do link. Quem navega por Tab precisa enxergar o card, não uma
+   linha fina em volta do título. */
+.card-product__link:focus-visible { outline: none; }
+.card-product__link:focus-visible .card-product__media {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+/* Pressionado: a mídia recua. É o único feedback de toque que o
+   celular recebe, já que hover não existe lá. */
+.card-product__link:active .card-product__media { transform: scale(0.985); }
 .card-product__image {
   position: absolute;
   inset: 0;
@@ -337,6 +648,17 @@ textarea.field__input:focus {
 /* Zoom de 2% — perceptivel como vida, nunca como efeito */
 .card-product:hover .card-product__image { transform: scale(1.02); }
 
+/* Esgotado: a foto perde saturação e o card inteiro recua um
+   pouco. O badge continua dizendo em palavras — a cor sozinha
+   nunca carrega a informação. */
+/* A opacidade fica na FOTO, não no bloco: o badge "Esgotado"
+   precisa continuar em contraste cheio — ele é justamente a
+   informação que explica por que o card está apagado. */
+.card-product--sold-out .card-product__image {
+  opacity: 0.72;
+  filter: grayscale(0.45);
+}
+
 /* Swatches de cor — so aparecem quando o produto tem swatch real */
 .card-product__swatches {
   display: flex;
@@ -360,6 +682,7 @@ textarea.field__input:focus {
    visivel no toque, onde hover nao existe */
 .card-product__actions { position: absolute; right: 10px; bottom: 10px; z-index: 2; }
 .card-product__quick-add {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -385,27 +708,67 @@ textarea.field__input:focus {
   border-color: var(--color-accent);
   color: var(--color-text-on-accent);
 }
-@media (hover: none) {
-  .card-product__quick-add { opacity: 1; transform: none; }
+.card-product__quick-add:active { transform: scale(0.92); }
+
+/* Adicionando: o "+" vira um anel girando. Quem marca aria-busy é
+   o carrinho.js, no mesmo ponto em que ele marca os botões da PDP —
+   um estado só, dois componentes. */
+.card-product__quick-add[aria-busy='true'] {
+  color: transparent;
+  pointer-events: none;
 }
+.card-product__quick-add[aria-busy='true']::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border-strong);
+  border-top-color: var(--color-accent);
+  animation: buttonSpin 620ms linear infinite;
+}
+/* No toque o "+" é o único caminho para o carrinho a partir da
+   grade: ele fica sempre visível E com 44px de verdade — aqui não
+   dá para usar só a área invisível, porque dois cards vizinhos
+   teriam áreas sobrepostas. */
+@media (hover: none) {
+  .card-product__quick-add {
+    opacity: 1;
+    transform: none;
+    width: 44px;
+    height: 44px;
+  }
+}
+/* Badge: etiqueta de papel, não adesivo. Tipografia miúda com
+   muito tracking, fundo sólido, canto quase reto. */
 .card-product__badge {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  padding: 3px 8px;
+  top: var(--space-xs);
+  left: var(--space-xs);
+  z-index: 2;
+  padding: 4px 9px;
   font-size: var(--f0, 0.7rem);
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
   color: var(--color-text-on-accent);
   background-color: var(--color-accent);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 .card-product__badge--sold-out {
   color: var(--color-text-secondary);
   background-color: var(--color-surface-elevated);
 }
-.card-product__info { padding: 16px 0 0; }
-.card-product__vendor { display: block; font-size: var(--f0); text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 4px; }
+
+.card-product__info { padding: var(--space-sm) 0 0; }
+.card-product__vendor {
+  display: block;
+  font-size: var(--f0);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-3xs);
+}
 .card-product__title {
   font-family: var(--font-ui-family);
   font-size: var(--f2);
@@ -413,9 +776,37 @@ textarea.field__input:focus {
   line-height: var(--leading-ui);
   letter-spacing: var(--tracking-normal);
   color: var(--color-text-primary);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-3xs);
+  /* Duas linhas no máximo: com três, a grade perde o alinhamento
+     dos preços e a fileira inteira fica torta. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-.price--card { font-size: var(--f2); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); }
+
+/* Preço: o dado mais consultado da grade. Sobe para o mesmo peso
+   e cor do título — antes era cinza secundário, o que o fazia
+   parecer informação de rodapé. */
+.price--card {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2xs);
+  font-size: var(--f2);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.price--card .price__compare {
+  font-size: var(--f1);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-muted);
+}
+.price--card .price__sale { color: var(--color-text-primary); }
+/* O badge de promoção no preço é redundante com o badge da foto:
+   dentro da grade ele sai e sobra o preço riscado, que já conta a
+   história com menos ruído. */
+.price--card .price__badge { display: none; }
 
 /* ==========================================================
    Collection panel — snippets/collection-panel.liquid

@@ -233,6 +233,13 @@
       "hours": "Hours",
       "minutes": "Min",
       "seconds": "Sec"
+    },
+    "announcement": {
+      "label": "Store announcements",
+      "previous": "Previous announcement",
+      "next": "Next announcement",
+      "pause": "Pause announcements",
+      "play": "Resume announcements"
     }
   },
   "customer": {

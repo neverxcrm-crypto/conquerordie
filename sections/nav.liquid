@@ -122,7 +122,7 @@
               class="field__input header__search-input"
               autocomplete="off"
             >
-            <button type="submit" class="header__search-submit" aria-label="{{ 'general.search.submit' | t }}">
+            <button type="submit" class="header__search-submit alvo-44" aria-label="{{ 'general.search.submit' | t }}">
               {% render 'icon', name: 'arrow-right' %}
             </button>
           </form>
@@ -216,8 +216,12 @@
      Base — o <header> é transparente; quem pinta é .header__glass
      ========================================================== */
   .header {
-    --hd-ease: cubic-bezier(0.16, 1, 0.3, 1);
-    --hd-duration: 560ms;
+    /* Movimento vindo dos tokens do tema: a header passa a reagir
+       no mesmo ritmo do resto do site (ver css-variables). A
+       duração era 560ms — bonita de ver isolada, lenta demais ao
+       lado de um botão que responde em 220ms. */
+    --hd-ease: var(--ease-out);
+    --hd-duration: var(--dur-emphasis);
     --hd-float-top: 8px;
     --hd-float-side: max(12px, calc((100% - var(--page-width, 1440px)) / 2 + 12px));
     position: relative;
@@ -241,9 +245,54 @@
     transition:
       inset var(--hd-duration) var(--hd-ease),
       border-radius var(--hd-duration) var(--hd-ease),
-      background-color 400ms var(--hd-ease),
-      border-color 400ms var(--hd-ease),
+      background-color var(--dur-emphasis) var(--hd-ease),
+      border-color var(--dur-emphasis) var(--hd-ease),
+      backdrop-filter var(--dur-emphasis) var(--hd-ease),
       box-shadow var(--hd-duration) var(--hd-ease);
+  }
+
+  /* ==========================================================
+     ESTADO 1 — SOBRE O HERO (topo de uma página com imagem cheia)
+     ==========================================================
+     No topo a barra preta cortava a foto do hero numa linha reta:
+     a página começava com uma tarja, não com a imagem. Aqui a
+     header deixa de ter fundo e passa a flutuar sobre a fotografia,
+     com um véu escuro que vai de 55% a zero.
+
+     O véu não é enfeite — é o que garante o contraste do logo e do
+     menu sobre uma foto que muda a cada campanha. Um degradê é
+     pintado uma vez pelo mesmo caminho de qualquer fundo; não
+     custa frame nenhum, ao contrário do blur.
+
+     Quem liga o estado é o script no fim da section, e só quando a
+     primeira section da página se declara [data-header-overlay].
+     Em páginas sem hero (produto, carrinho, conta) nada muda.
+     ========================================================== */
+  .header--overlay:not(.header--scrolled) .header__glass {
+    background-color: transparent;
+    background-image: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.55) 0%,
+      rgba(0, 0, 0, 0.34) 45%,
+      rgba(0, 0, 0, 0.12) 75%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    border-bottom-color: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  /* Sobre fotografia o texto ganha uma sombra curta: legibilidade
+     mesmo se a foto tiver um céu claro atrás do menu. */
+  .header--overlay:not(.header--scrolled) .header__menu-link,
+  .header--overlay:not(.header--scrolled) .header__logo-text,
+  .header--overlay:not(.header--scrolled) .header__action-button,
+  .header--overlay:not(.header--scrolled) .header__burger {
+    text-shadow: 0 1px 12px rgba(0, 0, 0, 0.55);
+  }
+  .header--overlay:not(.header--scrolled) .header__burger,
+  .header--overlay:not(.header--scrolled) .header__burger::before,
+  .header--overlay:not(.header--scrolled) .header__burger::after {
+    box-shadow: 0 1px 12px rgba(0, 0, 0, 0.45);
   }
 
   /* Fio de leitura — ouro, 1px, só aparece no estado de vidro */
@@ -302,6 +351,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    /* O logo é um link para a home: 44px de altura de toque mesmo
+       quando o wordmark tem 17px de caixa (WCAG 2.5.5). */
+    min-height: 44px;
     color: var(--color-text, #ffffff);
     text-decoration: none;
   }
@@ -597,8 +649,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 38px;
+    height: 38px;
     padding: 0;
     color: var(--color-text-on-accent, #000);
     background-color: var(--color-accent, #C9A24D);
@@ -969,6 +1021,22 @@
     var state = { scrolled: null, hidden: false };
     var ticking = false;
 
+    /* ---------------------------------------------------------
+       Sobre o hero: a header só fica transparente quando a PRIMEIRA
+       section da página se declara [data-header-overlay] (hero,
+       banner de coleção). Assim a regra é da página, não do
+       template — uma home sem hero não fica com o menu boiando
+       sobre texto branco.
+
+       A checagem acontece uma vez, na montagem, e de novo quando o
+       editor de temas recria uma section.
+    --------------------------------------------------------- */
+    function conferirOverlay() {
+      var primeira = document.querySelector('#MainContent > .shopify-section:first-child');
+      var temOverlay = !!(primeira && primeira.querySelector('[data-header-overlay]'));
+      header.classList.toggle('header--overlay', temOverlay);
+    }
+
     /*
       Altura rolável em cache.
 
@@ -1002,6 +1070,11 @@
       if (state.scrolled === value) return;
       state.scrolled = value;
       header.classList.toggle('header--scrolled', value);
+      /* html.rolou é o gancho da PILHA DO TOPO (base.css): a barra
+         de avisos sobe e sai, e a header assume o topo. Fica no
+         <html> porque barra e header são sections irmãs — nenhuma
+         das duas pode estilizar a outra. */
+      document.documentElement.classList.toggle('rolou', value);
     }
 
     function setHidden(value) {
@@ -1051,6 +1124,9 @@
         onScroll();
       }, 150);
     }
+
+    conferirOverlay();
+    document.addEventListener('shopify:section:load', conferirOverlay);
 
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', remedir);

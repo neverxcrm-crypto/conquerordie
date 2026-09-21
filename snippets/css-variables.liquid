@@ -414,6 +414,73 @@
     --space-block: clamp(24px, 3vw, 48px);
     --page-gutter: clamp(20px, 4vw, 48px);
 
+    /* Escala de espaçamento — passo de 4px, os mesmos degraus em
+       todo o tema. Existe para uma section nova não inventar
+       "18px aqui, 22px ali": pega o degrau mais próximo. */
+    --space-3xs: 4px;
+    --space-2xs: 8px;
+    --space-xs: 12px;
+    --space-sm: 16px;
+    --space-md: 24px;
+    --space-lg: 32px;
+    --space-xl: 48px;
+    --space-2xl: 64px;
+
+    /* ==========================================================
+       RAIO — escala curta e intencional
+       ==========================================================
+       A marca é editorial: nada de cantos muito redondos. O raio
+       existe para suavizar mídia e superfícies de vidro, não para
+       dar "cara de app". Os três tokens do lojista (buttons,
+       inputs, media) continuam mandando onde já mandavam. */
+    --radius-xs: 2px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-pill: 999px;
+
+    /* ==========================================================
+       SOMBRA — quatro degraus, todas de baixo contraste
+       ==========================================================
+       Sombra premium é a que ninguém nota: separa a superfície do
+       fundo sem virar volume. Por isso o alpha é baixo e o raio é
+       grande, com um deslocamento curto. Nada de sombra colorida. */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.12);
+    --shadow-md: 0 12px 28px -12px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 28px 56px -24px rgba(0, 0, 0, 0.45);
+
+    /* ==========================================================
+       MOVIMENTO — uma linguagem só para o tema inteiro
+       ==========================================================
+       Antes cada section escolhia sua própria duração e curva
+       (0.15s, 240ms, 400ms, 520ms, 700ms, 1100ms...). O olho lê
+       isso como falta de acabamento: dois elementos vizinhos
+       reagiam em ritmos diferentes ao mesmo gesto.
+
+       Três velocidades, por função:
+       fast      estado que acompanha o dedo/cursor (cor, opacidade)
+       normal    o padrão de qualquer transição de interface
+       emphasis  mudanças que reposicionam algo (painel, cápsula)
+       reveal    entrada de conteúdo ao rolar
+
+       A curva padrão desacelera forte no fim (--ease-out): o
+       movimento chega rápido e "assenta". Sem overshoot — elástico
+       aqui pareceria brinquedo, não produto. */
+    --dur-fast: 140ms;
+    --dur-normal: 220ms;
+    --dur-emphasis: 380ms;
+    --dur-reveal: 560ms;
+
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --ease-linear: linear;
+
+    /* Atraso entre irmãos numa cascata (revelar.js multiplica pelo
+       índice do elemento). Curto de propósito: a fileira inteira
+       precisa terminar de entrar em menos de meio segundo. */
+    --stagger: 70ms;
+
     /* Altura da header — o <main> reserva exatamente este espaço,
        porque a header é fixed e sai do fluxo. O valor NÃO muda no
        estado comprimido de propósito: se o espaçador encolhesse
@@ -560,5 +627,47 @@
   .rte > p,
   .product__description p {
     max-width: var(--measure-body);
+  }
+
+  /* ==========================================================
+     Quebra de linha — acabamento tipográfico
+     ==========================================================
+     balance: distribui as palavras entre as linhas de um título
+     em vez de deixar uma órfã sozinha na última linha. Só vale a
+     pena em textos curtos, e o navegador limita a 6 linhas — por
+     isso fica nos headings, nunca no corpo.
+
+     pretty: mesma ideia no texto corrido, sem rebalancear tudo —
+     só evita a palavra solitária no fim do parágrafo.
+     Onde o navegador não suporta, cai no comportamento normal. */
+  h1, h2, h3,
+  .hero__heading,
+  .collection-list__heading,
+  .collection-panel__title { text-wrap: balance; }
+
+  .rte p,
+  .card-product__title,
+  .hero__subheading { text-wrap: pretty; }
+
+  /* ==========================================================
+     MENOS MOVIMENTO — um lugar só
+     ==========================================================
+     Todo componente do tema lê as durações dos tokens acima.
+     Zerando os tokens aqui, o site inteiro para de animar de uma
+     vez: não é preciso caçar transição por transição em cada
+     section (as regras específicas que já existem continuam,
+     como rede de segurança para o que ainda não usa token).
+
+     0.01ms em vez de 0: com duração zero o navegador não dispara
+     transitionend, e o JS que espera esse evento para limpar
+     estado ficaria preso. */
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --dur-fast: 0.01ms;
+      --dur-normal: 0.01ms;
+      --dur-emphasis: 0.01ms;
+      --dur-reveal: 0.01ms;
+      --stagger: 0ms;
+    }
   }
 </style>
