@@ -13,7 +13,14 @@
   "sections": {
     "footer": {
       "type": "footer",
-      "settings": {}
+      "settings": {
+        "company_info": "Sua Empresa LTDA | CNPJ: 00.000.000/0001-00 | Rua Exemplo, 123 - São Paulo/SP",
+        "show_social": true,
+        "show_payment_icons": true,
+        "show_back_to_top": false,
+        "padding_top": 64,
+        "padding_bottom": 48
+      }
     }
   },
   "order": [
