@@ -24,11 +24,11 @@
   tokens semanticos --color-success, --color-error e --color-surface
   (definidos em css-variables).
 {%- endcomment -%}
-<div id="alerta" class="alerta-global">
+<div id="alerta" class="alerta-global" role="status" aria-live="polite" aria-atomic="true" aria-hidden="true">
   <div class="conteudo">
     <div class="icone"></div>
     <div class="mensagem"></div>
-    <button class="fechar" onclick="fecharAlerta()">&times;</button>
+    <button type="button" class="fechar" data-alerta-fechar aria-label="{{ 'accessibility.close' | t }}">&times;</button>
   </div>
 </div>
 
@@ -207,11 +207,14 @@
 </style>
 
 <script>
-  let alertaTimeout;
+  var alertaTimeout = null;
 
-  function mostrarAlerta(mensagem, tipo = 'positivo', duracao = 4000) {
-    const alerta = document.getElementById('alerta');
-    const mensagemEl = alerta.querySelector('.mensagem');
+  function mostrarAlerta(mensagem, tipo, duracao) {
+    tipo = tipo || 'positivo';
+    duracao = typeof duracao === 'number' ? duracao : 4000;
+    var alerta = document.getElementById('alerta');
+    if (!alerta) return;
+    var mensagemEl = alerta.querySelector('.mensagem');
 
     // Limpar timeout anterior se existir
     if (alertaTimeout) {
@@ -222,7 +225,7 @@
     if (alerta.classList.contains('visivel')) {
       fecharAlerta();
       // Aguardar a animação de fechamento antes de mostrar o novo
-      setTimeout(() => {
+      setTimeout(function () {
         exibirNovoAlerta(alerta, mensagemEl, mensagem, tipo, duracao);
       }, 400);
     } else {
@@ -239,21 +242,24 @@
 
     // Adicionar classe do tipo
     alerta.classList.add(tipo);
+    alerta.setAttribute('aria-hidden', 'false');
 
     // Mostrar alerta
     alerta.classList.add('visivel');
 
     // Auto-fechar após a duração especificada
     if (duracao > 0) {
-      alertaTimeout = setTimeout(() => {
+      alertaTimeout = setTimeout(function () {
         fecharAlerta();
       }, duracao);
     }
   }
 
   function fecharAlerta() {
-    const alerta = document.getElementById('alerta');
+    var alerta = document.getElementById('alerta');
+    if (!alerta) return;
     alerta.classList.remove('visivel');
+    alerta.setAttribute('aria-hidden', 'true');
 
     // Limpar timeout se existir
     if (alertaTimeout) {
@@ -268,6 +274,9 @@
       fecharAlerta();
     }
   });
+
+  var botaoFechar = document.querySelector('[data-alerta-fechar]');
+  if (botaoFechar) botaoFechar.addEventListener('click', fecharAlerta);
 
   // Tornar função global
   window.mostrarAlerta = mostrarAlerta;

@@ -108,6 +108,7 @@
       "view_full_details": "Ver todos os detalhes",
       "description": "Descrição",
       "share": "Compartilhar",
+      "share_copied": "Link copiado",
       "include_taxes": "Impostos incluídos.",
       "shipping_policy_html": "<a href=\"{{ link }}\">Frete</a> calculado no checkout.",
       "pickup_availability": {

@@ -137,11 +137,11 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 100px var(--cor-escuro-1) inset !important;
+  -webkit-box-shadow: 0 0 0 100px var(--color-surface) inset !important;
   border: 2px solid transparent !important;
 }
 input:-webkit-autofill {
-  -webkit-text-fill-color: var(--cor-escuro-1) !important;
+  -webkit-text-fill-color: var(--color-text-primary) !important;
 }
 input[type='date'] {
   min-width: calc(100% - 24px);

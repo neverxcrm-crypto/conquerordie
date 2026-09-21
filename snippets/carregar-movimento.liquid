@@ -28,9 +28,9 @@
     Economia: ~131 KB de JS e a rolagem volta a ser a nativa.
 
   ORDEM DE EXECUCAO:
-  Os scripts sao injetados de uma vez com async = false. O
-  navegador baixa os quatro em paralelo mas EXECUTA na ordem de
-  insercao — entao movimento.js sempre encontra as libs prontas.
+  Os scripts sao injetados um por vez e o proximo so entra depois do
+  evento load (ou error) do anterior. Assim movimento.js sempre encontra
+  as libs prontas, inclusive em WebViews e WebKit mais antigos.
 
   window.CODReady(fn):
   Substitui o DOMContentLoaded nas sections que dependem do GSAP.

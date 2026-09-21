@@ -18,9 +18,14 @@
 
   OBSERVAÇÕES:
   Registra o custom element <share-button> uma única vez. A URL final é
-  shop.url + share_link. A mensagem de fallback está em inglês no script.
+  shop.url + share_link. O fallback de cópia funciona também sem a
+  Clipboard API e a confirmação respeita o idioma ativo.
 {%- endcomment -%}
-<share-button class="share-button" data-share-url="{{ shop.url }}{{ share_link }}">
+<share-button
+  class="share-button"
+  data-share-url="{{ shop.url }}{{ share_link }}"
+  data-share-copied="{{ 'products.product.share_copied' | t | escape }}"
+>
   <button type="button" class="share-button__button button button--secondary">
     {{ 'products.product.share' | t }}
   </button>
@@ -41,9 +46,22 @@
           try { await navigator.share({ url: this.url, title: document.title }); } catch (e) {}
         } else {
           try {
-            await navigator.clipboard.writeText(this.url);
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(this.url);
+            } else {
+              var input = document.createElement('input');
+              input.value = this.url;
+              input.setAttribute('readonly', 'readonly');
+              input.style.position = 'fixed';
+              input.style.opacity = '0';
+              document.body.appendChild(input);
+              input.select();
+              var copied = document.execCommand('copy');
+              document.body.removeChild(input);
+              if (!copied) throw new Error('copy failed');
+            }
             this.message.hidden = false;
-            this.message.textContent = 'Link copied';
+            this.message.textContent = this.dataset.shareCopied || 'Link copied';
             setTimeout(() => { this.message.hidden = true; }, 2000);
           } catch (e) {}
         }

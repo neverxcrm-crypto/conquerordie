@@ -108,6 +108,7 @@
       "view_full_details": "View full details",
       "description": "Description",
       "share": "Share",
+      "share_copied": "Link copied",
       "include_taxes": "Tax included.",
       "shipping_policy_html": "<a href=\"{{ link }}\">Shipping</a> calculated at checkout.",
       "pickup_availability": {

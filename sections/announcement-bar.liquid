@@ -82,6 +82,13 @@
       animation-play-state: running;
     }
 
+    /* A barra continua durante a rolagem da página. A pausa só acontece
+       quando a pessoa está interagindo diretamente com um aviso. */
+    .aviso-marquee:hover .aviso-marquee__track,
+    .aviso-marquee:focus-within .aviso-marquee__track {
+      animation-play-state: paused;
+    }
+
     .aviso-marquee__group {
       display: flex;
       align-items: center;
