@@ -33,6 +33,44 @@
   - Variantes, preço por variante e quantidade: snippets/product-variant-selection.
 {%- endcomment -%}
 
+{%- comment -%}
+  ============================================================
+  ESTOQUE BAIXO — só com dado real, nunca com pressão inventada
+  ============================================================
+  Três condições, e todas precisam valer:
+
+    inventory_management   a loja REALMENTE controla estoque desta
+                           variante. Sem isso, inventory_quantity é
+                           um número sem significado.
+    inventory_policy deny  a venda para quando acaba. Se a loja
+                           aceita venda sem saldo ('continue'),
+                           dizer "restam 2" é mentira: sempre há mais.
+    quantidade no limite   maior que zero e dentro do limite do
+                           lojista — só é notícia perto do fim.
+
+  O mesmo cálculo se repete por variante no JSON mais abaixo, porque
+  quem tem 2 peças é a variante, não o produto.
+
+  TRÊS ARMADILHAS DE SINTAXE, as três já custaram caro neste arquivo:
+
+  1. Dentro da tag liquid cada LINHA é uma instrução: não existe
+     continuação de linha. Uma condição composta quebrada em várias
+     linhas faz o Liquid ler "and ..." como tag desconhecida e a
+     página inteira falha. Por isso os "if" abaixo ficam em linha
+     única, por mais longos que sejam.
+
+  2. Comentários iniciados por cerquilha dentro da tag liquid não
+     toleram os sinais de maior e menor. Uma linha como
+     "0 menor que quantidade" escrita com os símbolos interrompe o
+     parse ali, e TODO assign posterior deixa de existir — sem erro,
+     sem aviso: as variáveis simplesmente vêm vazias.
+
+  3. Este bloco de comentário não pode conter a abertura literal de
+     outra tag de bloco (comment, if, for). O Shopify permite
+     comentários aninhados, então a tag escrita como exemplo abre um
+     segundo comentário e o endcomment fecha o de dentro — o de fora
+     fica aberto até o fim do arquivo e a página não renderiza.
+{%- endcomment -%}
 {%- liquid
   assign product_form_id = 'product-form-' | append: section.id
   assign current_variant = product.selected_or_first_available_variant
@@ -43,6 +81,20 @@
   assign colecao_origem = collection
   if colecao_origem == blank
     assign colecao_origem = product.collections.first
+  endif
+
+  # Estoque baixo (explicação no comentário acima do bloco).
+  assign limite_estoque = section.settings.low_stock_threshold | default: 5
+  assign controla_estoque = false
+  if current_variant.inventory_management != blank and current_variant.inventory_policy == 'deny' and current_variant.inventory_quantity > 0
+    assign controla_estoque = true
+  endif
+
+  assign estoque_baixo = false
+  assign estoque_qtd = 0
+  if section.settings.show_low_stock and controla_estoque and current_variant.inventory_quantity <= limite_estoque
+    assign estoque_baixo = true
+    assign estoque_qtd = current_variant.inventory_quantity
   endif
 -%}
 
@@ -285,6 +337,26 @@
                           assign eh_tamanho = true
                         endif
                       -%}
+                      {%- comment -%}
+                        O indice da OPCAO fica guardado aqui, fora dos
+                        loops de dentro.
+
+                        Antes a disponibilidade era testada com
+                        `variant.options[forloop.parentloop.index0]`
+                        dentro do loop de variantes. Naquele ponto,
+                        `parentloop` e o loop dos VALORES, nao o das
+                        opcoes: o numero que chegava ali era a posicao
+                        do valor na lista ("Preto"=0, "Branco"=1), e
+                        nao a posicao da opcao no produto.
+
+                        O efeito num produto Cor + Tamanho: a partir do
+                        segundo valor de cada opcao, a comparacao caia
+                        na opcao errada (comparava um tamanho com um
+                        nome de cor) e nunca casava — entao quase todo
+                        swatch nascia riscado como esgotado, inclusive
+                        os que tinham estoque.
+                      {%- endcomment -%}
+                      {%- assign indice_opcao = forloop.index0 -%}
                       <fieldset class="product__option">
                         <div class="product__option-head">
                           {%- comment -%}
@@ -309,7 +381,7 @@
                             {%- liquid
                               assign option_disabled = true
                               for variant in product.variants
-                                if variant.available and variant.options[forloop.parentloop.index0] == value
+                                if variant.available and variant.options[indice_opcao] == value
                                   assign option_disabled = false
                                   break
                                 endif
@@ -322,7 +394,7 @@
                                 value="{{ value | escape }}"
                                 class="visually-hidden"
                                 {% if option.selected_value == value %}checked{% endif %}
-                                data-option-index="{{ forloop.parentloop.index0 }}"
+                                data-option-index="{{ indice_opcao }}"
                               >
                               {%- if value.swatch.image -%}
                                 <span class="product__swatch-media" style="background-image:url({{ value.swatch.image | image_url: width: 100 }})"></span>
@@ -353,10 +425,28 @@
                     [
                       {%- for variant in product.variants -%}
                         {%- assign parcela_json = variant.price | divided_by: vezes_json | money -%}
+                        {%- liquid
+                          # O limite e lido do setting aqui dentro, e nao
+                          # de uma variavel do topo do arquivo: este JSON
+                          # e gerado dentro de um bloco do editor, e uma
+                          # variavel declarada la em cima e longe demais
+                          # para quem for ler so este trecho.
+                          assign limite = section.settings.low_stock_threshold | default: 5
+                          assign v_baixo = false
+                          assign v_max = 0
+                          if variant.inventory_management != blank and variant.inventory_policy == 'deny' and variant.inventory_quantity > 0
+                            assign v_max = variant.inventory_quantity
+                            if section.settings.show_low_stock and variant.inventory_quantity <= limite
+                              assign v_baixo = true
+                            endif
+                          endif
+                        -%}
                         {
                           "id": {{ variant.id | json }},
                           "options": {{ variant.options | json }},
                           "available": {{ variant.available | json }},
+                          "max": {{ v_max | json }},
+                          "low_stock_html": {%- if v_baixo -%}{{ 'products.product.low_stock_html' | t: count: variant.inventory_quantity | json }}{%- else -%}null{%- endif -%},
                           "featured_media_id": {{ variant.featured_media.id | json }},
                           "installments_html": {{ 'products.product.installments_html' | t: count: vezes_json, price: parcela_json | json }},
                           "price_html": {%- capture variant_price_html -%}{% render 'price', product: variant, use_variant: false, show_compare: true, price_class: 'price--pdp' %}{%- endcapture -%}{{ variant_price_html | strip_newlines | json }}
@@ -373,13 +463,31 @@
                   </label>
                   <div class="quantity-selector">
                     <button type="button" class="quantity__button" name="minus" aria-label="{{ 'products.product.quantity.decrease' | t: product: product.title | escape }}">&minus;</button>
+                    {%- comment -%}
+                      max vem do estoque REAL quando a loja controla
+                      estoque e não permite venda a descoberto. Sem
+                      ele, dava para pedir 10 de uma peça com 2 em
+                      estoque: o formulário aceitava, o Shopify
+                      recusava no add e a pessoa levava um erro sem
+                      entender de onde veio. data-max leva o mesmo
+                      valor para o JS, que troca o teto ao mudar de
+                      variante.
+                    {%- endcomment -%}
+                    {%- liquid
+                      assign qtd_max = blank
+                      if controla_estoque
+                        assign qtd_max = current_variant.inventory_quantity
+                      endif
+                    -%}
                     <input
                       class="quantity__input"
                       type="number"
                       name="quantity"
                       id="Quantity-{{ section.id }}"
                       min="1"
+                      {% if qtd_max != blank %}max="{{ qtd_max }}" data-max="{{ qtd_max }}"{% endif %}
                       value="1"
+                      inputmode="numeric"
                       aria-label="{{ 'products.product.quantity.input_label' | t: product: product.title | escape }}"
                     >
                     <button type="button" class="quantity__button" name="plus" aria-label="{{ 'products.product.quantity.increase' | t: product: product.title | escape }}">&plus;</button>
@@ -387,6 +495,30 @@
                 </div>
 
               {%- when 'buy_buttons' -%}
+                {%- comment -%}
+                  A linha de estoque fica COLADA no botão, não junto
+                  do preço: ela é a última informação antes da
+                  decisão. hidden quando não há o que dizer — o
+                  script de variantes liga e desliga conforme a
+                  escolha, então o elemento precisa existir sempre.
+
+                  role="status": a mudança é anunciada sem roubar o
+                  foco de quem está escolhendo o tamanho.
+                {%- endcomment -%}
+                <p
+                  class="pdp__estoque"
+                  data-estoque
+                  role="status"
+                  {% unless estoque_baixo %}hidden{% endunless %}
+                >
+                  <span class="pdp__estoque-ponto" aria-hidden="true"></span>
+                  <span data-estoque-texto>
+                    {%- if estoque_baixo -%}
+                      {{ 'products.product.low_stock_html' | t: count: estoque_qtd }}
+                    {%- endif -%}
+                  </span>
+                </p>
+
                 <div class="product__buy-buttons" {{ block.shopify_attributes }}>
                   <button
                     type="submit"
@@ -496,13 +628,23 @@
 <div class="pdp__sticky" data-sticky-buy="{{ section.id }}">
   <div class="pdp__sticky-info">
     <p class="pdp__sticky-titulo">{{ product.title | escape }}</p>
-    {% render 'price', product: product, use_variant: true, show_compare: true %}
+    {%- comment -%}
+      data-sticky-preco / data-sticky-add: ganchos para o script de
+      variantes. Sem eles a barra ficava congelada no preco e na
+      disponibilidade da PRIMEIRA variante — e ela e o botao de compra
+      principal no celular, entao trocar de tamanho e comprar por aqui
+      podia significar pagar um valor diferente do que estava na tela.
+    {%- endcomment -%}
+    <span data-sticky-preco>
+      {% render 'price', product: product, use_variant: true, show_compare: true %}
+    </span>
   </div>
   <button
     type="submit"
     form="{{ product_form_id }}"
     name="add"
     class="button"
+    data-sticky-add
     {% if current_variant.available == false %}disabled{% endif %}
   >
     {%- if current_variant.available -%}
@@ -658,7 +800,12 @@
       ]
     }
   ],
-  "settings": [],
+  "settings": [
+    { "type": "header", "content": "Estoque" },
+    { "type": "paragraph", "content": "Usa o estoque real da variante. Só aparece quando a loja controla estoque e não permite venda sem saldo — nunca é um contador inventado." },
+    { "type": "checkbox", "id": "show_low_stock", "default": true, "label": "Avisar quando restam poucas peças" },
+    { "type": "range", "id": "low_stock_threshold", "min": 1, "max": 20, "step": 1, "default": 5, "unit": "un", "label": "Avisar a partir de" }
+  ],
   "presets": [
     {
       "name": "t:sections.main_product.name",

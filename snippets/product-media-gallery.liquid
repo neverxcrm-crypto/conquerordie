@@ -55,7 +55,20 @@
 
   /* Miniaturas: acompanham a rolagem porque a coluna de mídia é
      longa — sem isso elas somem na primeira foto e a navegação
-     deixa de existir justamente quando é mais necessária. */
+     deixa de existir justamente quando é mais necessária.
+
+     ATENÇÃO — position: sticky NÃO funciona dentro do conteúdo que o
+     ScrollSmoother move por transform: o elemento calcula a própria
+     posição contra a rolagem real e some junto com a foto. É a mesma
+     razão que fez a coluna de informação e o resumo do carrinho
+     usarem [data-smooth-sticky] (um pin do GSAP).
+
+     Aqui o pin do GSAP não serve: as miniaturas são uma coluna que
+     rola por dentro. A saída é a mesma que main-cart.liquid já usa —
+     quando o smoother está ativo (html.has-smooth-scroll), o sticky é
+     desligado e a coluna acompanha o topo da grade, que é o
+     comportamento que ela realmente tinha antes de o smoother entrar
+     no tema. */
   .pdp__thumbs {
     position: sticky;
     top: calc(var(--header-height) + var(--aviso-altura, 0px) + var(--space-sm));
@@ -70,6 +83,7 @@
     scrollbar-width: none;
   }
   .pdp__thumbs::-webkit-scrollbar { display: none; }
+  .has-smooth-scroll .pdp__thumbs { position: relative; top: auto; }
   .pdp__thumb {
     display: block;
     width: 100%;
@@ -334,6 +348,36 @@
   .quantity__input::-webkit-outer-spin-button,
   .quantity__input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
+  /* ---------- Estoque baixo ----------
+     Âmbar, não vermelho. Vermelho é a cor de erro do tema e diria
+     "algo deu errado"; aqui nada deu errado — é uma informação de
+     disponibilidade. O ponto pulsa devagar e PARA no primeiro ciclo
+     do reduced-motion: é um aviso, não um alarme. */
+  .pdp__estoque {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    margin: 0;
+    font-family: var(--font-ui-family);
+    font-size: var(--f1);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-normal);
+    color: var(--color-warning);
+  }
+  .pdp__estoque[hidden] { display: none; }
+  .pdp__estoque-ponto {
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: currentColor;
+    animation: pdpPulso 2.4s var(--ease-in-out) infinite;
+  }
+  @keyframes pdpPulso {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
   /* ---------- Compra ---------- */
   .product__buy-buttons { display: grid; gap: var(--space-2xs); }
   .product__add-to-cart { width: 100%; }
@@ -542,5 +586,6 @@
     .pdp__lightbox-img,
     .product__swatch,
     .pdp__thumb { transition-duration: 0.01ms; }
+    .pdp__estoque-ponto { animation: none; }
   }
 </style>

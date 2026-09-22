@@ -64,9 +64,14 @@
   /* ---------------------------------------------------------
      Abrir / fechar
   --------------------------------------------------------- */
+  /* offsetParent nulo = o elemento esta escondido (o bloco do order
+     bump nasce com [hidden], por exemplo). Sem este filtro, o ciclo
+     do Tab parava num botao invisivel: .focus() nao surtia efeito e
+     a armadilha de foco travava ali. */
   function getFocusable() {
-    return Array.prototype.slice.call(
-      root.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])')
+    return Array.prototype.filter.call(
+      root.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+      function (el) { return el.offsetParent !== null; }
     );
   }
 
@@ -93,10 +98,50 @@
     }
   }
 
+  /* ---------------------------------------------------------
+     TRAVA DE ROLAGEM
+
+     body.bloquear é `overflow: hidden`, e isso basta no desktop.
+     No Safari do iPhone, não: com overflow hidden no body a página
+     de trás continua rolando junto com o dedo, e ao fechar o
+     carrinho a pessoa reaparece num ponto qualquer da coleção —
+     longe de onde estava.
+
+     A correção é fixar o body na posição atual e devolver a rolagem
+     ao destravar. `top` negativo guarda o deslocamento; sem isso o
+     position:fixed sozinho jogaria a página de volta ao topo.
+  --------------------------------------------------------- */
+  var scrollTravado = 0;
+
+  function comSmoother() {
+    return document.documentElement.classList.contains('has-smooth-scroll');
+  }
+
+  function travarRolagem() {
+    if (document.body.classList.contains('bloquear')) return;
+    scrollTravado = window.scrollY || document.documentElement.scrollTop || 0;
+    // Com o ScrollSmoother quem rola é o transform do #smooth-content,
+    // não o body: o movimento.js pausa o smoother na mesma classe e
+    // fixar o body ali só criaria um salto. Ver normalizar.css.
+    if (!comSmoother()) document.body.style.top = '-' + scrollTravado + 'px';
+    document.body.classList.add('bloquear');
+  }
+
+  function destravarRolagem() {
+    if (!document.body.classList.contains('bloquear')) return;
+    var restaurar = !comSmoother() && document.body.style.top !== '';
+    document.body.classList.remove('bloquear');
+    document.body.style.top = '';
+    if (restaurar) window.scrollTo(0, scrollTravado);
+  }
+
+  window.CODTravarRolagem = travarRolagem;
+  window.CODDestravarRolagem = destravarRolagem;
+
   function openDrawer(opener) {
     lastOpener = opener || document.activeElement;
     root.classList.add('is-open');
-    document.body.classList.add('bloquear');
+    travarRolagem();
     document.addEventListener('keydown', onKeydown);
     // Foco vai para o botão de fechar — primeiro elemento operável do painel.
     var closeBtn = root.querySelector('.cart-drawer__close');
@@ -110,10 +155,22 @@
     // .bloquear; se ele ainda estiver aberto, quem destrava o
     // scroll é o fechamento dele, não o do carrinho.
     if (!document.querySelector('.header__mobile-nav.is-open')) {
-      document.body.classList.remove('bloquear');
+      destravarRolagem();
     }
     document.removeEventListener('keydown', onKeydown);
-    if (lastOpener && typeof lastOpener.focus === 'function') lastOpener.focus();
+
+    /* O elemento que abriu o carrinho pode ter sido substituído no
+       meio do caminho: quem clica no "+" de um card e depois muda a
+       quantidade tem o botão original trocado pelo HTML novo da
+       section. .focus() num nó fora do documento não faz nada, e o
+       foco cairia no <body> — de volta ao topo da página. */
+    if (lastOpener && document.contains(lastOpener) && typeof lastOpener.focus === 'function') {
+      lastOpener.focus();
+    } else {
+      var voltar = document.querySelector('[data-cart-open]');
+      if (voltar) voltar.focus();
+    }
+    lastOpener = null;
   }
 
   /* ---------------------------------------------------------
@@ -355,12 +412,18 @@
     if (event.target.closest('[data-cart-close]')) closeDrawer();
   });
 
-  document.querySelectorAll('[data-cart-open]').forEach(function (link) {
-    link.addEventListener('click', function (event) {
-      if (cartType !== 'drawer') return; // cart_type "page": deixa navegar normalmente
-      event.preventDefault();
-      openDrawer(link);
-    });
+  /* Delegação em vez de um listener por botão: o header é
+     re-renderizado pela Section Rendering API a cada mudança do
+     carrinho e é recriado inteiro pelo editor de temas. Com
+     listeners presos aos nós antigos, o ícone do carrinho parava de
+     abrir a gaveta depois da primeira atualização. */
+  document.addEventListener('click', function (event) {
+    var link = event.target.closest && event.target.closest('[data-cart-open]');
+    if (!link) return;
+    if (cartType !== 'drawer') return; // cart_type "page": deixa navegar normalmente
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button > 0) return;
+    event.preventDefault();
+    openDrawer(link);
   });
 
   // Se o carrinho já chega com itens (ex.: voltando de outra aba) e o

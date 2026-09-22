@@ -82,6 +82,15 @@
           "
           sizes="{{ panel_sizes }}"
           loading="lazy"
+          {%- comment -%}
+            A foto e posicionada em absoluto dentro de um quadro ja
+            dimensionado, entao ela nunca empurrou layout. width e
+            height entram mesmo assim: sao a proporcao intrinseca que
+            o navegador usa para decidir QUAL tamanho do srcset baixar
+            antes de o CSS chegar.
+          {%- endcomment -%}
+          width="{{ panel_image.width }}"
+          height="{{ panel_image.height }}"
           class="collection-panel__image"
           alt="{{ panel_image.alt | default: panel_title | escape }}"
         >

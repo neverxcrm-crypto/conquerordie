@@ -11,6 +11,17 @@
   if velocidade == blank or velocidade == 0
     assign velocidade = 25
   endif
+
+  # Cálculo de repetição inteligente: garante que a faixa de texto seja 
+  # MUITO maior que qualquer tela ultrawide (4K) para não deixar buracos pretos.
+  assign repeat_count = 4
+  if total == 1
+    assign repeat_count = 12
+  elsif total == 2
+    assign repeat_count = 8
+  elsif total == 3
+    assign repeat_count = 6
+  endif
 -%}
 
 <section
@@ -38,11 +49,6 @@
         {%- comment -%} Criação de 2 grupos perfeitamente idênticos {%- endcomment -%}
         {%- for g in (1..2) -%}
           <div class="marquee-hero__group" {% if g == 2 %}aria-hidden="true"{% endif %}>
-            {%- assign repeat_count = 1 -%}
-            {%- if total < 4 -%}
-              {%- assign repeat_count = 3 -%}
-            {%- endif -%}
-
             {%- for r in (1..repeat_count) -%}
               {%- for block in avisos -%}
                 <div class="marquee-hero__item" {{ block.shopify_attributes }}>
@@ -83,10 +89,10 @@
           </div>
         {%- endfor -%}
       {%- else -%}
-        {%- comment -%} Demonstração prévia no editor da Shopify {%- endcomment -%}
+        {%- comment -%} Demonstração prévia de preenchimento continuo {%- endcomment -%}
         {%- for g in (1..2) -%}
           <div class="marquee-hero__group" {% if g == 2 %}aria-hidden="true"{% endif %}>
-            {%- for i in (1..3) -%}
+            {%- for i in (1..6) -%}
               <div class="marquee-hero__item">
                 <span class="marquee-hero__texto">FRETE GRÁTIS ACIMA DE R$585!</span>
                 <span class="marquee-hero__separador" aria-hidden="true">
@@ -114,9 +120,9 @@
     border-top: 1px solid var(--marquee-border-color, rgba(255, 255, 255, 0.15));
     border-bottom: 1px solid var(--marquee-border-color, rgba(255, 255, 255, 0.15));
     user-select: none;
-    overflow: hidden;
+    overflow: hidden !important;
     padding-block: var(--marquee-padding-v, 12px);
-    width: 100%;
+    width: 100% !important;
   }
 
   .marquee-hero__container {
@@ -215,12 +221,13 @@
     transform: translate(2px, -2px);
   }
 
+  /* Animação Contínua em Loop de -50% (transição perfeita) */
   @keyframes marquee-hero-loop {
     0% {
-      transform: translateX(0%);
+      transform: translate3d(0, 0, 0);
     }
     100% {
-      transform: translateX(-50%);
+      transform: translate3d(-50%, 0, 0);
     }
   }
 

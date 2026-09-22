@@ -133,7 +133,11 @@
       "choose_options": "Escolher opções",
       "choose_product_options": "Escolher opções de {{ product_name }}",
       "installments_html": "ou <strong>{{ count }}x de {{ price }}</strong> sem juros",
-      "size_guide": "Guia de tamanhos"
+      "size_guide": "Guia de tamanhos",
+      "low_stock_html": {
+        "one": "Última peça disponível",
+        "other": "Restam apenas {{ count }} peças"
+      }
     },
     "facets": {
       "sort_by_label": "Ordenar por:",

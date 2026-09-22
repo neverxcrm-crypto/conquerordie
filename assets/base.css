@@ -1643,107 +1643,76 @@ a.pagination__item:hover { color: var(--color-text-primary); border-color: var(-
 }
 
 /* ==========================================================
-   POLIMENTO DO SISTEMA — ritmo visual, toque e performance
+   ACABAMENTO DO SISTEMA — ritmo, toque e rolagem
    ==========================================================
-   Esta camada fica no fim do arquivo para manter compatibilidade com
-   sections antigas que ainda têm estilos locais. O objetivo é dar ao
-   tema uma linguagem única sem depender de JS para efeitos básicos.
-*/
+   Esta camada fica no fim do arquivo para vencer estilos locais de
+   sections antigas. Ela cuida SÓ de ritmo (espaçamento, âncoras,
+   toque) — nenhum efeito visual novo nasce aqui.
 
-html {
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-}
+   O QUE SAIU DAQUI, E POR QUÊ:
+
+   1. Brilho diagonal no card (.card-product__media::after) e sombra
+      de elevação no hover. O card do tema é "a foto e mais nada" —
+      está escrito assim a 1000 linhas daqui. Um reflexo branco em
+      45° por cima de cada foto é a assinatura visual de template
+      genérico, e custava uma camada de composição por card numa
+      grade de 30.
+
+   2. Borda interna acesa no botão (.button::before) e o inset
+      highlight branco. Num esquema claro o realce branco sobre
+      botão preto vira uma linha cinza suja; num escuro, dá aquele
+      acabamento "vidro" que a marca não usa.
+
+   3. min-width: 148px em TODO botão. Botões pequenos (o "aplicar"
+      de um filtro, o "+" de quantidade) eram esticados, e dois
+      botões lado a lado estouravam a linha a 320px.
+
+   4. .card-product__quick-add com 42px redondo. Sobrescrevia, sem
+      media query, o tamanho de 44px que a regra de toque define —
+      ou seja, derrubava o alvo mínimo do WCAG justamente no
+      aparelho onde ele importa.
+
+   5. text-rendering: optimizeLegibility no <html>. Force o
+      navegador a resolver kerning e ligaduras da página inteira
+      antes do primeiro desenho; em página longa é atraso puro.
+
+   6. .shopify-section { isolation: isolate }. Criava contexto de
+      empilhamento em TODA section, prendendo dentro dela qualquer
+      dropdown, painel de filtro ou elemento fixo que precisasse
+      passar por cima da section seguinte.
+   ========================================================== */
 
 body {
   overflow-x: clip;
 }
 
+/* position: relative CONTINUA aqui; o que saiu foi o
+   `isolation: isolate` que vinha junto.
+
+   Os dois costumam andar colados, mas fazem coisas diferentes.
+   position: relative apenas dá a cada section uma âncora para os
+   filhos em position: absolute — barato e sem efeito colateral.
+   isolation: isolate cria um CONTEXTO DE EMPILHAMENTO: dali para
+   dentro, nenhum z-index consegue passar por cima da section
+   seguinte. Numa loja isso prende exatamente o que precisa escapar —
+   o painel de filtro, um submenu, uma barra fixa. O cart drawer já
+   tinha, inclusive, uma regra `isolation: auto` só para desfazer
+   isto (ver sections/cart-drawer.liquid).
+
+   Quem realmente precisa de isolamento (.header, .card-product)
+   declara por conta própria. */
 .shopify-section {
   position: relative;
-  isolation: isolate;
 }
 
-.section-space,
-.featured-collection,
-.collection-list,
-.brand-story,
-.rich-text {
-  scroll-margin-top: calc(var(--header-height, 72px) + 24px);
+/* Âncora não pára embaixo da header fixa. */
+[id] {
+  scroll-margin-top: calc(var(--header-height, 72px) + var(--aviso-altura, 0px) + 24px);
 }
 
-.button,
-button.button,
-.arrow-link {
-  -webkit-tap-highlight-color: transparent;
-}
-
-.button svg,
-.arrow-link svg,
-.header__action-button svg {
-  flex: none;
-  transition: transform var(--dur-normal, 240ms) var(--ease-out, ease-out);
-}
-
-.button:hover svg,
-.arrow-link:hover svg,
-.arrow-link:focus-visible svg {
-  transform: translateX(4px);
-}
-
-.button {
-  min-width: 148px;
-  border-radius: var(--buttons-radius, 4px);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset;
-}
-
-.button::before {
-  position: absolute;
-  inset: 1px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: inherit;
-  content: '';
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--dur-fast, 160ms) var(--ease-out, ease-out);
-}
-
-.button:hover::before,
-.button:focus-visible::before {
-  opacity: 1;
-}
-
+/* Fileira de controles não gruda na borda da tela no celular. */
 .product-grid {
   gap: clamp(16px, 2vw, 32px) clamp(12px, 2.2vw, 32px);
-}
-
-.card-product__media {
-  isolation: isolate;
-  box-shadow: 0 0 0 1px var(--color-border);
-  transition:
-    box-shadow var(--dur-emphasis, 360ms) var(--ease-out, ease-out),
-    transform var(--dur-emphasis, 360ms) var(--ease-out, ease-out);
-}
-
-.card-product__media::after {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 34%);
-  content: '';
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--dur-emphasis, 360ms) var(--ease-out, ease-out);
-}
-
-.card-product:hover .card-product__media,
-.card-product__link:focus-visible .card-product__media {
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--color-border-strong);
-}
-
-.card-product:hover .card-product__media::after,
-.card-product__link:focus-visible .card-product__media::after {
-  opacity: 1;
 }
 
 .card-product__info {
@@ -1751,7 +1720,7 @@ button.button,
 }
 
 .card-product__title {
-  transition: color var(--dur-fast, 160ms) var(--ease-out, ease-out);
+  transition: color var(--dur-fast) var(--ease-out);
 }
 
 .card-product__link:hover .card-product__title,
@@ -1759,11 +1728,28 @@ button.button,
   color: var(--color-accent-readable);
 }
 
-.card-product__quick-add {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+/* A seta acompanha o hover em qualquer CTA do tema. */
+.button svg,
+.arrow-link svg,
+.header__action-button svg {
+  flex: none;
+}
+
+/* ==========================================================
+   ALVOS DE TOQUE — a varredura que faltava
+   ==========================================================
+   O tema já tinha .tap-target e .alvo-44 para quem lembrasse de
+   aplicá-los. Estes são os controles que ficaram de fora e que são,
+   justamente, os mais usados no celular: o +/− do carrinho, a linha
+   de um filtro e o fechar de um aviso.
+
+   min-height/min-width (e não height) porque o desenho dos três
+   continua o mesmo — só a área que o dedo alcança cresce. */
+.quantity-drawer__button,
+.cart-item-drawer__remove,
+.alerta-global .fechar {
+  min-width: 44px;
+  min-height: 44px;
 }
 
 @media screen and (max-width: 1000px) {
@@ -1771,20 +1757,8 @@ button.button,
     --page-gutter: 18px;
   }
 
-  .section-space,
-  .featured-collection,
-  .collection-list,
-  .brand-story,
-  .rich-text {
-    scroll-margin-top: calc(var(--header-height, 64px) + 16px);
-  }
-
   .product-grid {
     gap: 24px 12px;
-  }
-
-  .card-product__media {
-    box-shadow: 0 0 0 1px var(--color-border);
   }
 }
 
@@ -1809,8 +1783,6 @@ button.button,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .button::before,
-  .card-product__media::after,
   .card-product__title {
     transition: none;
   }

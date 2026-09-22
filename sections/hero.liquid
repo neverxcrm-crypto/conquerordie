@@ -95,7 +95,6 @@
             <!-- Título -->
             {%- if block.settings.heading != blank -%}
               <div class="hero__element hero__element--heading">
-                <div class="hero__heading-shadow" aria-hidden="true"></div>
                 {%- if forloop.first -%}
                   <h1 class="hero__heading">{{ block.settings.heading | newline_to_br }}</h1>
                 {%- else -%}
@@ -121,7 +120,6 @@
             <!-- Botão CTA -->
             {%- if block.settings.button_label != blank -%}
               <div class="hero__element hero__element--cta">
-                <div class="hero__cta-shadow" aria-hidden="true"></div>
                 <a href="{{ block.settings.button_link | default: routes.all_products_collection_url }}" class="button hero__cta">
                   <span>{{ block.settings.button_label | escape }}</span>
                   {% render 'icon', name: 'arrow-right' %}
@@ -296,32 +294,23 @@
     to { transform: scale(1); }
   }
 
-  /* Sombras dos Textos */
-  .hero__heading-shadow {
-    position: absolute;
-    inset: -20px -20px;
-    background: radial-gradient(
-      ellipse closest-side at center,
-      rgba(0, 0, 0, 0.9) 0%,
-      rgba(0, 0, 0, 0.6) 50%,
-      transparent 100%
-    );
-    z-index: -1;
-    pointer-events: none;
-  }
+  /* ==========================================================
+     LEGIBILIDADE SOBRE A FOTO — uma camada, nao quatro
+     ==========================================================
+     Antes o texto era protegido por QUATRO escurecimentos
+     empilhados: os dois veus do .hero__media::after, um
+     text-shadow forte e ainda duas manchas radiais pretas
+     (.hero__heading-shadow / .hero__cta-shadow) desenhadas atras
+     do titulo e do botao.
 
-  .hero__cta-shadow {
-    position: absolute;
-    inset: -15px -20px;
-    background: radial-gradient(
-      ellipse closest-side at center,
-      rgba(0, 0, 0, 0.85) 0%,
-      rgba(0, 0, 0, 0.4) 60%,
-      transparent 100%
-    );
-    z-index: -1;
-    pointer-events: none;
-  }
+     Somados, transformavam o centro da foto num borrao preto: a
+     campanha que o lojista subiu desaparecia justamente onde a
+     pessoa olha. E as manchas eram visiveis como borroes ovais
+     assim que a foto tinha qualquer area clara.
+
+     Fica UMA camada, a do .hero__media::after, e um text-shadow
+     curto o bastante para segurar o contraste numa foto ruim sem
+     empastar a tipografia. A foto volta a aparecer. */
 
   /* Tipografia Ajustada */
   .hero__heading {
@@ -330,7 +319,7 @@
     line-height: 0.98;
     margin: 0;
     color: var(--color-text-primary, #ffffff);
-    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
     text-wrap: balance;
     overflow-wrap: break-word;
     word-break: break-word;
@@ -338,27 +327,39 @@
   
   .hero__subheading {
     font-family: var(--font-ui-family, inherit);
-    font-size: clamp(1.2rem, 3vw, var(--f2, 1.6rem));
+    /* Era clamp(1.2rem, 3vw, var(--f2)). --f2 tem teto de 1rem, ou
+       seja: o MINIMO era maior que o MAXIMO. Quando isso acontece o
+       clamp() devolve sempre o minimo — o subtitulo ficava preso em
+       1.2rem em toda tela, sem nenhuma fluidez, e ainda maior que
+       um subtitulo deve ser. */
+    font-size: clamp(0.875rem, 0.8rem + 0.4vw, 1.0625rem);
     font-weight: var(--font-weight-medium, 500);
     letter-spacing: var(--tracking-label, 0.05em);
     text-transform: uppercase;
     color: var(--color-text-primary, #ffffff);
     margin: 0;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
   }
   
+  /* O eyebrow e um rotulo de secao, nao um segundo titulo. Estava em
+     1.1–1.4rem: maior que o subtitulo E que o texto de apoio, o que
+     invertia a hierarquia inteira do hero (o olho batia no rotulo
+     antes da manchete). Volta para a escala de microcopy do tema,
+     que e onde .eyebrow vive em todas as outras secoes. */
   .hero__eyebrow {
     margin: 0;
-    font-size: clamp(1.1rem, 2.5vw, 1.4rem);
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    font-size: var(--f0);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
   }
   
   .hero__body {
-    font-size: clamp(1.3rem, 3.2vw, var(--f2, 1.6rem));
-    line-height: 1.5;
+    /* Mesmo clamp invertido do subtitulo: travava em 1.3rem, o que
+       deixava o texto de APOIO maior que o subtitulo acima dele. */
+    font-size: clamp(0.9375rem, 0.9rem + 0.25vw, 1.0625rem);
+    line-height: 1.55;
     color: var(--color-text-secondary, rgba(255, 255, 255, 0.88));
-    max-width: 36ch;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+    max-width: 42ch;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
   }
   .hero__body p { margin: 0 0 6px; }
 
@@ -367,26 +368,29 @@
     position: relative;
     z-index: 1;
     min-width: 180px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    transition: transform 250ms ease, background-color 250ms ease, border-color 250ms ease, color 250ms ease;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    transition:
+      transform var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
   }
 
-  .hero__cta svg {
-    transition: transform 250ms ease, stroke 250ms ease, fill 250ms ease, color 250ms ease;
-  }
-
+  /* O hover NAO esvazia mais o botao.
+     Antes ele virava fantasma (fundo transparente, borda branca) por
+     cima da fotografia — perdia contraste exatamente no gesto em que
+     a pessoa esta prestes a clicar, e precisava de seis !important
+     para vencer o .button do base.css. Agora ele apenas firma: fundo
+     branco cheio, como manda o botao primario do sistema. */
   .hero__cta:hover {
-    transform: translateY(-2px);
-    background-color: transparent !important;
-    border-color: #ffffff !important;
-    color: #ffffff !important;
+    transform: translateY(-1px);
+    background-color: var(--color-button-primary-background-hover);
+    border-color: var(--color-button-primary-background-hover);
+    color: var(--color-button-primary-text-hover);
   }
 
-  .hero__cta:hover span,
-  .hero__cta:hover svg {
-    color: #ffffff !important;
-    stroke: #ffffff !important;
-    fill: #ffffff !important;
+  .hero__cta:active {
+    transform: translateY(0);
   }
 
   /* Indicador e Controles */

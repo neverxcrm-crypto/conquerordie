@@ -304,7 +304,10 @@
     background-color: transparent;
     color: var(--color-text-primary, #ffffff);
     border-color: var(--color-border-strong, rgba(255, 255, 255, 0.3));
-    transition: all 200ms ease;
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out);
   }
   .footer__block--newsletter .newsletter-form__button:hover {
     background-color: var(--color-text-primary, #ffffff);

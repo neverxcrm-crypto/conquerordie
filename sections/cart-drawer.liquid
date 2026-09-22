@@ -519,11 +519,17 @@
     font-size: var(--f0);
     color: var(--color-accent-readable);
   }
+  /* flex-wrap: com o +/- em 44px de verdade (alvo de toque do WCAG),
+     a fileira "quantidade + remover" passa a medir ~180px. Num iPhone
+     SE a coluna de texto do item tem pouco mais que isso: sem o wrap,
+     um nome de variante longo espremeria o "remover" para fora da
+     caixa. Preferimos duas linhas a um botao cortado. */
   .cart-item-drawer__actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px 12px;
     margin-top: 14px;
   }
 

@@ -191,8 +191,12 @@
     display: block !important;
     opacity: 1 !important;
     visibility: visible !important;
-    filter: brightness(0.95) contrast(1.05);
   }
+  /* Havia aqui um `filter: brightness(0.95) contrast(1.05)` fixo em
+     TODA foto de painel. Um filtro permanente obriga o navegador a
+     manter cada imagem numa camada propria e a refiltra-la — em ate
+     6 paineis, o tempo todo — para uma correcao de 5% que ninguem
+     percebe por baixo do veu escuro que ja cobre a foto. */
 
   /* Garante que o sombreamento do painel seja um gradiente suave em vez de preto sólido */
   #shopify-section-{{ section.id }} .collection-panel__shade {
@@ -508,12 +512,32 @@
         var tick = false;
         rail.classList.add('is-depth');
 
+        /* LER TUDO, DEPOIS ESCREVER TUDO.
+
+           Antes cada volta do laço media um painel (getBoundingClientRect)
+           e logo em seguida escrevia nele (gsap.set). Medir depois de
+           escrever obriga o navegador a refazer o layout na hora, ali
+           mesmo — então um trilho de 6 painéis provocava 6 layouts
+           forçados por quadro, durante o gesto do dedo.
+
+           O padding do trilho também era lido com getComputedStyle a
+           cada quadro; ele não muda durante uma rolagem, então passa a
+           ser medido uma vez e remedido só no resize. */
+        var padEsq = 0;
+        function medirPadding() {
+          padEsq = parseFloat(getComputedStyle(rail).paddingLeft) || 0;
+        }
+        medirPadding();
+
         function paint() {
           tick = false;
-          var anchor = rail.getBoundingClientRect().left + parseFloat(getComputedStyle(rail).paddingLeft || 0);
-          panels.forEach(function (p) {
+          var anchor = rail.getBoundingClientRect().left + padEsq;
+          var medidas = panels.map(function (p) {
             var box = p.item.getBoundingClientRect();
-            var d = Math.min(1, Math.abs(box.left - anchor) / Math.max(box.width, 1));
+            return Math.min(1, Math.abs(box.left - anchor) / Math.max(box.width, 1));
+          });
+          panels.forEach(function (p, i) {
+            var d = medidas[i];
             gsap.set(p.panel, { scale: 1 - d * 0.05 });
             if (p.shade) gsap.set(p.shade, { opacity: 0.5 + d * 0.3 });
           });
@@ -523,6 +547,7 @@
           if (!tick) { tick = true; raf(paint); }
         };
         rail.addEventListener('scroll', onRailScroll, ac ? { passive: true, signal: ac.signal } : false);
+        window.addEventListener('resize', medirPadding, ac ? { signal: ac.signal } : false);
 
         paint();
 

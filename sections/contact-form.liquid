@@ -200,10 +200,50 @@
   (function () {
     var form = document.getElementById('{{ form_id }}');
     if (!form) return;
+
     form.addEventListener('submit', function () {
       var botao = form.querySelector('[data-contato-enviar]');
       if (botao) botao.setAttribute('aria-busy', 'true');
     });
+
+    /* ---------------------------------------------------------
+       Depois do envio, levar a pessoa até a resposta.
+
+       O formulário é nativo: enviar recarrega a página e o
+       navegador devolve o topo. O aviso de sucesso (ou a lista de
+       erros) fica lá embaixo, fora da tela — a pessoa vê a mesma
+       página de antes e conclui que nada aconteceu. Em celular,
+       onde o formulário é mais alto que a tela, isso é garantido.
+
+       O aviso já nascia com tabindex="-1" esperando por isto:
+       recebe o foco (leitor de tela anuncia) e a página rola até
+       ele. `preventScroll` + rolagem própria para respeitar o
+       ScrollSmoother, que ignora a rolagem que o .focus() faz
+       sozinho.
+    --------------------------------------------------------- */
+    var aviso = form.querySelector('.contact__notice');
+    if (!aviso) return;
+
+    function revelarAviso() {
+      try { aviso.focus({ preventScroll: true }); } catch (e) { aviso.focus(); }
+
+      var motion = window.CODMotion;
+      if (motion && motion.smoother) {
+        motion.scrollTo(aviso);
+      } else {
+        var suave = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        aviso.scrollIntoView({ behavior: suave ? 'auto' : 'smooth', block: 'center' });
+      }
+    }
+
+    /* CODReady espera o DOM E a decisão sobre o ScrollSmoother.
+       Sem ele, este script rodaria antes de o movimento.js existir,
+       window.CODMotion seria undefined e a rolagem nativa entraria
+       em disputa com o smoother alguns milissegundos depois.
+       (snippets/carregar-movimento.liquid define CODReady no <head>,
+       então ele já existe aqui; o else cobre o caso de ele falhar.) */
+    if (typeof window.CODReady === 'function') window.CODReady(revelarAviso);
+    else revelarAviso();
   })();
 </script>
 
@@ -225,7 +265,11 @@
   }
 
   .contact__form { display: grid; gap: var(--space-sm); }
-  .contact__field { display: grid; gap: 6px; }
+  /* Sem gap aqui: .field__label (base.css) já traz 6px de
+     margin-bottom. Os dois juntos davam 12px e o rótulo flutuava
+     longe do próprio campo — a distância que o olho usa para saber
+     a qual campo um rótulo pertence. */
+  .contact__field { display: grid; }
   .contact__textarea { resize: vertical; min-height: 140px; }
   .contact__submit { justify-self: start; min-width: 200px; }
 

@@ -51,7 +51,7 @@
   {%- if collection.products.size > 0 -%}
     <ul class="product-grid" role="list">
       {%- for product in collection.products limit: limit -%}
-        <li data-reveal>{% render 'card-product', card_product: product %}</li>
+        <li data-reveal>{% render 'card-product', card_product: product, columns: section.settings.columns_desktop %}</li>
       {%- endfor -%}
     </ul>
   {%- else -%}

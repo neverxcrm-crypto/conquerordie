@@ -133,7 +133,11 @@
       "choose_options": "Choose options",
       "choose_product_options": "Choose options for {{ product_name }}",
       "installments_html": "or <strong>{{ count }}x of {{ price }}</strong> interest-free",
-      "size_guide": "Size guide"
+      "size_guide": "Size guide",
+      "low_stock_html": {
+        "one": "Last one available",
+        "other": "Only {{ count }} left"
+      }
     },
     "facets": {
       "sort_by_label": "Sort by:",

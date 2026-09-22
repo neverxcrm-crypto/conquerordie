@@ -141,13 +141,16 @@
     border-radius: var(--inputs-radius);
     overflow: hidden;
   }
+  /* 44px: o +/- da quantidade e um dos controles mais tocados da
+     loja e estava em 40px, abaixo do minimo do WCAG 2.5.5. O mesmo
+     tamanho ja valia na pagina de produto — sao o mesmo controle. */
   .cart-items .quantity__button {
-    width: 40px; height: 40px;
+    width: 44px; height: 44px;
     background: none; border: none; cursor: pointer;
     font-size: var(--f3); color: var(--color-text);
   }
   .cart-items .quantity__input {
-    width: 48px; height: 40px;
+    width: 48px; height: 44px;
     text-align: center; border: none;
     background: transparent; color: var(--color-text);
     -moz-appearance: textfield;

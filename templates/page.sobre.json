@@ -1,0 +1,36 @@
+{
+  "sections": {
+    "sobre": {
+      "type": "sobre",
+      "blocks": {
+        "n1": { "type": "numero", "settings": { "value": "2019", "label": "Fundação" } },
+        "n2": { "type": "numero", "settings": { "value": "100%", "label": "Produção nacional" } },
+        "n3": { "type": "numero", "settings": { "value": "+40", "label": "Drops lançados" } },
+        "c1": {
+          "type": "capitulo",
+          "settings": {
+            "title": "A origem",
+            "text": "<p>A marca começou numa recusa: a de escolher entre roupa de rua e acabamento de verdade. O primeiro drop saiu pequeno, feito para durar mais do que a estação que o viu nascer.</p>"
+          }
+        },
+        "c2": {
+          "type": "capitulo",
+          "settings": {
+            "title": "O processo",
+            "text": "<p>Cada peça passa por prova de caimento, lavagem e uso real antes de virar produto. O que não aguenta essa etapa não chega à loja — e é por isso que a grade é curta.</p>"
+          }
+        },
+        "c3": {
+          "type": "capitulo",
+          "settings": {
+            "title": "O compromisso",
+            "text": "<p>Produção nacional, tiragem limitada e nenhuma promessa que o pedido não cumpra. Se está no site, está pronto para sair.</p>"
+          }
+        }
+      },
+      "block_order": ["n1", "n2", "n3", "c1", "c2", "c3"],
+      "settings": {}
+    }
+  },
+  "order": ["sobre"]
+}

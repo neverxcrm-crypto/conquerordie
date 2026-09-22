@@ -41,6 +41,16 @@
     var priceContainer = section.querySelector('.product__price');
     var gallery = document.getElementById('ProductMedia-{{ section_id }}');
 
+    /* A barra fixa de compra do celular vive FORA da section (ver
+       main-product.liquid), por isso a busca é no documento. */
+    var barra = document.querySelector('[data-sticky-buy="{{ section_id }}"]');
+    var barraPreco = barra ? barra.querySelector('[data-sticky-preco]') : null;
+    var barraAdd = barra ? barra.querySelector('[data-sticky-add]') : null;
+
+    var estoque = section.querySelector('[data-estoque]');
+    var estoqueTexto = section.querySelector('[data-estoque-texto]');
+    var qtdInput = section.querySelector('.quantity__input');
+
     var ADD = '{{ 'products.product.add_to_cart' | t }}';
     var SOLD_OUT = '{{ 'products.product.sold_out' | t }}';
     var UNAVAILABLE = '{{ 'products.product.unavailable' | t }}';
@@ -60,11 +70,62 @@
       });
     }
 
+    /* Os DOIS botões de compra mudam juntos.
+
+       A barra fixa do celular era renderizada pelo servidor e nunca
+       mais tocada: escolher um tamanho esgotado deixava o botão
+       principal desabilitado e o da barra — que é o que o dedo
+       alcança — continuava dizendo "adicionar ao carrinho". */
     function setButton(disabled, text) {
-      if (!addButton) return;
-      if (disabled) { addButton.setAttribute('disabled', 'disabled'); }
-      else { addButton.removeAttribute('disabled'); }
-      if (addButtonText && text) { addButtonText.textContent = text; }
+      [addButton, barraAdd].forEach(function (botao) {
+        if (!botao) return;
+        if (disabled) { botao.setAttribute('disabled', 'disabled'); }
+        else { botao.removeAttribute('disabled'); }
+        if (!text) return;
+        var alvo = botao === addButton ? addButtonText : botao;
+        if (alvo) alvo.textContent = text;
+      });
+    }
+
+    /* ---------------------------------------------------------
+       Disponibilidade por combinação — recalculada a cada escolha.
+
+       O servidor marca um valor como esgotado quando NENHUMA
+       variante com ele está disponível. Isso responde à pergunta
+       errada depois do primeiro clique: escolhida a cor Preto, o
+       tamanho P só interessa se existir "Preto / P" em estoque. Sem
+       recalcular, a pessoa escolhia um tamanho aparentemente
+       disponível e o botão morria sem explicar por quê.
+
+       A regra é a mesma que as lojas grandes usam: um valor é
+       testado mantendo o que já foi escolhido nas opções ANTERIORES
+       e ignorando as posteriores — assim a fileira de cima nunca se
+       tranca sozinha.
+    --------------------------------------------------------- */
+    function atualizarDisponibilidade() {
+      var escolhidas = selectedOptions();
+
+      section.querySelectorAll('.product__option').forEach(function (fieldset, indiceOpcao) {
+        fieldset.querySelectorAll('input[type="radio"]').forEach(function (input) {
+          var combinacao = escolhidas.slice();
+          combinacao[indiceOpcao] = input.value;
+
+          var existe = variants.some(function (v) {
+            if (!v.available) return false;
+            for (var i = 0; i <= indiceOpcao; i++) {
+              if (combinacao[i] != null && v.options[i] !== combinacao[i]) return false;
+            }
+            return true;
+          });
+
+          var label = input.closest('.product__swatch');
+          if (label) label.classList.toggle('is-unavailable', !existe);
+          /* aria-disabled, não disabled: o valor continua escolhível
+             (o cliente precisa saber que a peça existe), mas o leitor
+             de tela avisa que aquela combinação está esgotada. */
+          input.setAttribute('aria-disabled', existe ? 'false' : 'true');
+        });
+      });
     }
 
     function updateUI() {
@@ -87,6 +148,37 @@
           tmp.innerHTML = variant.price_html;
           var fresh = tmp.querySelector('.price');
           if (fresh) { existing.replaceWith(fresh); }
+        }
+      }
+
+      // O mesmo preço vai para a barra fixa do celular.
+      if (barraPreco && variant.price_html) { barraPreco.innerHTML = variant.price_html; }
+
+      /* Estoque: quem tem 2 peças é a VARIANTE, não o produto. O
+         texto de cada uma já vem pronto do servidor (com plural
+         resolvido pelo filtro `t`), então aqui é só trocar. */
+      if (estoque) {
+        if (variant.low_stock_html) {
+          if (estoqueTexto) estoqueTexto.textContent = variant.low_stock_html;
+          estoque.hidden = false;
+        } else {
+          estoque.hidden = true;
+          if (estoqueTexto) estoqueTexto.textContent = '';
+        }
+      }
+
+      /* O teto da quantidade acompanha a variante escolhida, e um
+         valor já digitado acima do novo teto é puxado para baixo —
+         senão a pessoa trocaria de tamanho e levaria um erro do
+         Shopify no add, sem nada na tela explicando por quê. */
+      if (qtdInput) {
+        if (variant.max && variant.max > 0) {
+          qtdInput.max = variant.max;
+          qtdInput.setAttribute('data-max', variant.max);
+          if ((parseInt(qtdInput.value, 10) || 1) > variant.max) qtdInput.value = variant.max;
+        } else {
+          qtdInput.removeAttribute('max');
+          qtdInput.removeAttribute('data-max');
         }
       }
 
@@ -136,15 +228,35 @@
         if (rotulo) rotulo.textContent = input.value;
 
         updateUI();
+        atualizarDisponibilidade();
       });
     });
+
+    // Primeira passada: alinha o que o servidor marcou com a
+    // combinação realmente selecionada na abertura da página.
+    atualizarDisponibilidade();
 
     section.querySelectorAll('.quantity-selector').forEach(function (sel) {
       var input = sel.querySelector('.quantity__input');
       var plus = sel.querySelector('[name="plus"]');
       var minus = sel.querySelector('[name="minus"]');
-      if (plus) plus.addEventListener('click', function () { input.value = parseInt(input.value || '1', 10) + 1; });
-      if (minus) minus.addEventListener('click', function () { input.value = Math.max(1, parseInt(input.value || '1', 10) - 1); });
+      /* dispatchEvent: sem ele o campo mudava de valor "por fora" e
+         nada mais na página ficava sabendo — nem a validação nativa
+         do próprio input. */
+      function ajustar(delta) {
+        var atual = parseInt(input.value || '1', 10);
+        if (isNaN(atual)) atual = 1;
+        var alvo = Math.max(1, atual + delta);
+        // O "+" respeita o estoque da variante (data-max). Sem o
+        // teto aqui, o botão passava do saldo sem nenhum atrito.
+        var teto = parseInt(input.getAttribute('data-max'), 10);
+        if (!isNaN(teto) && teto > 0) alvo = Math.min(alvo, teto);
+        if (alvo === atual) return;
+        input.value = alvo;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      if (plus) plus.addEventListener('click', function () { ajustar(1); });
+      if (minus) minus.addEventListener('click', function () { ajustar(-1); });
     });
   })();
 </script>

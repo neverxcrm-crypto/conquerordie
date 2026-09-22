@@ -182,7 +182,15 @@
                 {%- endif -%}
               {%- endfor -%}
 
-              <label class="visually-hidden" for="SortBy-{{ section.id }}">
+              {%- comment -%}
+                O rótulo era só para leitor de tela. Na tela restava
+                um texto solto ("Mais vendidos") com uma setinha, que
+                dá para ler como título da grade, como filtro ativo ou
+                como nada. Agora ele é visível no desktop, onde sobra
+                largura, e continua escondido no celular — onde a
+                barra é fixa e cada pixel de altura conta.
+              {%- endcomment -%}
+              <label class="collection__sort-label" for="SortBy-{{ section.id }}">
                 {{ 'products.facets.sort_by_label' | t }}
               </label>
               <select
@@ -235,10 +243,32 @@
     {%- endif -%}
 
     {%- if collection.products.size == 0 -%}
+      {%- comment -%}
+        Uma grade vazia tem DUAS causas, e elas pedem saídas opostas.
+
+        Antes a página dizia sempre "use menos filtros" e oferecia
+        "limpar filtros". Numa coleção genuinamente sem produtos —
+        drop esgotado, coleção nova ainda sem peças — isso é um beco:
+        a pessoa clica em limpar, nada muda (não havia filtro), e a
+        única leitura possível é que a loja está quebrada.
+
+        Com filtro ativo  → limpar é a saída certa.
+        Sem filtro        → a coleção está vazia mesmo; a saída é
+                            outra coleção, não outro filtro.
+      {%- endcomment -%}
       <div class="empty-state">
-        <p class="empty-state__titulo">{{ 'sections.main_collection.empty' | t }}</p>
-        <p class="empty-state__texto">{{ 'sections.main_collection.use_fewer_filters' | t }}</p>
-        <a href="{{ collection.url }}" class="button">{{ 'products.facets.clear_all' | t }}</a>
+        {%- if filtros_ativos > 0 -%}
+          <p class="empty-state__titulo">{{ 'sections.main_collection.empty' | t }}</p>
+          <p class="empty-state__texto">{{ 'sections.main_collection.use_fewer_filters' | t }}</p>
+          <a href="{{ collection.url }}" class="button">{{ 'products.facets.clear_all' | t }}</a>
+        {%- else -%}
+          <p class="empty-state__titulo">{{ 'sections.main_collection.empty' | t }}</p>
+          <p class="empty-state__texto">{{ section.settings.empty_text | default: 'Esta coleção ainda não tem peças disponíveis. Enquanto isso, veja o que está no ar.' }}</p>
+          <a href="{{ routes.all_products_collection_url }}" class="button">
+            {{ 'general.continue_shopping' | t }}
+            {% render 'icon', name: 'arrow-right' %}
+          </a>
+        {%- endif -%}
       </div>
     {%- else -%}
       {%- comment -%}
@@ -250,7 +280,7 @@
       <ul class="product-grid" role="list" data-reveal-group>
         {%- for product in collection.products -%}
           <li class="product-grid__item" data-reveal>
-            {% render 'card-product', card_product: product %}
+            {% render 'card-product', card_product: product, columns: section.settings.columns_desktop %}
           </li>
         {%- endfor -%}
       </ul>
@@ -274,6 +304,34 @@
      numa página de catálogo, quem precisa aparecer primeiro é o
      produto. */
   #shopify-section-{{ section.id }} .collection__toolbar { position: relative; }
+
+  #shopify-section-{{ section.id }} .collection__sort {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2xs);
+  }
+  #shopify-section-{{ section.id }} .collection__sort-label {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+  @media screen and (max-width: 1000px) {
+    #shopify-section-{{ section.id }} .collection__sort-label {
+      position: absolute;
+      overflow: hidden;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      border: 0;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+  }
 
   #shopify-section-{{ section.id }} .collection__sort-select {
     min-height: 44px;
@@ -363,7 +421,10 @@
     display: flex;
     align-items: center;
     gap: var(--space-2xs);
-    min-height: 40px;
+    /* 44px, nao 40: a linha inteira e a area de toque do filtro, e e
+       o controle mais usado de uma pagina de catalogo no celular.
+       Abaixo de 44 o dedo acerta a linha vizinha (WCAG 2.5.5). */
+    min-height: 44px;
     font-size: var(--f2);
     color: var(--color-text-primary);
     cursor: pointer;
@@ -418,7 +479,10 @@
     display: inline-flex;
     align-items: center;
     gap: var(--space-2xs);
-    min-height: 32px;
+    /* Um chip e um botao de REMOVER filtro: errar o toque significa
+       navegar para outro filtro em vez de apagar o atual. 36px com o
+       espacamento da fileira atende ao criterio 2.5.8 com folga. */
+    min-height: 36px;
     padding: 0 var(--space-2xs) 0 var(--space-xs);
     font-family: var(--font-ui-family);
     font-size: var(--f0);
@@ -441,7 +505,39 @@
      ancorado abaixo da barra: num aparelho estreito, um dropdown de
      680px viraria uma caixa cortada pela borda da tela. */
   @media screen and (max-width: 1000px) {
-    #shopify-section-{{ section.id }} .toolbar { gap: var(--space-2xs); }
+    /* ==========================================================
+       FILTRAR / ORDENAR ACOMPANHAM A ROLAGEM
+       ==========================================================
+       Numa coleção longa a barra ficava lá em cima: depois de
+       algumas telas de produtos, mudar a ordem ou tirar um filtro
+       exigia rolar tudo de volta — e a maioria das pessoas
+       simplesmente desiste e sai.
+
+       Grudada logo abaixo da header fixa, ela fica ao alcance do
+       polegar o tempo inteiro. O fundo é sólido porque ela passa por
+       cima das fotos da grade.
+
+       No desktop não: lá a página inteira cabe melhor na tela e uma
+       barra grudada só rouba altura útil do catálogo.
+       ========================================================== */
+    #shopify-section-{{ section.id }} .collection__toolbar {
+      position: sticky;
+      top: calc(var(--header-height) + var(--aviso-altura, 0px));
+      z-index: 20;
+      gap: var(--space-2xs);
+      margin-inline: calc(var(--page-gutter) * -1);
+      padding-inline: var(--page-gutter);
+      background-color: var(--color-background);
+    }
+    /* Com o ScrollSmoother o sticky do CSS não vale (o conteúdo é
+       movido por transform). O smoother só existe a partir de
+       1001px, então dentro desta media query nunca há conflito —
+       mas a guarda fica explícita para o dia em que esse limite
+       mudar. Ver assets/movimento.js. */
+    .has-smooth-scroll #shopify-section-{{ section.id }} .collection__toolbar {
+      position: relative;
+      top: auto;
+    }
     #shopify-section-{{ section.id }} .filtros { position: static; }
     #shopify-section-{{ section.id }} .filtros__painel {
       left: 0;
@@ -494,6 +590,12 @@
       "step": 1,
       "default": 4,
       "label": "t:sections.main_collection.settings.columns_desktop.label"
+    },
+    {
+      "type": "textarea",
+      "id": "empty_text",
+      "label": "Texto de coleção vazia",
+      "info": "Aparece quando a coleção não tem peças — não quando um filtro não encontra nada."
     },
     {
       "type": "checkbox",

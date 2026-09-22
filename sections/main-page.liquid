@@ -4,57 +4,133 @@
   ============================================================
 
   O QUE FAZ:
-  Renderiza uma página estática do Shopify: título centralizado
-  (page.title) e o conteúdo rich text (page.content) num container
-  de largura confortável para leitura.
+  Renderiza qualquer página estática do Shopify (trocas, privacidade,
+  FAQ, envio). O conteúdo vem do editor do admin; o que esta section
+  faz é dar a ele o mesmo enquadramento das outras páginas internas.
 
   ONDE É USADA:
-  Template page (páginas como "Sobre", "Trocas", etc.).
+  templates/page.json. A página "Sobre nós" NÃO passa por aqui — ela
+  tem template próprio (templates/page.sobre.json), porque é peça de
+  marca e não texto corrido.
 
-  PRINCIPAIS PARTES:
-  - page.title: cabeçalho da página
-  - page.content dentro de .rte: conteúdo editado no admin
-  - Sem settings no schema (conteúdo vem do objeto page)
+  O QUE MUDOU, E POR QUÊ:
+  Antes era um título centralizado e o conteúdo solto num container
+  de 760px. Funcionava, mas era a única página do tema com esse
+  desenho: sem breadcrumb, com o título centralizado (todas as outras
+  alinham à esquerda) e com a tipografia do rich text herdando o que
+  viesse.
 
-  OBSERVAÇÕES:
-  Conteúdo com max-width de 760px para boa legibilidade.
+  Agora usa os dois componentes que já existiam em assets/base.css
+  e não tinham consumidor:
+
+    .page-header--texto  o cabeçalho das páginas internas, na
+                         variante de LEITURA — título em sans e um
+                         degrau menor. O serif gigante é ótimo para
+                         "TÊNIS" e péssimo para "Política de trocas".
+    .prose               ritmo vertical, escala de títulos e largura
+                         de linha controlada para texto corrido.
+
+  Não é preferência de estilo: um parágrafo de política é lido de
+  cabo a rabo, e linha longa demais faz o olho perder a linha
+  seguinte. A medida vem de --measure-body.
 {%- endcomment -%}
 
-<section class="main-page page-width" data-section-id="{{ section.id }}">
-  <header class="main-page__header">
-    <h1 class="main-page__title">{{ page.title | escape }}</h1>
+<section class="pagina page-width" data-section-id="{{ section.id }}">
+  {%- comment -%}
+    Breadcrumb numa página de política não é decoração: quem chega
+    aqui veio do rodapé, no meio de uma compra, e precisa de um
+    caminho de volta que não seja o botão do navegador.
+  {%- endcomment -%}
+  <nav class="breadcrumb pagina__breadcrumb" aria-label="{{ 'general.breadcrumb.label' | t }}">
+    <ol class="breadcrumb__list" role="list">
+      <li class="breadcrumb__item"><a href="{{ routes.root_url }}">{{ 'general.breadcrumb.home' | t }}</a></li>
+      <li class="breadcrumb__item" aria-current="page">{{ page.title | escape }}</li>
+    </ol>
+  </nav>
+
+  <header class="page-header page-header--texto pagina__header">
+    <div class="page-header__inner">
+      {%- if section.settings.eyebrow != blank -%}
+        <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+      {%- endif -%}
+      <h1 class="page-header__title">{{ page.title | escape }}</h1>
+    </div>
   </header>
 
   {%- if page.content != blank -%}
-    <div class="main-page__content rte">
+    <div class="prose rte pagina__conteudo">
       {{ page.content }}
+    </div>
+  {%- endif -%}
+
+  {%- if section.settings.cta_label != blank -%}
+    <div class="pagina__saida">
+      <a href="{{ section.settings.cta_link | default: routes.root_url }}" class="arrow-link">
+        {{ section.settings.cta_label | escape }}
+        {% render 'icon', name: 'arrow-right' %}
+      </a>
     </div>
   {%- endif -%}
 </section>
 
 <style>
-  .main-page {
-    padding-top: var(--spacing-sections, 40px);
-    padding-bottom: var(--spacing-sections, 40px);
+  #shopify-section-{{ section.id }} .pagina {
+    padding-top: var(--space-md);
+    padding-bottom: var(--space-section);
+  }
+  #shopify-section-{{ section.id }} .pagina__breadcrumb { margin-bottom: var(--space-md); }
+  #shopify-section-{{ section.id }} .pagina__header { padding-bottom: clamp(20px, 3vw, 40px); }
+
+  /* A linha separa o cabeçalho do corpo sem pedir uma caixa: é o
+     mesmo fio de 1px que a toolbar da coleção e o rodapé usam. */
+  #shopify-section-{{ section.id }} .pagina__conteudo {
+    padding-top: clamp(24px, 3.5vw, 44px);
+    border-top: 1px solid var(--color-border);
   }
 
-  .main-page__header {
-    margin-bottom: 32px;
-    text-align: center;
+  /* Tabelas de medidas e de prazos aparecem em quase toda página de
+     política e nasciam sem nenhum estilo.
+
+     display: block + overflow-x: auto é o truque padrão para uma
+     tabela que vem do editor de texto e não pode ser embrulhada num
+     <div> pelo tema: a própria tabela vira a caixa que rola. Sem
+     isso, uma tabela de medidas com seis colunas empurra a LARGURA
+     DA PÁGINA no celular e a loja inteira ganha rolagem lateral.
+
+     min-width mantém as colunas legíveis dentro dessa rolagem, em
+     vez de espremer tudo até a tabela caber. */
+  #shopify-section-{{ section.id }} .pagina__conteudo table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+    font-size: var(--f1);
+    font-variant-numeric: tabular-nums;
+  }
+  #shopify-section-{{ section.id }} .pagina__conteudo table > * {
+    min-width: 28rem;
+  }
+  #shopify-section-{{ section.id }} .pagina__conteudo th,
+  #shopify-section-{{ section.id }} .pagina__conteudo td {
+    padding: var(--space-2xs) var(--space-xs);
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+  }
+  #shopify-section-{{ section.id }} .pagina__conteudo th {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
   }
 
-  .main-page__title {
-    font-size: var(--f7);
-    line-height: 1.1;
+  #shopify-section-{{ section.id }} .pagina__saida {
+    margin-top: clamp(32px, 5vw, 56px);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-border);
   }
-
-  .main-page__content {
-    max-width: 760px;
-    margin: 0 auto;
-    font-size: var(--f2);
-    line-height: 1.7;
-  }
-
 </style>
 
 {% schema %}
@@ -62,6 +138,11 @@
   "name": "t:sections.main_page.name",
   "tag": "section",
   "class": "section-main-page",
-  "settings": []
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Rótulo acima do título", "info": "Opcional. Ex.: Institucional, Ajuda, Políticas." },
+    { "type": "header", "content": "Saída" },
+    { "type": "text", "id": "cta_label", "label": "Texto do link final", "info": "Opcional. Em branco, nada é exibido." },
+    { "type": "url", "id": "cta_link", "label": "Link" }
+  ]
 }
 {% endschema %}

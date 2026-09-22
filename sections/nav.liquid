@@ -28,7 +28,6 @@
     </div>
 
     <a href="{{ routes.root_url }}" class="header__logo-link">
-      <span class="header__logo-aura" aria-hidden="true"></span>
       {%- if settings.logo != blank -%}
         {%- assign logo_alt = shop.name | escape -%}
         {%- assign logo_height = settings.logo_width | divided_by: settings.logo.aspect_ratio -%}
@@ -212,21 +211,38 @@
     z-index: -1;
     overflow: hidden;
     pointer-events: none;
-    background: rgba(4, 4, 5, 0.92);
+    background: rgba(4, 4, 5, 0.94);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(16px) saturate(140%);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
     transition:
       background-color var(--hd-duration) var(--hd-ease),
-      backdrop-filter var(--hd-duration) var(--hd-ease),
+      border-color var(--hd-duration) var(--hd-ease),
       box-shadow var(--hd-duration) var(--hd-ease);
   }
+
+  /* ==========================================================
+     POR QUE A HEADER NAO TEM MAIS backdrop-filter
+     ==========================================================
+     O fundo dela e preto a 92–94% de opacidade. Atras de uma camada
+     quase solida o desfoque nao e percebido: sobram uns poucos por
+     cento de imagem embacada que ninguem enxerga.
+
+     O custo, esse, era real e permanente. backdrop-filter numa faixa
+     FIXA que atravessa a tela inteira obriga o compositor a, em cada
+     quadro de rolagem, capturar o que passa por tras e refiltrar a
+     faixa. E o efeito mais caro da pagina, no elemento que mais
+     tempo fica na tela, em beneficio de nada.
+
+     Pior ainda: a propriedade estava na lista de `transition`. Cada
+     mudanca de estado da header pedia ao navegador para INTERPOLAR
+     um desfoque — refiltrar a faixa inteira a cada quadro da
+     animacao, e nao so uma vez.
+
+     Onde o vidro tem funcao (a faixa da collection-panel, sobre
+     fotografia), ele continua. Aqui, nao tinha. */
 
   body:has(.hero[data-header-overlay]) .header:not(.header--scrolled) .header__glass {
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.66), rgba(0, 0, 0, 0));
     border-bottom-color: transparent;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
   }
 
   /* Fio de leitura em ouro */
@@ -241,15 +257,12 @@
     transform-origin: left center;
     opacity: 0;
     transition: opacity 300ms ease;
-    will-change: transform;
   }
 
   /* ---------- Estado: Glassmorphism ao Rolar (Scroll) ---------- */
   .header--scrolled .header__glass {
-    background-color: rgba(8, 8, 10, 0.88);
+    background-color: rgba(8, 8, 10, 0.96);
     border-bottom-color: rgba(255, 255, 255, 0.14);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
     box-shadow: 0 14px 34px -18px rgba(0, 0, 0, 0.72);
   }
   .header--scrolled .header__progress { opacity: 0.9; }
@@ -285,25 +298,12 @@
     text-decoration: none;
   }
 
-  .header__logo-aura {
-    position: absolute;
-    z-index: -1;
-    width: 130%;
-    height: 160%;
-    border-radius: 50%;
-    background: radial-gradient(
-      ellipse closest-side,
-      rgb(214 166 64 / 35%) 0%,
-      rgb(214 166 64 / 30%) 22%,
-      rgb(214 166 64 / 1%) 87%,
-      transparent 100%
-    );
-    opacity: 0;
-    transform: scale(0.6);
-    transition: opacity 400ms ease, transform 400ms var(--hd-ease);
-    pointer-events: none;
-  }
-  .header--scrolled .header__logo-aura { opacity: 0.4; transform: scale(1); }
+  /* O halo dourado atras do logo (.header__logo-aura) saiu do tema.
+     Ele acendia ao rolar e era, visualmente, um borrao ambar sobre a
+     barra preta — o tipo de brilho decorativo que a marca nao usa
+     (o ouro aqui tem funcao: item ativo, seta de CTA, anel de foco).
+     Tecnicamente tambem cobrava uma camada de composicao permanente
+     no elemento mais fixo da pagina. */
 
   .header__logo-image {
     max-height: 34px;
@@ -385,12 +385,10 @@
     margin: 0;
     padding: 8px;
     list-style: none;
-    background-color: rgba(14, 14, 18, 0.95);
-    border: none;
+    background-color: rgba(14, 14, 18, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
     opacity: 0;
     visibility: hidden;
     transform: translateY(6px);
@@ -463,11 +461,10 @@
     right: 0;
     width: min(340px, calc(100vw - 32px));
     padding: 8px;
-    background-color: rgba(14, 14, 18, 0.95);
+    background-color: rgba(14, 14, 18, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     z-index: 20;
   }
   .header__search-form { position: relative; display: flex; align-items: center; }
@@ -530,9 +527,10 @@
   .header__scrim {
     position: fixed;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    /* Sem blur: desfocar o viewport inteiro atras da gaveta e o
+       efeito mais caro possivel num celular de entrada, e o scrim
+       preto a 68% ja entrega a separacao que o blur daria. */
+    background-color: rgba(0, 0, 0, 0.68);
     opacity: 0;
     z-index: 150;
     transition: opacity 300ms ease;
@@ -549,11 +547,11 @@
     display: flex;
     flex-direction: column;
     padding-top: env(safe-area-inset-top, 0px);
-    background-color: rgba(9, 9, 11, 0.97);
+    /* 0.97 de opacidade: o blur por tras era invisivel e cobrava um
+       refiltro por quadro durante a animacao de abertura. */
+    background-color: rgba(9, 9, 11, 0.98);
     border-right: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: 18px 0 48px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     z-index: 160;
     transform: translateX(-100%);
     transition: transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -748,6 +746,15 @@
       document.addEventListener('click', function (event) {
         if (search.open && !search.contains(event.target)) search.open = false;
       });
+      /* Esc fecha a busca e devolve o foco ao icone que a abriu —
+         sem isto o foco ficava dentro de um painel ja fechado. */
+      search.addEventListener('keydown', function (event) {
+        if (event.key !== 'Escape' || !search.open) return;
+        event.stopPropagation();
+        search.open = false;
+        var gatilho = search.querySelector('summary');
+        if (gatilho) gatilho.focus();
+      });
     }
 
     /* Mobile Drawer */
@@ -756,30 +763,105 @@
     var scrim = document.querySelector('[data-mobile-scrim]');
     var lastFocused = null;
 
+    /* ---------------------------------------------------------
+       FOCO PRESO NA GAVETA
+
+       A gaveta se declara role="dialog" aria-modal="true", mas nada
+       segurava o Tab dentro dela: a partir do ultimo link a pessoa
+       continuava tabulando para a pagina ATRAS do painel — links que
+       ela nao ve, sob um scrim opaco. Quem usa teclado ou leitor de
+       tela simplesmente se perdia.
+
+       A lista de focaveis e recalculada a cada Tab (e nao guardada
+       na abertura) porque os <details> do menu abrem e fecham: os
+       links de um submenu fechado nao podem entrar no ciclo.
+    --------------------------------------------------------- */
+    var SELETOR_FOCAVEL = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+
+    function focaveis() {
+      return Array.prototype.filter.call(
+        drawer.querySelectorAll(SELETOR_FOCAVEL),
+        function (el) {
+          /* offsetParent nulo = escondido por display:none (submenu
+             fechado) ou por um ancestral oculto. Um elemento assim
+             aceita foco programatico e nao mostra nada na tela — e
+             exatamente onde uma armadilha de foco costuma travar. */
+          return el.offsetParent !== null || el === document.activeElement;
+        }
+      );
+    }
+
+    function prenderFoco(event) {
+      if (event.key !== 'Tab') return;
+      var lista = focaveis();
+      if (!lista.length) return;
+      var primeiro = lista[0];
+      var ultimo = lista[lista.length - 1];
+      if (event.shiftKey && document.activeElement === primeiro) {
+        event.preventDefault();
+        ultimo.focus();
+      } else if (!event.shiftKey && document.activeElement === ultimo) {
+        event.preventDefault();
+        primeiro.focus();
+      }
+    }
+
+    function aoTeclar(event) {
+      if (event.key === 'Escape') closeDrawer();
+      else prenderFoco(event);
+    }
+
     function openDrawer() {
       lastFocused = document.activeElement;
       drawer.hidden = false;
       scrim.hidden = false;
-      document.body.classList.add('bloquear');
+      /* Mesma trava do carrinho (assets/carrinho.js): no iPhone,
+         overflow:hidden sozinho deixa a pagina de tras rolar junto
+         com o dedo. O carrinho carrega com defer, entao a funcao
+         pode nao existir ainda — mas quando alguem CLICA ela ja
+         esta la; a queda cobre o resto. */
+      if (typeof window.CODTravarRolagem === 'function') window.CODTravarRolagem();
+      else document.body.classList.add('bloquear');
       raf(function () {
         drawer.classList.add('is-open');
         scrim.classList.add('is-open');
       });
       if (toggle) toggle.setAttribute('aria-expanded', 'true');
+      document.addEventListener('keydown', aoTeclar);
       window.setTimeout(function () {
         if (closeBtn) closeBtn.focus();
       }, 30);
     }
 
     function closeDrawer() {
+      if (!drawer || drawer.hidden) return;
       drawer.classList.remove('is-open');
       scrim.classList.remove('is-open');
-      document.body.classList.remove('bloquear');
+      /* O carrinho tambem usa .bloquear. Se ele estiver aberto por
+         cima do menu, quem destrava a rolagem e o fechamento DELE —
+         senao a pagina de tras voltava a rolar com o carrinho ainda
+         na tela. (carrinho.js ja fazia a checagem espelhada; aqui
+         faltava.) */
+      var carrinhoAberto = document.querySelector('#CartDrawer.is-open');
+      if (!carrinhoAberto) {
+        if (typeof window.CODDestravarRolagem === 'function') window.CODDestravarRolagem();
+        else document.body.classList.remove('bloquear');
+      }
       if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('keydown', aoTeclar);
+
+      /* Devolve o foco ANTES de esconder: com o `hidden` aplicado
+         primeiro, o navegador ja teria jogado o foco no <body> e a
+         pessoa voltaria ao topo da pagina em vez do botao do menu. */
+      if (lastFocused && document.contains(lastFocused) && typeof lastFocused.focus === 'function') {
+        lastFocused.focus();
+      } else if (toggle) {
+        toggle.focus();
+      }
+
       window.setTimeout(function () {
         drawer.hidden = true;
         scrim.hidden = true;
-        if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
       }, 400);
     }
 
@@ -794,11 +876,6 @@
       scrim.addEventListener('click', closeDrawer);
       drawer.addEventListener('click', function (event) {
         if (event.target.closest('a')) closeDrawer();
-      });
-      document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && toggle && toggle.getAttribute('aria-expanded') === 'true') {
-          closeDrawer();
-        }
       });
     }
   })();

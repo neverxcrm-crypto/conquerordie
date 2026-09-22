@@ -4,105 +4,401 @@
   ============================================================
 
   O QUE FAZ:
-  Tela exibida quando a URL não existe (erro 404). Mostra o código
-  "404", título e subtexto, um campo de busca e um link para voltar
-  à home, ajudando o visitante a se reorientar.
+  A tela que aparece quando a URL não existe. Não é um aviso de
+  erro: é uma página de RECUPERAÇÃO. Quem chega aqui já tem uma
+  intenção (clicou num link velho, digitou errado, veio de uma
+  campanha encerrada) e precisa de um caminho, não de um pedido de
+  desculpas.
+
+  A ordem da página segue a probabilidade de acerto:
+    1. buscar    — a pessoa sabe o que quer e só errou o endereço
+    2. destinos  — atalhos curados pelo lojista (blocos)
+    3. voltar    — a saída de sempre, discreta
 
   ONDE É USADA:
-  Template 404 (páginas inexistentes).
+  templates/404.json.
 
-  PRINCIPAIS PARTES:
-  - Formulário de busca aponta para routes.search_url (GET, name="q")
-  - Link routes.root_url volta para a home
-  - Textos via i18n (general.404.*, general.search.*)
-  - Sem settings no schema
+  O NUMERAL:
+  "404" entra como elemento gráfico, em contorno (text-stroke) e não
+  preenchido. Um bloco chapado desse tamanho em ouro ou preto vira a
+  coisa mais pesada da tela e rouba o olho justamente de onde estão
+  as saídas. Vazado, ele dá escala editorial e continua sendo fundo.
+  É aria-hidden: o leitor de tela recebe o <h1>, que diz em palavras
+  o que aconteceu.
 
-  OBSERVAÇÕES:
-  No mobile a busca empilha (flex-direction: column).
+  BLOCOS "destino":
+  Cada bloco é um atalho (coleção, página ou URL livre) com um
+  rótulo numerado. Sem blocos configurados, a seção some sozinha e
+  sobram a busca e o link da home — nada nasce vazio ou inventado.
 {%- endcomment -%}
+{%- liquid
+  assign destinos = section.blocks | where: 'type', 'destino'
+-%}
 
-<section class="notfound page-width" data-section-id="{{ section.id }}">
-  <div class="notfound__inner">
-    <p class="notfound__code" aria-hidden="true">404</p>
-    <h1 class="notfound__title">{{ 'general.404.title' | t }}</h1>
-    <p class="notfound__subtext">{{ 'general.404.subtext' | t }}</p>
+<section class="nf page-width" data-section-id="{{ section.id }}">
+  <div class="nf__grid">
+    <div class="nf__marca" aria-hidden="true">
+      <span class="nf__numero">404</span>
+    </div>
 
-    <form action="{{ routes.search_url }}" method="get" role="search" class="notfound__search">
-      <label class="visually-hidden" for="Search404-{{ section.id }}">
-        {{ 'general.search.search' | t }}
-      </label>
-      <input
-        type="search"
-        class="field__input notfound__search-input"
-        id="Search404-{{ section.id }}"
-        name="q"
-        placeholder="{{ 'general.search.placeholder' | t }}"
-        spellcheck="false"
-        autocomplete="off"
-      >
-      <button type="submit" class="button notfound__search-submit">
-        {{ 'general.search.submit' | t }}
-      </button>
-    </form>
+    <div class="nf__conteudo">
+      {%- if section.settings.eyebrow != blank -%}
+        <p class="eyebrow nf__eyebrow">{{ section.settings.eyebrow | escape }}</p>
+      {%- endif -%}
 
-    <a href="{{ routes.root_url }}" class="notfound__home">
-      {{ 'general.continue_shopping' | t }}
-    </a>
+      {%- comment -%}
+        O texto do lojista e a tradução padrão são resolvidos em ramos
+        separados. Encadear `| default: 'chave' | t` parece mais curto
+        e está errado: quando o lojista PREENCHE o campo, o `| t` cai
+        em cima do texto dele, não acha chave nenhuma e a página
+        imprime "Translation missing: pt-BR.Página não encontrada".
+      {%- endcomment -%}
+      <h1 class="nf__titulo">
+        {%- if section.settings.heading != blank -%}
+          {{ section.settings.heading | escape }}
+        {%- else -%}
+          {{ 'general.404.title' | t }}
+        {%- endif -%}
+      </h1>
+
+      <p class="nf__texto">
+        {%- if section.settings.text != blank -%}
+          {{ section.settings.text | escape | newline_to_br }}
+        {%- else -%}
+          {{ 'general.404.subtext' | t }}
+        {%- endif -%}
+      </p>
+
+      <form action="{{ routes.search_url }}" method="get" role="search" class="nf__busca">
+        <label class="visually-hidden" for="Busca404-{{ section.id }}">
+          {{ 'general.search.search' | t }}
+        </label>
+        <span class="nf__busca-icone" aria-hidden="true">{% render 'icon', name: 'search' %}</span>
+        <input
+          type="search"
+          class="nf__busca-campo"
+          id="Busca404-{{ section.id }}"
+          name="q"
+          placeholder="{{ 'general.search.placeholder' | t }}"
+          spellcheck="false"
+          autocomplete="off"
+        >
+        <button type="submit" class="nf__busca-enviar">
+          <span>{{ 'general.search.submit' | t }}</span>
+          {% render 'icon', name: 'arrow-right' %}
+        </button>
+      </form>
+
+      {%- if destinos.size > 0 -%}
+        <nav class="nf__destinos" aria-label="{{ section.settings.destinos_titulo | default: 'Atalhos' | escape }}">
+          {%- if section.settings.destinos_titulo != blank -%}
+            <p class="nf__destinos-titulo">{{ section.settings.destinos_titulo | escape }}</p>
+          {%- endif -%}
+          <ul class="nf__lista" role="list">
+            {%- for block in destinos -%}
+              {%- liquid
+                assign destino_url = block.settings.link
+                assign destino_rotulo = block.settings.label
+
+                # Escolher uma coleção já entrega url e nome: o lojista
+                # não precisa digitar nada, e o rótulo nunca sai do ar
+                # quando a coleção é renomeada no admin.
+                #
+                # O setting do tipo `collection` devolve o OBJETO da
+                # coleção, não o handle — por isso nada de
+                # collections[...] aqui.
+                assign colecao = block.settings.collection
+                if colecao != blank and colecao.handle != blank
+                  if destino_url == blank
+                    assign destino_url = colecao.url
+                  endif
+                  if destino_rotulo == blank
+                    assign destino_rotulo = colecao.title
+                  endif
+                endif
+              -%}
+              {%- if destino_url != blank and destino_rotulo != blank -%}
+                <li class="nf__item" {{ block.shopify_attributes }}>
+                  <a class="nf__link" href="{{ destino_url }}">
+                    <span class="nf__indice" aria-hidden="true">
+                      {{- forloop.index | prepend: '0' | slice: -2, 2 -}}
+                    </span>
+                    <span class="nf__rotulo">{{ destino_rotulo | escape }}</span>
+                    {% render 'icon', name: 'arrow-right' %}
+                  </a>
+                </li>
+              {%- endif -%}
+            {%- endfor -%}
+          </ul>
+        </nav>
+      {%- endif -%}
+
+      <a href="{{ routes.root_url }}" class="arrow-link nf__home">
+        {{ 'general.continue_shopping' | t }}
+        {% render 'icon', name: 'arrow-right' %}
+      </a>
+    </div>
   </div>
 </section>
 
 <style>
-  .notfound {
-    min-height: 60vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-top: var(--spacing-sections, 40px);
-    padding-bottom: var(--spacing-sections, 40px);
-    text-align: center;
+  #shopify-section-{{ section.id }} .nf {
+    padding-top: clamp(32px, 6vw, 72px);
+    padding-bottom: var(--space-section);
   }
 
-  .notfound__inner {
-    max-width: 520px;
+  /* ==========================================================
+     COMPOSIÇÃO
+     ==========================================================
+     Desktop: o numeral ocupa uma coluna própria à esquerda e o
+     conteúdo respira à direita — leitura em Z, o olho cai no texto.
+     Celular: o numeral vira uma faixa curta acima do título, com
+     altura controlada. Ele NUNCA passa a ser fundo absoluto atrás do
+     texto: contorno sobre texto, em tela estreita, vira ruído e
+     derruba o contraste da linha de apoio. */
+  #shopify-section-{{ section.id }} .nf__grid {
+    display: grid;
+    gap: clamp(20px, 4vw, 64px);
+    align-items: start;
   }
 
-  .notfound__code {
-    font-size: clamp(4rem, 12vw, 8rem);
+  #shopify-section-{{ section.id }} .nf__conteudo {
+    display: grid;
+    gap: var(--space-sm);
+    justify-items: start;
+    max-width: 46rem;
+    min-width: 0;
+  }
+
+  #shopify-section-{{ section.id }} .nf__eyebrow { margin: 0; }
+
+  #shopify-section-{{ section.id }} .nf__titulo {
+    font-family: var(--font-display-family);
+    font-size: var(--f7);
+    font-weight: var(--font-weight-bold);
     line-height: 1;
-    color: var(--color-accent);
-    margin-bottom: 8px;
+    letter-spacing: var(--tracking-display);
+    text-transform: uppercase;
+    text-wrap: balance;
+    margin: 0;
   }
 
-  .notfound__title {
-    font-size: var(--f6);
-    margin-bottom: 12px;
+  #shopify-section-{{ section.id }} .nf__texto {
+    font-size: var(--f3);
+    line-height: var(--leading-body);
+    color: var(--color-text-secondary);
+    max-width: 44ch;
+    margin: 0;
   }
 
-  .notfound__subtext {
-    font-size: var(--f2);
-    opacity: 0.75;
-    margin-bottom: 28px;
+  /* ==========================================================
+     O NUMERAL
+     ==========================================================
+     Vazado em vez de chapado. O contorno usa a cor de borda forte
+     do esquema ativo, então ele funciona igual no claro e no escuro
+     sem nenhuma regra extra.
+
+     @supports: se o navegador não conhece text-stroke, a regra
+     inteira é ignorada e o numeral volta a ser sólido — em cor de
+     borda, nunca em ouro. Sem o @supports, o `color: transparent`
+     valeria assim mesmo e o "404" simplesmente sumiria. */
+  /* line-height 0.9 e NÃO 0.78 + overflow: hidden.
+
+     A entrelinha negativa aperta a caixa do numeral para ele não
+     abrir um buraco na composição. Abaixo de ~0.85 os dígitos
+     passam a extrapolar a própria caixa, e aí o overflow: hidden
+     que estava aqui cortava o topo e a base deles — o que lê como
+     fonte quebrada, não como recorte editorial. Sem o corte, o
+     resultado é o mesmo aperto visual e nenhum risco. */
+  #shopify-section-{{ section.id }} .nf__marca {
+    line-height: 0.9;
+    user-select: none;
   }
 
-  .notfound__search {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 24px;
+  #shopify-section-{{ section.id }} .nf__numero {
+    display: block;
+    font-family: var(--font-display-family);
+    font-weight: var(--font-weight-bold);
+    font-size: clamp(6rem, 26vw, 15rem);
+    letter-spacing: -0.06em;
+    line-height: 0.9;
+    color: var(--color-border-strong);
+    font-variant-numeric: tabular-nums;
   }
 
-  .notfound__search-input {
-    flex: 1;
-  }
-
-  .notfound__home {
-    color: var(--color-accent);
-    text-decoration: underline;
-  }
-
-  @media screen and (max-width: 1000px) {
-    .notfound__search {
-      flex-direction: column;
+  @supports (-webkit-text-stroke: 1px currentColor) {
+    #shopify-section-{{ section.id }} .nf__numero {
+      color: transparent;
+      -webkit-text-stroke: 1.5px var(--color-border-strong);
     }
+  }
+
+  /* ==========================================================
+     BUSCA — um campo só, não dois blocos empilhados
+     ==========================================================
+     Antes eram um input e um botão soltos que, no celular, viravam
+     duas caixas em cima da outra e ocupavam meia tela. Aqui é uma
+     barra única: ícone, campo e ação dentro da mesma moldura, do
+     jeito que uma busca se parece em qualquer lugar. */
+  #shopify-section-{{ section.id }} .nf__busca {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2xs);
+    width: 100%;
+    max-width: 30rem;
+    margin-top: var(--space-2xs);
+    padding: 4px 4px 4px var(--space-xs);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    transition:
+      border-color var(--dur-normal) var(--ease-out),
+      box-shadow var(--dur-normal) var(--ease-out);
+  }
+
+  /* O anel de foco vai na MOLDURA, não no campo: quem está no
+     teclado precisa ver a barra inteira acesa, não uma linha dentro
+     dela. :focus-within resolve sem uma linha de JavaScript. */
+  #shopify-section-{{ section.id }} .nf__busca:focus-within {
+    border-color: var(--color-border-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-muted);
+  }
+
+  #shopify-section-{{ section.id }} .nf__busca-icone {
+    display: inline-flex;
+    color: var(--color-text-muted);
+  }
+  #shopify-section-{{ section.id }} .nf__busca-icone svg { width: 16px; height: 16px; }
+
+  #shopify-section-{{ section.id }} .nf__busca-campo {
+    min-width: 0;
+    min-height: 44px;
+    padding: 0;
+    font-family: var(--font-ui-family);
+    font-size: var(--f2);
+    color: var(--color-text-primary);
+    background: none;
+    border: 0;
+    outline: none;
+  }
+  #shopify-section-{{ section.id }} .nf__busca-campo::placeholder { color: var(--color-text-muted); }
+  #shopify-section-{{ section.id }} .nf__busca-campo::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+  #shopify-section-{{ section.id }} .nf__busca-enviar {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    min-height: 44px;
+    padding: 0 var(--space-sm);
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-button-primary-text);
+    background-color: var(--color-button-primary-background);
+    border: 0;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+  #shopify-section-{{ section.id }} .nf__busca-enviar:hover {
+    background-color: var(--color-button-primary-background-hover);
+  }
+  #shopify-section-{{ section.id }} .nf__busca-enviar svg { width: 12px; height: 12px; }
+
+  /* ==========================================================
+     DESTINOS — atalhos numerados
+     ==========================================================
+     Mesma gramática da navegação do celular e dos painéis de
+     coleção: índice em ouro, nome grande, seta que anda no hover.
+     Repetir o gesto em vez de inventar um novo é o que faz a página
+     de erro parecer parte do site. */
+  #shopify-section-{{ section.id }} .nf__destinos {
+    width: 100%;
+    max-width: 32rem;
+    margin-top: var(--space-2xs);
+  }
+  #shopify-section-{{ section.id }} .nf__destinos-titulo {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-2xs);
+  }
+  #shopify-section-{{ section.id }} .nf__lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--color-border);
+  }
+  #shopify-section-{{ section.id }} .nf__item { border-bottom: 1px solid var(--color-border); }
+  #shopify-section-{{ section.id }} .nf__link {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: 56px;
+    color: var(--color-text-primary);
+    text-decoration: none;
+    transition: color var(--dur-normal) var(--ease-out);
+  }
+  #shopify-section-{{ section.id }} .nf__indice {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-label);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-accent-readable);
+  }
+  #shopify-section-{{ section.id }} .nf__rotulo {
+    font-family: var(--font-ui-family);
+    font-size: var(--f3);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-heading);
+    text-transform: uppercase;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #shopify-section-{{ section.id }} .nf__link svg {
+    width: 14px;
+    height: 14px;
+    color: var(--color-accent-readable);
+    transition: transform var(--dur-normal) var(--ease-out);
+  }
+  #shopify-section-{{ section.id }} .nf__link:hover,
+  #shopify-section-{{ section.id }} .nf__link:focus-visible { color: var(--color-accent-readable); }
+  #shopify-section-{{ section.id }} .nf__link:hover svg,
+  #shopify-section-{{ section.id }} .nf__link:focus-visible svg { transform: translateX(4px); }
+
+  #shopify-section-{{ section.id }} .nf__home { margin-top: var(--space-2xs); }
+
+  /* ==========================================================
+     DESKTOP — duas colunas
+     ========================================================== */
+  @media screen and (min-width: 1001px) {
+    #shopify-section-{{ section.id }} .nf {
+      padding-top: clamp(48px, 7vw, 96px);
+      min-height: 58vh;
+    }
+    #shopify-section-{{ section.id }} .nf__grid {
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+      align-items: center;
+    }
+    #shopify-section-{{ section.id }} .nf__numero {
+      font-size: clamp(9rem, 15vw, 17rem);
+      -webkit-text-stroke-width: 2px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #shopify-section-{{ section.id }} .nf__link,
+    #shopify-section-{{ section.id }} .nf__link svg,
+    #shopify-section-{{ section.id }} .nf__busca { transition: none; }
   }
 </style>
 
@@ -111,6 +407,25 @@
   "name": "t:sections.main_404.name",
   "tag": "section",
   "class": "section-main-404",
-  "settings": []
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Rótulo", "default": "Erro 404" },
+    { "type": "text", "id": "heading", "label": "Título", "info": "Em branco, usa o texto padrão do idioma." },
+    { "type": "textarea", "id": "text", "label": "Texto de apoio", "info": "Em branco, usa o texto padrão do idioma." },
+    { "type": "header", "content": "Atalhos" },
+    { "type": "paragraph", "content": "Cada bloco vira um atalho na lista. Escolha uma coleção e o link e o nome são preenchidos sozinhos." },
+    { "type": "text", "id": "destinos_titulo", "label": "Título da lista", "default": "Continue por aqui" }
+  ],
+  "blocks": [
+    {
+      "type": "destino",
+      "name": "Atalho",
+      "limit": 5,
+      "settings": [
+        { "type": "collection", "id": "collection", "label": "Coleção" },
+        { "type": "text", "id": "label", "label": "Rótulo", "info": "Opcional. Em branco, usa o nome da coleção." },
+        { "type": "url", "id": "link", "label": "Link", "info": "Opcional. Em branco, usa o link da coleção." }
+      ]
+    }
+  ]
 }
 {% endschema %}

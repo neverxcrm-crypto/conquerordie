@@ -18,6 +18,8 @@
 
   PARÂMETROS:
   - card_product: objeto product a ser exibido no card.
+  - columns (opcional): quantas colunas a grade tem no desktop.
+    Padrão 4. Serve só para o atributo `sizes` das imagens.
 
   OBSERVAÇÕES:
   O aspect ratio da imagem vem de settings.card_image_ratio
@@ -36,7 +38,36 @@
     porque adicionar sem escolher variante não é uma decisão do card.
   - Produto esgotado: nada é renderizado.
 {%- endcomment -%}
+{%- comment -%}
+  ---------- sizes: qual foto o navegador vai baixar ----------
+
+  O `sizes` estava fixo em '(min-width: 1000px) 25vw, 50vw'. Ele
+  errava em duas frentes:
+
+  1. 25vw assume QUATRO colunas. A grade é configurável de 2 a 5
+     (settings columns_desktop). Com 2 colunas a foto chegava com
+     metade da resolução necessária — visivelmente mole numa página
+     de moda. Com 5, vinha grande demais.
+
+  2. vw é a largura da JANELA, e a grade vive dentro de um container
+     com largura máxima (settings.page_width). Num monitor de 2560px
+     com container de 1440, 25vw pedia 640px para uma coluna que tem
+     360: quatro vezes mais pixels do que cabem ali, em toda foto da
+     grade.
+
+  Agora a primeira condição usa o px REAL da coluna quando o
+  container já atingiu o teto, e a segunda mantém o vw para as
+  larguras em que ele ainda é proporcional.
+{%- endcomment -%}
 {%- liquid
+  assign cols = columns | default: 4
+  if cols < 2
+    assign cols = 4
+  endif
+  assign largura_pagina = settings.page_width | default: 1440
+  assign coluna_px = largura_pagina | divided_by: cols
+  assign coluna_vw = 100 | divided_by: cols
+
   assign ratio = 1
   case settings.card_image_ratio
     when 'portrait'
@@ -49,6 +80,9 @@
       endif
   endcase
 -%}
+{%- capture card_sizes -%}
+(min-width: {{ largura_pagina }}px) {{ coluna_px }}px, (min-width: 1000px) {{ coluna_vw }}vw, 50vw
+{%- endcapture -%}
 <div class="card-product{% unless card_product.available %} card-product--sold-out{% endunless %}">
   <div class="card-product__media-wrap">
   <a href="{{ card_product.url }}" class="card-product__link">
@@ -61,7 +95,7 @@
             loading: 'lazy',
             class: 'card-product__image card-product__image--primary',
             widths: '180, 360, 540, 720',
-            sizes: '(min-width: 1000px) 25vw, 50vw',
+            sizes: card_sizes,
             alt: card_product.featured_media.alt | default: card_product.title | escape
         }}
         {%- comment -%}

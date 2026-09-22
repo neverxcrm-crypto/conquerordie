@@ -44,9 +44,36 @@
     var miniaturas = Array.prototype.slice.call(secao.querySelectorAll('[data-thumb]'));
     var pontos = Array.prototype.slice.call(secao.querySelectorAll('[data-dot]'));
 
+    /* ---------------------------------------------------------
+       Ir até uma mídia.
+
+       Dois caminhos, porque são duas rolagens diferentes:
+
+       CELULAR — a galeria é um trilho horizontal com scroll-snap.
+       Quem rola é a própria <ul>, então scrollIntoView resolve sem
+       tocar na página.
+
+       DESKTOP — as fotos são uma coluna no fluxo da página. Clicar
+       numa miniatura pedia ao navegador para rolar o DOCUMENTO, e
+       com o ScrollSmoother ativo isso entra em disputa: o smoother
+       controla a posição por transform e devolve a página para onde
+       ele acha que ela deveria estar, então o salto saía tremido ou
+       simplesmente voltava. Existindo o smoother, quem rola é ele.
+    --------------------------------------------------------- */
+    function galeriaRolaSozinha() {
+      return lista && lista.scrollWidth > lista.clientWidth + 1;
+    }
+
     function irPara(indice) {
       var alvo = itens[indice];
       if (!alvo) return;
+
+      var motion = window.CODMotion;
+      if (!galeriaRolaSozinha() && motion && motion.smoother) {
+        motion.scrollTo(alvo);
+        return;
+      }
+
       try {
         alvo.scrollIntoView({ behavior: comportamento, block: 'center', inline: 'center' });
       } catch (e) {

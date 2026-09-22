@@ -97,19 +97,11 @@
     margin: 0;
     padding: 0;
   }
-  #shopify-section-{{ section.id }} .pagination__item {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 40px;
-    min-height: 40px;
-    padding: 0 8px;
-    font-size: var(--f2);
-    color: var(--color-text-primary);
-    text-decoration: none;
-    border: 1px solid transparent;
-    border-radius: var(--inputs-radius, 4px);
-  }
+  /* A paginacao NAO e redefinida aqui.
+     Existia uma copia local, com alvo de 40px (abaixo do minimo de
+     toque) e fonte maior que a do resto do tema — era a terceira
+     definicao concorrente do mesmo componente. A versao unica vive
+     em assets/base.css, na camada de componentes compartilhados. */
   #shopify-section-{{ section.id }} a.pagination__item:hover {
     border-color: var(--color-border);
   }

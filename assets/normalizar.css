@@ -43,16 +43,35 @@ body {
   -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
   background-color: var(--color-background);
   -webkit-text-size-adjust: none;
-  touch-action: pan-x pan-y;
 }
-*::-webkit-scrollbar {
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
   display: none;
 }
-* {
+html,
+body {
   scrollbar-width: none;
 }
+/* ==========================================================
+   TRAVA DE ROLAGEM (carrinho e menu abertos)
+   ==========================================================
+   overflow: hidden resolve no desktop e NAO resolve no Safari do
+   iPhone: la a pagina de tras continua rolando junto com o dedo.
+   Por isso a trava de verdade e position: fixed, com o deslocamento
+   guardado em `top` pelo JS (ver assets/carrinho.js).
+
+   Fica fora de html.has-smooth-scroll de proposito: com o
+   ScrollSmoother ativo quem rola nao e o body, e sim o transform do
+   #smooth-content — fixar o body ali so criaria um salto de layout,
+   e o smoother ja e pausado pelo movimento.js na mesma classe. */
 body.bloquear {
   overflow: hidden;
+}
+html:not(.has-smooth-scroll) body.bloquear {
+  position: fixed;
+  left: 0;
+  right: 0;
+  width: 100%;
 }
 ::selection {
   color: var(--color-text-on-accent);
@@ -62,39 +81,61 @@ body.bloquear {
   color: var(--color-text-on-accent);
   background-color: var(--color-accent);
 }
-a,
-img,
+/* Sem selecao de texto apenas onde ela nao faz sentido: icone e
+   rotulo de botao. Links continuam selecionaveis — copiar o texto de
+   um link e um gesto legitimo, e bloquea-lo nao protegia nada. */
 svg,
 button {
   -webkit-user-select: none;
   -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
-  -khtml-user-select: none;
+  -webkit-touch-callout: none;
+}
+a,
+img,
+svg,
+button {
   -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
   -webkit-text-size-adjust: none;
-  -webkit-touch-callout: none;
-  -o-user-select: none;
-  -webkit-appearance: none !important;
-  appearance: none !important;
 }
+/* touch-action: manipulation mata o atraso de 300ms do duplo-toque
+   SEM tirar o pinca-para-ampliar — que o body inteiro perdia quando
+   isto era `pan-x pan-y` la em cima. */
+a,
+button,
+label,
+summary,
+[role='button'] {
+  touch-action: manipulation;
+}
+button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+/* cursor NAO leva !important: com ele, um botao [disabled] continuava
+   mostrando a maozinha, prometendo um clique que nunca acontece. */
 button,
 a {
-  cursor: pointer !important;
+  cursor: pointer;
 }
 a {
   background-color: transparent;
-  cursor: pointer;
+}
+[disabled],
+[aria-disabled='true'] {
+  cursor: not-allowed;
 }
 img {
   border-style: none;
 }
+/* appearance: none (e nao 'button'): a regra anterior ja tinha zerado
+   a aparencia nativa e esta a devolvia, trazendo de volta o desenho de
+   botao do sistema operacional por cima do estilo do tema. */
 button {
   line-height: 1;
   margin: 0;
-  -moz-appearance: none !important;
-  -webkit-appearance: button;
-  appearance: button;
+  -webkit-appearance: none;
+  appearance: none;
   text-transform: none;
   overflow: visible;
   cursor: pointer;
@@ -104,20 +145,30 @@ button * {
 }
 input {
   line-height: 1;
-  -moz-appearance: none !important;
-  appearance: none !important;
+  -webkit-appearance: none;
+  appearance: none;
   overflow: visible;
 }
 textarea {
   line-height: 1;
-  -moz-appearance: none !important;
-  appearance: none !important;
+  -webkit-appearance: none;
+  appearance: none;
   overflow: auto;
 }
-[type='button'] {
-  -webkit-appearance: button;
-  appearance: button;
+[type='button'],
+[type='submit'],
+[type='reset'] {
+  -webkit-appearance: none;
+  appearance: none;
   cursor: pointer;
+}
+/* Caixas de selecao e radios precisam do desenho nativo de volta:
+   o reset acima apagaria o quadradinho e a bolinha, e nem todo
+   formulario do tema os redesenha. */
+[type='checkbox'],
+[type='radio'] {
+  -webkit-appearance: auto;
+  appearance: auto;
 }
 button::-moz-focus-inner,
 [type='button']::-moz-focus-inner {

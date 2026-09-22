@@ -1,0 +1,500 @@
+{%- comment -%}
+  ============================================================
+  SOBRE — a página de marca (manifesto, números, capítulos)
+  ============================================================
+
+  O QUE FAZ:
+  A página "Sobre nós" da loja. Não é um bloco de texto corrido com
+  um título em cima: é uma peça editorial com quatro movimentos, na
+  ordem em que alguém decide confiar numa marca de roupa.
+
+    1. ABERTURA    quem somos, em uma frase grande e uma curta
+    2. NÚMEROS     o que dá lastro à frase (ano, drops, peças…)
+    3. CAPÍTULOS   a história em partes numeradas, foto + texto
+    4. MANIFESTO   a declaração, em faixa escura de largura total
+    5. SAÍDA       um CTA para a coleção — a página tem que VENDER
+
+  ONDE É USADA:
+  templates/page.sobre.json. No admin: crie a página, escolha o
+  template "page.sobre" e componha os blocos no editor de temas.
+
+  POR QUE UMA SECTION E NÃO TEXTO NO ADMIN:
+  O editor de rich text do Shopify entrega parágrafos e títulos —
+  nunca uma grade com foto alternada, numeração e escala tipográfica
+  consistente. Em texto livre, esta página viraria um documento. Com
+  blocos, o lojista reordena, adiciona e remove capítulos sem
+  encostar em CSS, e cada um nasce no ritmo certo.
+
+  RITMO CLARO / ESCURO:
+  O tema abre escuro (header), segue claro (conteúdo) e fecha escuro
+  (rodapé). O manifesto reintroduz o escuro NO MEIO da página: é o
+  ponto alto e o único lugar onde a marca fala em primeira pessoa.
+  Ele usa .scheme-dark, então os tokens se redefinem sozinhos e
+  nenhuma cor é escrita à mão aqui.
+
+  BLOCOS:
+  - numero    um indicador da faixa de lastro (valor + rótulo)
+  - capitulo  um capítulo: índice automático, título, texto e foto
+
+  TUDO É OPCIONAL:
+  Sem números, a faixa não existe. Sem capítulos, a página é
+  abertura + manifesto. Nada nasce com placeholder fingindo conteúdo.
+{%- endcomment -%}
+{%- liquid
+  assign numeros = section.blocks | where: 'type', 'numero'
+  assign capitulos = section.blocks | where: 'type', 'capitulo'
+-%}
+
+<div class="sobre" data-section-id="{{ section.id }}">
+  {%- comment -%} ---------- 1. ABERTURA ---------- {%- endcomment -%}
+  <header class="sobre__abertura page-width">
+    <div class="sobre__abertura-texto">
+      {%- if section.settings.eyebrow != blank -%}
+        <p class="eyebrow" data-reveal>{{ section.settings.eyebrow | escape }}</p>
+      {%- endif -%}
+
+      {%- if section.settings.heading != blank -%}
+        <h1 class="sobre__titulo" data-reveal>{{ section.settings.heading | escape | newline_to_br }}</h1>
+      {%- endif -%}
+    </div>
+
+    {%- if section.settings.lead != blank -%}
+      <div class="sobre__lead rte" data-reveal>{{ section.settings.lead }}</div>
+    {%- endif -%}
+  </header>
+
+  {%- comment -%} ---------- 2. NÚMEROS ---------- {%- endcomment -%}
+  {%- if numeros.size > 0 -%}
+    <div class="page-width">
+      <dl class="sobre__numeros" data-reveal-group>
+        {%- for block in numeros -%}
+          <div class="sobre__numero" data-reveal {{ block.shopify_attributes }}>
+            <dt class="sobre__numero-rotulo">{{ block.settings.label | escape }}</dt>
+            <dd class="sobre__numero-valor">{{ block.settings.value | escape }}</dd>
+          </div>
+        {%- endfor -%}
+      </dl>
+    </div>
+  {%- endif -%}
+
+  {%- comment -%} ---------- 3. CAPÍTULOS ---------- {%- endcomment -%}
+  {%- if capitulos.size > 0 -%}
+    <div class="sobre__capitulos page-width">
+      {%- for block in capitulos -%}
+        <article
+          class="sobre__capitulo {% cycle 'sobre__capitulo--esq', 'sobre__capitulo--dir' %}"
+          {{ block.shopify_attributes }}
+        >
+          <div class="sobre__capitulo-media" data-reveal>
+            {%- if block.settings.image != blank -%}
+              {{
+                block.settings.image
+                | image_url: width: 1200
+                | image_tag:
+                  loading: 'lazy',
+                  class: 'sobre__capitulo-foto',
+                  widths: '400, 600, 800, 1000, 1200',
+                  sizes: '(min-width: 1001px) 46vw, 100vw',
+                  alt: block.settings.image.alt | default: block.settings.title | escape
+              }}
+            {%- else -%}
+              <div class="sobre__capitulo-foto sobre__capitulo-vazio">
+                {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
+              </div>
+            {%- endif -%}
+          </div>
+
+          <div class="sobre__capitulo-texto" data-reveal>
+            <p class="sobre__capitulo-indice" aria-hidden="true">
+              {{- forloop.index | prepend: '0' | slice: -2, 2 -}}
+            </p>
+            {%- if block.settings.title != blank -%}
+              <h2 class="sobre__capitulo-titulo">{{ block.settings.title | escape }}</h2>
+            {%- endif -%}
+            {%- if block.settings.text != blank -%}
+              <div class="sobre__capitulo-corpo rte">{{ block.settings.text }}</div>
+            {%- endif -%}
+          </div>
+        </article>
+      {%- endfor -%}
+    </div>
+  {%- endif -%}
+
+  {%- comment -%} ---------- 4. MANIFESTO ---------- {%- endcomment -%}
+  {%- if section.settings.quote != blank -%}
+    <aside class="sobre__manifesto scheme-dark">
+      <div class="page-width sobre__manifesto-inner">
+        <blockquote class="sobre__citacao" data-reveal>
+          {{ section.settings.quote | escape | newline_to_br }}
+        </blockquote>
+        {%- if section.settings.quote_author != blank -%}
+          <p class="sobre__citacao-autor" data-reveal>{{ section.settings.quote_author | escape }}</p>
+        {%- endif -%}
+      </div>
+    </aside>
+  {%- endif -%}
+
+  {%- comment -%} ---------- 5. SAÍDA ---------- {%- endcomment -%}
+  {%- if section.settings.cta_label != blank -%}
+    <div class="sobre__saida page-width" data-reveal>
+      {%- if section.settings.cta_text != blank -%}
+        <p class="sobre__saida-texto">{{ section.settings.cta_text | escape }}</p>
+      {%- endif -%}
+      <a
+        href="{{ section.settings.cta_link | default: routes.all_products_collection_url }}"
+        class="button sobre__saida-botao"
+      >
+        {{ section.settings.cta_label | escape }}
+        {% render 'icon', name: 'arrow-right' %}
+      </a>
+    </div>
+  {%- endif -%}
+</div>
+
+<style>
+  #shopify-section-{{ section.id }} .sobre {
+    padding-bottom: var(--space-section);
+  }
+
+  /* ==========================================================
+     1. ABERTURA
+     ==========================================================
+     Duas colunas desiguais: o título ocupa a maior parte e o texto
+     de apoio fica alinhado ao PÉ dele, não ao topo. É o truque
+     editorial que faz o bloco parecer composto e não empilhado —
+     as duas colunas terminam juntas. */
+  #shopify-section-{{ section.id }} .sobre__abertura {
+    display: grid;
+    gap: var(--space-md);
+    padding-top: clamp(32px, 6vw, 88px);
+    padding-bottom: clamp(32px, 5vw, 64px);
+  }
+
+  #shopify-section-{{ section.id }} .sobre__abertura-texto {
+    display: grid;
+    gap: var(--space-sm);
+    min-width: 0;
+  }
+
+  #shopify-section-{{ section.id }} .sobre__titulo {
+    font-family: var(--font-display-family);
+    font-size: var(--f8);
+    font-weight: var(--font-weight-bold);
+    line-height: 0.96;
+    letter-spacing: var(--tracking-display);
+    text-transform: uppercase;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  #shopify-section-{{ section.id }} .sobre__lead {
+    font-size: var(--f3);
+    line-height: var(--leading-body);
+    color: var(--color-text-secondary);
+    max-width: 46ch;
+  }
+  #shopify-section-{{ section.id }} .sobre__lead > * + * { margin-top: var(--space-xs); }
+  #shopify-section-{{ section.id }} .sobre__lead p { margin: 0; }
+
+  /* ==========================================================
+     2. NÚMEROS
+     ==========================================================
+     auto-fit + minmax: a faixa decide sozinha quantas colunas cabem.
+     Com 3 números dá três colunas; com 4, quatro; num celular,
+     duas. Não existe media query para isso — e não existe o caso
+     clássico de "o lojista adicionou o quarto número e quebrou a
+     grade".
+
+     <dl> e não <ul>: cada item é um par rótulo/valor, que é
+     exatamente o que uma lista de definição descreve. O leitor de
+     tela lê "Fundação: 2019", não dois textos soltos. */
+  #shopify-section-{{ section.id }} .sobre__numeros {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--space-md) var(--space-lg);
+    margin: 0;
+    padding: var(--space-md) 0;
+    border-block: 1px solid var(--color-border);
+  }
+
+  #shopify-section-{{ section.id }} .sobre__numero {
+    display: grid;
+    gap: var(--space-3xs);
+    min-width: 0;
+  }
+
+  #shopify-section-{{ section.id }} .sobre__numero-rotulo {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  /* O valor é o dado; ele vem DEPOIS do rótulo no HTML (a estrutura
+     de <dl> exige) e ANTES na leitura visual, por ordem de grade.
+     tabular-nums mantém os números alinhados entre si mesmo quando
+     um tem quatro dígitos e o outro dois. */
+  #shopify-section-{{ section.id }} .sobre__numero-valor {
+    order: -1;
+    font-family: var(--font-display-family);
+    font-size: var(--f6);
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+    letter-spacing: var(--tracking-display);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-primary);
+    margin: 0;
+  }
+
+  /* ==========================================================
+     3. CAPÍTULOS
+     ========================================================== */
+  #shopify-section-{{ section.id }} .sobre__capitulos {
+    display: grid;
+    gap: clamp(48px, 8vw, 128px);
+    padding-top: clamp(48px, 8vw, 112px);
+  }
+
+  #shopify-section-{{ section.id }} .sobre__capitulo {
+    display: grid;
+    gap: var(--space-md);
+    align-items: center;
+  }
+
+  #shopify-section-{{ section.id }} .sobre__capitulo-media {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--media-radius);
+    background-color: var(--color-surface);
+    aspect-ratio: 4 / 5;
+  }
+  #shopify-section-{{ section.id }} .sobre__capitulo-foto {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  #shopify-section-{{ section.id }} .sobre__capitulo-vazio {
+    display: grid;
+    place-items: center;
+    background-color: var(--color-surface-elevated);
+  }
+
+  #shopify-section-{{ section.id }} .sobre__capitulo-texto {
+    display: grid;
+    gap: var(--space-xs);
+    align-content: center;
+    min-width: 0;
+  }
+
+  /* O índice é o mesmo gesto dos painéis de coleção e do menu do
+     celular: numeral pequeno, em ouro, com muito tracking. Repetir
+     um sinal já existente é o que costura páginas diferentes na
+     mesma marca. */
+  #shopify-section-{{ section.id }} .sobre__capitulo-indice {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-label);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-accent-readable);
+    margin: 0;
+  }
+
+  #shopify-section-{{ section.id }} .sobre__capitulo-titulo {
+    font-family: var(--font-ui-family);
+    font-size: var(--f5);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--leading-heading);
+    letter-spacing: var(--tracking-heading);
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  #shopify-section-{{ section.id }} .sobre__capitulo-corpo {
+    font-size: var(--f2);
+    line-height: var(--leading-body);
+    color: var(--color-text-secondary);
+    max-width: 52ch;
+  }
+  #shopify-section-{{ section.id }} .sobre__capitulo-corpo > * + * { margin-top: var(--space-xs); }
+  #shopify-section-{{ section.id }} .sobre__capitulo-corpo p { margin: 0; }
+
+  /* ==========================================================
+     4. MANIFESTO — a faixa escura
+     ==========================================================
+     A faixa é filha direta de .sobre, que não tem gutter — o recuo
+     das laterais vem do .page-width aplicado ao miolo. Então ela já
+     nasce da largura da página e NÃO precisa do truque de sangria
+     (margin-inline: calc(50% - 50vw) + width: 100vw).
+
+     Fica registrado porque a tentação é grande: aquele truque mede
+     100vw, que inclui a barra de rolagem. Onde a barra ocupa espaço,
+     a faixa fica alguns pixels mais larga que a página e a loja
+     inteira ganha rolagem horizontal — um dos estouros mais chatos
+     de rastrear, porque só aparece em alguns navegadores. */
+  #shopify-section-{{ section.id }} .sobre__manifesto {
+    margin-block: clamp(56px, 9vw, 128px);
+    padding-block: clamp(56px, 9vw, 120px);
+    color: var(--color-text-primary);
+    background-color: var(--color-background);
+  }
+
+  #shopify-section-{{ section.id }} .sobre__manifesto-inner {
+    display: grid;
+    gap: var(--space-md);
+    justify-items: center;
+    text-align: center;
+  }
+
+  #shopify-section-{{ section.id }} .sobre__citacao {
+    font-family: var(--font-display-family);
+    font-size: var(--f7);
+    font-weight: var(--font-weight-bold);
+    line-height: 1.04;
+    letter-spacing: var(--tracking-display);
+    text-transform: uppercase;
+    text-wrap: balance;
+    max-width: 20ch;
+    margin: 0;
+  }
+
+  #shopify-section-{{ section.id }} .sobre__citacao-autor {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-accent-readable);
+    margin: 0;
+  }
+  /* Fio de ouro antes da assinatura — o mesmo detalhe do .eyebrow */
+  #shopify-section-{{ section.id }} .sobre__citacao-autor::before {
+    content: '';
+    width: 24px;
+    height: 1px;
+    background-color: currentColor;
+    opacity: 0.7;
+  }
+
+  /* ==========================================================
+     5. SAÍDA
+     ========================================================== */
+  #shopify-section-{{ section.id }} .sobre__saida {
+    display: grid;
+    gap: var(--space-sm);
+    justify-items: center;
+    text-align: center;
+  }
+  #shopify-section-{{ section.id }} .sobre__saida-texto {
+    font-size: var(--f3);
+    line-height: var(--leading-body);
+    color: var(--color-text-secondary);
+    max-width: 40ch;
+    margin: 0;
+  }
+
+  /* ==========================================================
+     DESKTOP
+     ==========================================================
+     A abertura vira duas colunas com o apoio alinhado embaixo, e os
+     capítulos passam a alternar o lado da foto. A alternância é
+     feita por grid-template-areas: o HTML mantém sempre a MESMA
+     ordem (foto, depois texto), então a leitura por teclado e por
+     leitor de tela nunca fica em ziguezague — só o desenho alterna.
+     Inverter com `order` quebraria a ordem de foco. */
+  @media screen and (min-width: 1001px) {
+    #shopify-section-{{ section.id }} .sobre__abertura {
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+      align-items: end;
+      gap: clamp(32px, 5vw, 96px);
+    }
+
+    #shopify-section-{{ section.id }} .sobre__capitulo {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: clamp(40px, 6vw, 96px);
+    }
+    #shopify-section-{{ section.id }} .sobre__capitulo--esq {
+      grid-template-areas: 'media texto';
+    }
+    #shopify-section-{{ section.id }} .sobre__capitulo--dir {
+      grid-template-areas: 'texto media';
+    }
+    #shopify-section-{{ section.id }} .sobre__capitulo-media { grid-area: media; }
+    #shopify-section-{{ section.id }} .sobre__capitulo-texto { grid-area: texto; }
+
+    #shopify-section-{{ section.id }} .sobre__capitulo-media { aspect-ratio: 3 / 4; }
+  }
+
+  /* Celular: a foto do capítulo não precisa da altura de um retrato
+     inteiro — ali ela é apoio, não protagonista, e um 3/4 empurraria
+     o texto para fora da tela. */
+  @media screen and (max-width: 1000px) {
+    #shopify-section-{{ section.id }} .sobre__capitulo-media { aspect-ratio: 16 / 11; }
+    #shopify-section-{{ section.id }} .sobre__saida-botao { width: 100%; }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Sobre — página de marca",
+  "tag": "section",
+  "class": "section-sobre",
+  "settings": [
+    { "type": "header", "content": "Abertura" },
+    { "type": "text", "id": "eyebrow", "label": "Rótulo", "default": "Quem somos" },
+    { "type": "textarea", "id": "heading", "label": "Título", "default": "Feito para quem\nnão pede licença", "info": "Quebras de linha são respeitadas." },
+    { "type": "richtext", "id": "lead", "label": "Texto de abertura", "default": "<p>Nascemos de uma ideia simples e inegociável: roupa de rua não precisa escolher entre atitude e acabamento. Cada peça sai de uma decisão, não de uma tendência.</p>" },
+
+    { "type": "header", "content": "Manifesto" },
+    { "type": "paragraph", "content": "A faixa escura no meio da página. Em branco, ela não aparece." },
+    { "type": "textarea", "id": "quote", "label": "Declaração", "default": "Conquistar não é vencer os outros.\nÉ não desistir de si." },
+    { "type": "text", "id": "quote_author", "label": "Assinatura", "default": "Conquer or Die" },
+
+    { "type": "header", "content": "Saída" },
+    { "type": "text", "id": "cta_text", "label": "Texto acima do botão", "default": "A próxima peça é sua." },
+    { "type": "text", "id": "cta_label", "label": "Texto do botão", "default": "Ver coleção" },
+    { "type": "url", "id": "cta_link", "label": "Link do botão" }
+  ],
+  "blocks": [
+    {
+      "type": "numero",
+      "name": "Número",
+      "limit": 4,
+      "settings": [
+        { "type": "text", "id": "value", "label": "Valor", "default": "2019" },
+        { "type": "text", "id": "label", "label": "Rótulo", "default": "Fundação" }
+      ]
+    },
+    {
+      "type": "capitulo",
+      "name": "Capítulo",
+      "limit": 6,
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Imagem" },
+        { "type": "text", "id": "title", "label": "Título", "default": "A origem" },
+        { "type": "richtext", "id": "text", "label": "Texto", "default": "<p>Conte aqui uma parte da história: de onde veio a marca, o que ela recusa, como uma peça é escolhida antes de virar produto.</p>" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Sobre — página de marca",
+      "blocks": [
+        { "type": "numero", "settings": { "value": "2019", "label": "Fundação" } },
+        { "type": "numero", "settings": { "value": "100%", "label": "Produção nacional" } },
+        { "type": "numero", "settings": { "value": "+40", "label": "Drops lançados" } },
+        { "type": "capitulo", "settings": { "title": "A origem" } },
+        { "type": "capitulo", "settings": { "title": "O processo" } },
+        { "type": "capitulo", "settings": { "title": "O compromisso" } }
+      ]
+    }
+  ]
+}
+{% endschema %}
