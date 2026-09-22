@@ -12,6 +12,18 @@
     "hero": {
       "type": "hero",
       "blocks": {
+        "slide_CAaQyc": {
+          "type": "slide",
+          "settings": {
+            "image": "shopify://shop_images/ChatGPT_Image_21_de_set._de_2026_16_16_01.png",
+            "eyebrow": "",
+            "heading": "",
+            "subheading": "",
+            "text": "",
+            "button_label": "",
+            "button_link": ""
+          }
+        },
         "slide_1": {
           "type": "slide",
           "settings": {
@@ -27,6 +39,7 @@
         }
       },
       "block_order": [
+        "slide_CAaQyc",
         "slide_1"
       ],
       "settings": {
