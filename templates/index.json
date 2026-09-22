@@ -73,8 +73,8 @@
       ],
       "name": "Marquee Pós-Hero",
       "settings": {
-        "speed": 40,
-        "item_gap": 28,
+        "speed": 60,
+        "item_gap": 40,
         "enable_gold_effect": true,
         "enable_italic": true,
         "font_size": 13,
