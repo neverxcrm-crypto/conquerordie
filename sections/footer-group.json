@@ -11,8 +11,47 @@
   "type": "footer",
   "name": "t:section_groups.footer.name",
   "sections": {
-    "footer": {
+    "footer_rKRghm": {
       "type": "footer",
+      "blocks": {
+        "brand_tkwQL4": {
+          "type": "brand",
+          "settings": {
+            "logo_width": 160,
+            "text": "<p>Criamos produtos atemporais com materiais nobres e atenção aos mínimos detalhes.</p>"
+          }
+        },
+        "menu_EReVhN": {
+          "type": "menu",
+          "settings": {
+            "heading": "Links úteis",
+            "menu": "footer"
+          }
+        },
+        "contact_3iyYT8": {
+          "type": "contact",
+          "settings": {
+            "heading": "Atendimento",
+            "whatsapp": "(11) 99999-9999",
+            "email": "suporte@sualoja.com.br",
+            "hours": "Seg. à Sex. das 09h às 18h"
+          }
+        },
+        "newsletter_7iURhi": {
+          "type": "newsletter",
+          "settings": {
+            "heading": "Assine nossa newsletter",
+            "subtext": "<p>Receba novidades exclusivas e 10% OFF no seu primeiro pedido.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "brand_tkwQL4",
+        "menu_EReVhN",
+        "contact_3iyYT8",
+        "newsletter_7iURhi"
+      ],
+      "name": "Rodapé (Footer)",
       "settings": {
         "company_info": "Sua Empresa LTDA | CNPJ: 00.000.000/0001-00 | Rua Exemplo, 123 - São Paulo/SP",
         "show_social": true,
@@ -24,6 +63,6 @@
     }
   },
   "order": [
-    "footer"
+    "footer_rKRghm"
   ]
 }
