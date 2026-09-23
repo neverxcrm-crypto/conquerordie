@@ -246,7 +246,7 @@
   }
 
   /* ==========================================================
-     TIPOGRAFIA E ESTILOS DE TEXTO
+     TIPOGRAFIA E ESTILOS DE TEXTO (Com Sombra/Degradê)
      ========================================================== */
   .campaign__content { 
     display: flex;
@@ -262,7 +262,9 @@
     letter-spacing: 0.15em;
     text-transform: uppercase;
     color: var(--color-accent, #C9A24D);
-    margin: 0; 
+    margin: 0;
+    /* Sombra para destaque */
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
   }
 
   .campaign__heading { 
@@ -272,13 +274,17 @@
     font-weight: 700;
     margin: 0;
     color: #ffffff; 
+    /* DUPLA SOMBRA: Uma fina para o contorno e uma gigante para simular o degradê escuro no fundo das letras */
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6), 0 12px 48px rgba(0, 0, 0, 0.7);
   }
 
   .campaign__text { 
     font-size: clamp(1rem, 1.2vw, 1.15rem); 
     line-height: 1.6;
-    color: rgba(255, 255, 255, 0.85); 
-    margin: 0; 
+    color: rgba(255, 255, 255, 0.9); 
+    margin: 0;
+    /* Sombra difusa sob o texto */
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7), 0 4px 24px rgba(0, 0, 0, 0.5);
   }
 
   .campaign__cta { 
@@ -295,6 +301,7 @@
     background-color: transparent;
     color: #ffffff;
     border: 1px solid rgba(255,255,255,0.4);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3); /* Sombra na caixa do botão */
     transition: all 0.3s ease;
   }
 
@@ -318,7 +325,6 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    /* Adiciona uma caixa de vidro no desktop quando alinhado ao centro */
   }
 
   /* Ajusta alinhamento do título do countdown baseado no layout */
@@ -338,6 +344,7 @@
     text-transform: uppercase;
     color: #ffffff;
     margin: 0; 
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
   }
 
   .campaign__countdown {
@@ -351,6 +358,7 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); /* Sombra difusa atrás do vidro */
     padding: 16px 24px;
     border-radius: var(--radius-md, 12px);
   }
