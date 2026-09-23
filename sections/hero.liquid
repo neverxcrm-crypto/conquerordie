@@ -1,6 +1,6 @@
 {%- comment -%}
   ============================================================
-  HERO — abertura editorial da home (Versão Otimizada)
+  HERO — Slider com Autoplay (5s), Deslize Lateral e Setas
   ============================================================
 {%- endcomment -%}
 {%- liquid
@@ -84,7 +84,7 @@
         <!-- Conteúdo do Banner -->
         <div class="hero__content page-width">
           <div class="hero__text-container">
-            
+
             <!-- Eyebrow -->
             {%- if block.settings.eyebrow != blank -%}
               <div class="hero__element hero__element--eyebrow">
@@ -122,7 +122,7 @@
               <div class="hero__element hero__element--cta">
                 <a href="{{ block.settings.button_link | default: routes.all_products_collection_url }}" class="button hero__cta">
                   <span>{{ block.settings.button_label | escape }}</span>
-                  {% render 'icon', name: 'arrow-right' %}
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                 </a>
               </div>
             {%- endif -%}
@@ -134,17 +134,26 @@
   </ul>
 
   {%- if slide_count > 1 -%}
+    <!-- SETAS LATERAIS (NOVAS) -->
+    <button type="button" class="hero__arrow hero__arrow--prev tap-target" data-hero-prev aria-label="Slide anterior">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+    <button type="button" class="hero__arrow hero__arrow--next tap-target" data-hero-next aria-label="Próximo slide">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+
+    <!-- INDICADOR NUMÉRICO E SETAS PEQUENAS -->
     <div class="hero__indicator">
-      <button type="button" class="hero__nav tap-target" data-hero-prev aria-label="{{ 'general.slider.previous' | t | default: 'Anterior' }}">
-        {% render 'icon', name: 'arrow-right' %}
+      <button type="button" class="hero__nav tap-target" data-hero-prev aria-label="Anterior">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
       </button>
       <p class="hero__counter" aria-live="polite">
         <span class="hero__counter-current" data-hero-current>01</span>
         <span class="hero__counter-divider">/</span>
         <span class="hero__counter-total">{{ slide_count | prepend: '0' | slice: -2, 2 }}</span>
       </p>
-      <button type="button" class="hero__nav tap-target" data-hero-next aria-label="{{ 'general.slider.next' | t | default: 'Próximo' }}">
-        {% render 'icon', name: 'arrow-right' %}
+      <button type="button" class="hero__nav tap-target" data-hero-next aria-label="Próximo">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
       </button>
     </div>
   {%- endif -%}
@@ -158,25 +167,24 @@
     overflow: hidden;
     width: 100%;
   }
-  
-  .hero__slides { 
-    list-style: none; 
-    margin: 0; 
-    padding: 0; 
-    display: grid;
+
+  .hero__slides {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex; /* Mantém o comportamento de carrossel deslizando */
     width: 100%;
+    transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
   }
-  
+
   .hero__slide {
-    grid-area: 1 / 1;
+    flex: 0 0 100%;
+    min-width: 100%;
     position: relative;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 600ms cubic-bezier(0.22, 1, 0.36, 1), visibility 600ms;
-    width: 100%;
     box-sizing: border-box;
   }
 
@@ -188,33 +196,30 @@
   @media screen and (min-width: 1001px) {
     .hero__slide { justify-content: center; }
   }
-  
-  .hero__slide.is-active { opacity: 1; visibility: visible; }
 
   /* Mídia */
-  .hero__media { 
-    position: absolute; 
-    inset: 0; 
+  .hero__media {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     overflow: hidden;
   }
-  
-  .hero__image { 
-    width: 100%; 
-    height: 100%; 
-    object-fit: cover; 
-    display: block; 
-  }
-  
-  .hero__placeholder { 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    background-color: var(--color-surface, #121212); 
+
+  .hero__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
-  /* Gradiente e Máscara */
+  .hero__placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-surface, #121212);
+  }
+
   .hero__media::after {
     content: '';
     position: absolute;
@@ -225,7 +230,7 @@
     pointer-events: none;
   }
 
-  /* Container do Conteúdo com desvio do Header */
+  /* Conteúdo */
   .hero__content {
     position: relative;
     z-index: 2;
@@ -234,11 +239,11 @@
     padding-top: calc(var(--header-height, 70px) + max(20px, env(safe-area-inset-top, 0px)));
     padding-bottom: clamp(80px, 12vh, 140px);
   }
-  
+
   @media screen and (min-width: 1001px) {
-    .hero__content { 
-      padding-top: calc(var(--header-height, 70px) + 40px); 
-      padding-bottom: 60px; 
+    .hero__content {
+      padding-top: calc(var(--header-height, 70px) + 40px);
+      padding-bottom: 60px;
     }
   }
 
@@ -249,28 +254,24 @@
   }
 
   @media screen and (min-width: 1001px) {
-    .hero__text-container {
-      max-width: min(42rem, 52vw);
-    }
+    .hero__text-container { max-width: min(42rem, 52vw); }
   }
 
-  /* Elementos Individuais */
-  .hero__element { 
-    position: relative; 
-    display: block; 
-    isolation: isolate; 
+  /* Elementos de Texto */
+  .hero__element {
+    position: relative;
+    display: block;
+    isolation: isolate;
     max-width: 100%;
   }
   .hero__element--eyebrow { margin-bottom: 14px; }
   .hero__element--heading { margin-bottom: 16px; display: block; width: 100%; }
   .hero__element--subheading { margin-bottom: 16px; }
   .hero__element--body { margin-bottom: 28px; }
-  .hero__element--cta { margin-top: 8px; display: inline-block; width: auto; }
+  .hero__element--cta { margin-top: 8px; display: inline-flex; width: auto; align-items: center; }
 
-  /* Animações de Entrada */
-  .js .hero__slide .hero__element {
-    opacity: 0;
-  }
+  /* Animações (Somente ativo) */
+  .js .hero__slide .hero__element { opacity: 0; }
   .js .hero__slide.is-active .hero__element {
     animation: heroEntrada var(--dur-reveal, 560ms) var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
     animation-delay: calc(var(--hero-i, 0) * 70ms);
@@ -294,25 +295,7 @@
     to { transform: scale(1); }
   }
 
-  /* ==========================================================
-     LEGIBILIDADE SOBRE A FOTO — uma camada, nao quatro
-     ==========================================================
-     Antes o texto era protegido por QUATRO escurecimentos
-     empilhados: os dois veus do .hero__media::after, um
-     text-shadow forte e ainda duas manchas radiais pretas
-     (.hero__heading-shadow / .hero__cta-shadow) desenhadas atras
-     do titulo e do botao.
-
-     Somados, transformavam o centro da foto num borrao preto: a
-     campanha que o lojista subiu desaparecia justamente onde a
-     pessoa olha. E as manchas eram visiveis como borroes ovais
-     assim que a foto tinha qualquer area clara.
-
-     Fica UMA camada, a do .hero__media::after, e um text-shadow
-     curto o bastante para segurar o contraste numa foto ruim sem
-     empastar a tipografia. A foto volta a aparecer. */
-
-  /* Tipografia Ajustada */
+  /* Tipografia */
   .hero__heading {
     max-width: 12ch;
     font-size: clamp(2.4rem, 8.5vw, 6.8rem);
@@ -324,14 +307,9 @@
     overflow-wrap: break-word;
     word-break: break-word;
   }
-  
+
   .hero__subheading {
     font-family: var(--font-ui-family, inherit);
-    /* Era clamp(1.2rem, 3vw, var(--f2)). --f2 tem teto de 1rem, ou
-       seja: o MINIMO era maior que o MAXIMO. Quando isso acontece o
-       clamp() devolve sempre o minimo — o subtitulo ficava preso em
-       1.2rem em toda tela, sem nenhuma fluidez, e ainda maior que
-       um subtitulo deve ser. */
     font-size: clamp(0.875rem, 0.8rem + 0.4vw, 1.0625rem);
     font-weight: var(--font-weight-medium, 500);
     letter-spacing: var(--tracking-label, 0.05em);
@@ -340,21 +318,14 @@
     margin: 0;
     text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
   }
-  
-  /* O eyebrow e um rotulo de secao, nao um segundo titulo. Estava em
-     1.1–1.4rem: maior que o subtitulo E que o texto de apoio, o que
-     invertia a hierarquia inteira do hero (o olho batia no rotulo
-     antes da manchete). Volta para a escala de microcopy do tema,
-     que e onde .eyebrow vive em todas as outras secoes. */
+
   .hero__eyebrow {
     margin: 0;
     font-size: var(--f0);
     text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
   }
-  
+
   .hero__body {
-    /* Mesmo clamp invertido do subtitulo: travava em 1.3rem, o que
-       deixava o texto de APOIO maior que o subtitulo acima dele. */
     font-size: clamp(0.9375rem, 0.9rem + 0.25vw, 1.0625rem);
     line-height: 1.55;
     color: var(--color-text-secondary, rgba(255, 255, 255, 0.88));
@@ -368,32 +339,75 @@
     position: relative;
     z-index: 1;
     min-width: 180px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-    transition:
-      transform var(--dur-fast) var(--ease-out),
-      background-color var(--dur-fast) var(--ease-out),
-      border-color var(--dur-fast) var(--ease-out),
-      color var(--dur-fast) var(--ease-out);
+    transition: all var(--dur-fast) var(--ease-out);
   }
 
-  /* O hover NAO esvazia mais o botao.
-     Antes ele virava fantasma (fundo transparente, borda branca) por
-     cima da fotografia — perdia contraste exatamente no gesto em que
-     a pessoa esta prestes a clicar, e precisava de seis !important
-     para vencer o .button do base.css. Agora ele apenas firma: fundo
-     branco cheio, como manda o botao primario do sistema. */
   .hero__cta:hover {
     transform: translateY(-1px);
     background-color: var(--color-button-primary-background-hover);
     border-color: var(--color-button-primary-background-hover);
     color: var(--color-button-primary-text-hover);
   }
+  .hero__cta:active { transform: translateY(0); }
 
-  .hero__cta:active {
-    transform: translateY(0);
+  /* ========================================================
+     ESTILOS DAS SETAS LATERAIS
+     ======================================================== */
+  .hero__arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: background-color 0.2s, transform 0.2s, border-color 0.2s;
   }
 
-  /* Indicador e Controles */
+  .hero__arrow:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-50%) scale(1.05);
+  }
+
+  .hero__arrow svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .hero__arrow--prev { left: 24px; }
+  .hero__arrow--next { right: 24px; }
+
+  /* Ajuste das setas laterais para mobile */
+  @media screen and (max-width: 749px) {
+    .hero__arrow {
+      width: 40px;
+      height: 40px;
+      /* Se quiser esconder as setas no mobile (pois podem dar swipe com o dedo), ative a linha abaixo: */
+      /* display: none; */
+    }
+    .hero__arrow svg { width: 20px; height: 20px; }
+    .hero__arrow--prev { left: 16px; }
+    .hero__arrow--next { right: 16px; }
+  }
+
+
+  /* ========================================================
+     INDICADOR (Números e setinhas auxiliares)
+     ======================================================== */
   .hero__indicator {
     position: absolute;
     z-index: 3;
@@ -414,13 +428,8 @@
     margin: 0;
   }
 
-  .hero__counter-divider {
-    opacity: 0.5;
-  }
-
-  .hero__counter-total { 
-    color: var(--color-text-muted, rgba(255, 255, 255, 0.6)); 
-  }
+  .hero__counter-divider { opacity: 0.5; }
+  .hero__counter-total { color: var(--color-text-muted, rgba(255, 255, 255, 0.6)); }
 
   .hero__nav {
     display: inline-flex;
@@ -435,9 +444,8 @@
     transition: opacity 200ms ease, color 200ms ease;
   }
   .hero__nav:hover, .hero__nav:focus-visible { opacity: 1; color: #ffffff; }
-  .hero__nav svg { width: 16px; height: 16px; }
 
-  /* Desktop Layout Controles */
+  /* Desktop Indicador */
   @media screen and (min-width: 750px) {
     .hero__indicator {
       right: var(--page-gutter, 24px);
@@ -445,28 +453,22 @@
       flex-direction: column;
       gap: 6px;
     }
-    .hero__counter {
-      flex-direction: column;
-      gap: 6px;
-    }
+    .hero__counter { flex-direction: column; gap: 6px; }
     .hero__counter-divider { display: none; }
     .hero__counter-total::before {
-      content: '';
-      display: block;
-      width: 1px;
-      height: 24px;
-      margin: 0 auto 6px;
-      background-color: var(--color-border-strong, rgba(255, 255, 255, 0.25));
+      content: ''; display: block; width: 1px; height: 24px;
+      margin: 0 auto 6px; background-color: var(--color-border-strong, rgba(255, 255, 255, 0.25));
     }
-    [data-hero-prev] svg { transform: rotate(-90deg); }
-    [data-hero-next] svg { transform: rotate(90deg); }
+    /* Gira as setinhas menores no desktop */
+    .hero__indicator [data-hero-prev] svg { transform: rotate(90deg); }
+    .hero__indicator [data-hero-next] svg { transform: rotate(90deg); }
   }
 
-  /* Mobile Layout Controles */
+  /* Mobile Indicador */
   @media screen and (max-width: 749px) {
     .hero__element--cta { width: 100%; }
     .hero__cta { width: 100%; justify-content: center; }
-    
+
     .hero__indicator {
       bottom: max(16px, env(safe-area-inset-bottom, 16px));
       right: var(--page-gutter, 16px);
@@ -478,9 +480,6 @@
       border-radius: 30px;
       border: 1px solid rgba(255, 255, 255, 0.15);
     }
-    
-    [data-hero-prev] svg { transform: rotate(180deg); }
-    [data-hero-next] svg { transform: rotate(0deg); }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -497,45 +496,73 @@
       var root = document.querySelector('[data-hero-carousel][data-section-id="{{ section.id }}"]');
       if (!root) return;
 
+      var sliderContainer = root.querySelector('.hero__slides');
       var slides = Array.prototype.slice.call(root.querySelectorAll('[data-hero-slide]'));
       var current = root.querySelector('[data-hero-current]');
       var index = 0;
+      var autoPlayInterval;
+
+      // Velocidade 5000 = 5 segundos
+      var AUTOPLAY_SPEED = 5000;
 
       function pad(n) { return (n < 10 ? '0' : '') + n; }
 
       function show(next) {
         index = (next + slides.length) % slides.length;
+
+        sliderContainer.style.transform = 'translateX(-' + (index * 100) + '%)';
+
         slides.forEach(function (slide, i) {
           var active = i === index;
-          slide.classList.toggle('is-active', active);
           if (active) {
+            slide.classList.add('is-active');
             slide.removeAttribute('aria-hidden');
             slide.removeAttribute('inert');
           } else {
+            slide.classList.remove('is-active');
             slide.setAttribute('aria-hidden', 'true');
             slide.setAttribute('inert', '');
           }
         });
         if (current) current.textContent = pad(index + 1);
+
+        resetAutoplay();
+      }
+
+      function startAutoplay() {
+        autoPlayInterval = setInterval(function() {
+          show(index + 1);
+        }, AUTOPLAY_SPEED);
+      }
+
+      function resetAutoplay() {
+        clearInterval(autoPlayInterval);
+        startAutoplay();
       }
 
       show(0);
 
-      var prev = root.querySelector('[data-hero-prev]');
-      var next = root.querySelector('[data-hero-next]');
-      if (prev) prev.addEventListener('click', function (e) { e.preventDefault(); show(index - 1); });
-      if (next) next.addEventListener('click', function (e) { e.preventDefault(); show(index + 1); });
+      // Usando querySelectorAll para pegar TODAS as setas (laterais e indicador numérico)
+      var prevButtons = root.querySelectorAll('[data-hero-prev]');
+      var nextButtons = root.querySelectorAll('[data-hero-next]');
+
+      prevButtons.forEach(function(btn) {
+        btn.addEventListener('click', function(e) { e.preventDefault(); show(index - 1); });
+      });
+      nextButtons.forEach(function(btn) {
+        btn.addEventListener('click', function(e) { e.preventDefault(); show(index + 1); });
+      });
 
       root.addEventListener('keydown', function (event) {
         if (event.key === 'ArrowLeft') { show(index - 1); }
         if (event.key === 'ArrowRight') { show(index + 1); }
       });
 
-      /* Touch Suave para Mobile sem Travar Scroll Vertical */
       var startX = 0, startY = 0;
       root.addEventListener('touchstart', function (event) {
         startX = event.changedTouches[0].clientX;
         startY = event.changedTouches[0].clientY;
+        clearInterval(autoPlayInterval);
       }, { passive: true });
 
       root.addEventListener('touchend', function (event) {
@@ -543,6 +570,8 @@
         var dy = event.changedTouches[0].clientY - startY;
         if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
           show(dx < 0 ? index + 1 : index - 1);
+        } else {
+          resetAutoplay();
         }
       }, { passive: true });
     })();
