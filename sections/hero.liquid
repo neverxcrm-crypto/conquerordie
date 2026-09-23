@@ -1,6 +1,6 @@
 {%- comment -%}
   ============================================================
-  HERO — Premium Slider (Dots Horizontais & Autoplay)
+  HERO — Premium Slider (Fonte Única, Fixed CTA & Ultra Clean)
   ============================================================
 {%- endcomment -%}
 {%- liquid
@@ -101,7 +101,7 @@
           <div class="hero__gradient-mask"></div>
         </div>
 
-        <!-- Conteúdo do Banner -->
+        <!-- Conteúdo do Banner (Ancorado no Fundo) -->
         <div class="hero__content page-width {{ alignment_class }}">
           <div class="hero__text-container">
 
@@ -142,7 +142,7 @@
               <div class="hero__element hero__element--cta">
                 <a href="{{ block.settings.button_link | default: routes.all_products_collection_url }}" class="button hero__cta tap-target">
                   <span>{{ block.settings.button_label | escape }}</span>
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="hero__cta-arrow"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                 </a>
               </div>
             {%- endif -%}
@@ -183,10 +183,12 @@
 </div>
 
 <style>
-  /* Variáveis de Animação */
+  /* Variáveis de Animação e Fontes */
   :root {
     --hero-ease-out: cubic-bezier(0.21, 0.85, 0.32, 1);
     --hero-dur-reveal: 0.8s;
+    /* Força a fonte de títulos (a mais estilizada do tema) para a seção inteira */
+    --hero-font: var(--font-heading-family), var(--font-display-family), inherit;
   }
 
   .hero {
@@ -213,21 +215,15 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
+    /* FIX: Mantém todo o conteúdo SEMPRE ancorado em baixo. Assim os botões nunca pulam! */
+    justify-content: flex-end; 
     box-sizing: border-box;
   }
 
   /* Alturas Modernas (suporte a svh para iOS) */
   .hero--short .hero__slide { min-height: clamp(420px, 60vh, 600px); }
   .hero--default .hero__slide { min-height: clamp(520px, 80vh, 850px); }
-  .hero--tall .hero__slide { 
-    min-height: 100vh; 
-    min-height: 100svh;
-  }
-
-  @media screen and (min-width: 1001px) {
-    .hero__slide { justify-content: center; }
-  }
+  .hero--tall .hero__slide { min-height: 100vh; min-height: 100svh; }
 
   .hero__media {
     position: absolute;
@@ -257,7 +253,6 @@
     background-color: var(--color-surface, #121212);
   }
 
-  /* Overlay Configurável via Painel */
   .hero__overlay {
     position: absolute;
     inset: 0;
@@ -267,11 +262,10 @@
     pointer-events: none;
   }
 
-  /* Gradiente de Proteção */
   .hero__gradient-mask {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 40%, transparent 80%);
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 35%, transparent 70%);
     z-index: 1;
     pointer-events: none;
   }
@@ -284,17 +278,18 @@
     display: flex;
     box-sizing: border-box;
     padding-top: calc(var(--header-height, 70px) + max(20px, env(safe-area-inset-top, 0px)));
-    padding-bottom: clamp(60px, 10vh, 120px);
+    /* Mantém o padding base consistente para travar o botão */
+    padding-bottom: clamp(70px, 12vh, 120px);
   }
 
   @media screen and (min-width: 1001px) {
     .hero__content {
       padding-top: calc(var(--header-height, 70px) + 60px);
-      padding-bottom: 80px;
+      padding-bottom: 90px;
     }
   }
 
-  /* Alinhamentos Desktop */
+  /* Alinhamentos */
   .hero__content--left { justify-content: flex-start; text-align: left; }
   .hero__content--center { justify-content: center; text-align: center; }
   .hero__content--right { justify-content: flex-end; text-align: right; }
@@ -311,7 +306,6 @@
     .hero__text-container { max-width: min(48rem, 55vw); }
   }
 
-  /* Elementos de Texto */
   .hero__element {
     position: relative;
     display: block;
@@ -345,8 +339,9 @@
     to { opacity: 1; transform: translate3d(0, 0, 0); }
   }
 
-  /* Tipografia */
+  /* Tipografia Unificada (Tudo com a fonte estilizada) */
   .hero__heading {
+    font-family: var(--hero-font) !important;
     font-size: clamp(2.5rem, 6vw + 1rem, 5.5rem);
     line-height: 1.05;
     letter-spacing: -0.02em;
@@ -358,37 +353,38 @@
   }
 
   .hero__subheading {
-    font-family: var(--font-ui-family, inherit);
-    font-size: clamp(0.85rem, 1vw, 1.1rem);
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: var(--hero-font) !important;
+    font-size: clamp(0.95rem, 1.2vw, 1.25rem);
+    font-weight: 500;
+    letter-spacing: 0.05em;
     color: #ffffff;
     margin: 0;
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
   }
 
   .hero__eyebrow {
+    font-family: var(--hero-font) !important;
     margin: 0;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.15em;
     text-transform: uppercase;
     color: var(--color-accent, #C9A24D);
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
   }
 
   .hero__body {
-    font-size: clamp(1rem, 1vw + 0.5rem, 1.125rem);
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.9);
-    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+    font-family: var(--hero-font) !important;
+    font-size: clamp(1.05rem, 1vw + 0.5rem, 1.2rem);
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
   }
   .hero__content--center .hero__body { margin-left: auto; margin-right: auto; max-width: 48ch; }
   .hero__body p { margin: 0; }
 
   /* ==========================================================
-     BOTÃO CTA (Animação Aprimorada + Seta)
+     BOTÃO CTA (Animação Aprimorada + Seta Dinâmica)
      ========================================================== */
   .hero__cta {
     position: relative;
@@ -398,24 +394,35 @@
     justify-content: center;
     align-items: center;
     padding: 16px 32px;
-    font-size: 1rem;
+    font-family: var(--hero-font) !important;
+    font-size: 1.05rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
     border-radius: 4px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     transition: 
-      transform 0.3s cubic-bezier(0.21, 0.85, 0.32, 1), 
-      box-shadow 0.3s ease, 
-      background-color 0.3s ease, 
-      color 0.3s ease;
+      transform 0.4s cubic-bezier(0.21, 0.85, 0.32, 1), 
+      box-shadow 0.4s ease, 
+      background-color 0.4s ease, 
+      color 0.4s ease;
   }
   
+  .hero__cta-arrow {
+    margin-left: 10px;
+    transition: transform 0.4s cubic-bezier(0.21, 0.85, 0.32, 1);
+  }
+
   .hero__cta:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5);
     background-color: var(--color-button-primary-background-hover, #ffffff);
     color: var(--color-button-primary-text-hover, #000000);
+  }
+
+  /* Faz a seta deslizar elegantemente ao passar o mouse */
+  .hero__cta:hover .hero__cta-arrow {
+    transform: translateX(6px);
   }
   
   .hero__cta:active { 
@@ -434,7 +441,7 @@
     justify-content: center;
     width: 52px;
     height: 52px;
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     color: #fff;
@@ -453,7 +460,7 @@
   .hero__arrow--next { right: 32px; }
 
   /* ==========================================================
-     INDICADOR (Bolinhas Horizontais no Rodapé)
+     INDICADOR MICRO (Bolinhas Horizontais no Rodapé)
      ========================================================== */
   .hero__indicator {
     position: absolute;
@@ -461,21 +468,21 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    bottom: clamp(24px, 5vh, 40px);
+    bottom: clamp(24px, 4vh, 40px);
     left: 50%;
     transform: translateX(-50%);
   }
 
   .hero__dot {
-    width: 8px;
-    height: 8px;
+    width: 6px; /* Bolinhas menores e mais discretas */
+    height: 6px;
     border-radius: 99px;
-    background-color: rgba(255, 255, 255, 0.4);
+    background-color: rgba(255, 255, 255, 0.35);
     border: none;
     padding: 0;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
   }
 
   .hero__dot:hover {
@@ -483,12 +490,13 @@
   }
 
   .hero__dot.is-active {
-    width: 24px;
+    width: 18px; /* Pílula elegante ao ficar ativo */
     background-color: #ffffff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
   }
 
   /* ==========================================================
-     RESPONSIVIDADE OTIMIZADA (Mobile Original Restaurado)
+     RESPONSIVIDADE OTIMIZADA (Mobile)
      ========================================================== */
   @media screen and (max-width: 749px) {
     .hero__arrow { display: none; }
@@ -499,10 +507,10 @@
       padding-right: max(20px, env(safe-area-inset-right));
     }
 
-    .hero__heading { font-size: clamp(2.2rem, 9vw, 3.2rem); line-height: 1.1; }
-    .hero__body { font-size: 0.95rem; }
+    .hero__heading { font-size: clamp(2.3rem, 9vw, 3.2rem); line-height: 1.1; }
+    .hero__body { font-size: 1.05rem; }
 
-    /* Botão 100% no mobile conforme versão elogiada */
+    /* Botão 100% no mobile */
     .hero__element--cta { width: 100%; margin-top: 8px; }
     .hero__content--left .hero__element--cta, 
     .hero__content--center .hero__element--cta, 
@@ -511,27 +519,43 @@
     .hero__cta { 
       width: 100%; 
       justify-content: center; 
-      padding: 18px; 
-      font-size: 0.95rem;
+      padding: 16px; 
     }
 
-    /* Pílula flutuante protegendo as bolinhas no mobile */
+    /* Proteção glassmorphism apenas em mobile para os dots */
     .hero__indicator {
-      bottom: max(24px, env(safe-area-inset-bottom, 24px)); 
-      background-color: rgba(0, 0, 0, 0.4); 
+      bottom: max(20px, env(safe-area-inset-bottom, 20px)); 
+      background-color: rgba(0, 0, 0, 0.25); 
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      padding: 8px 12px; 
+      padding: 8px 14px; 
       border-radius: 100px;
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
   }
 
-  /* Redução de Movimento */
+  /* Celular Deitado */
+  @media (orientation: landscape) and (max-height: 540px) {
+    .hero__content {
+      padding-top: calc(var(--header-height, 70px) + 10px);
+      padding-bottom: clamp(24px, 6vh, 44px);
+    }
+    .hero__heading {
+      font-size: clamp(1.75rem, 4.2vw, 2.75rem);
+    }
+    .hero__element--eyebrow { margin-bottom: 6px; }
+    .hero__element--heading { margin-bottom: 10px; }
+    .hero__element--subheading { margin-bottom: 10px; }
+    .hero__element--body { display: none; }
+    .hero__element--cta { width: auto; margin-top: 4px; }
+    .hero__cta { width: auto; padding: 12px 28px; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .js .hero__slide .hero__element { opacity: 1; }
     .js .hero__slide.is-active .hero__element, .hero__slide.is-active .hero__image { animation: none; }
     .hero__slide { transition-duration: 0.01ms !important; }
+    .hero__cta:hover .hero__cta-arrow { transform: none; }
   }
 </style>
 
@@ -567,7 +591,6 @@
           }
         });
 
-        // Atualiza as bolinhas (dots)
         dots.forEach(function (dot, i) {
           var active = i === index;
           dot.classList.toggle('is-active', active);
@@ -600,7 +623,6 @@
         btn.addEventListener('click', function(e) { e.preventDefault(); show(index + 1); });
       });
 
-      // Clique direto na bolinha
       dots.forEach(function (dot) {
         dot.addEventListener('click', function(e) {
           e.preventDefault();
@@ -613,7 +635,6 @@
         if (event.key === 'ArrowRight') show(index + 1);
       });
 
-      // Swipe Suave no Mobile
       var startX = 0, startY = 0;
       root.addEventListener('touchstart', function (event) {
         startX = event.changedTouches[0].clientX;
