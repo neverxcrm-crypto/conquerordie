@@ -50,11 +50,11 @@
         "slide_1"
       ],
       "settings": {
-        "height": "default",
+        "height": "tall",
         "autoplay": true,
         "autoplay_speed": 6,
         "show_arrows": true,
-        "show_dots": false
+        "show_dots": true
       }
     },
     "marquee_below_hero_M8HkFV": {
