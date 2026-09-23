@@ -174,8 +174,11 @@ html.rolou .section-header { transform: none; }
 html:has([class*='section-aviso'] + .section-header) { --aviso-altura: 40px; }
 
 .content-for-layout {
-  /* O <main> reserva a pilha inteira: header + barra (0 sem barra). */
-  padding-top: calc(var(--header-height) + var(--aviso-altura, 0px));
+  /* O <main> reserva a pilha inteira: header + recorte da tela +
+     barra de avisos (0 sem barra). --header-total ja soma o notch;
+     usar --header-height cru deixava o topo do conteudo debaixo da
+     header em aparelho com recorte. */
+  padding-top: calc(var(--header-total, var(--header-height)) + var(--aviso-altura, 0px));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1774,7 +1777,7 @@ body {
 
 /* Âncora não pára embaixo da header fixa. */
 [id] {
-  scroll-margin-top: calc(var(--header-height, 72px) + var(--aviso-altura, 0px) + 24px);
+  scroll-margin-top: calc(var(--header-total, 72px) + var(--aviso-altura, 0px) + 24px);
 }
 
 /* Fileira de controles não gruda na borda da tela no celular. */

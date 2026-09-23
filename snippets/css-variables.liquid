@@ -526,6 +526,25 @@
        toda âncora de scroll-margin-top quatro pixels a mais. */
      --header-height: 68px;
 
+    /* Recortes seguros da tela (notch, ilha dinamica, barra inferior).
+       Nascem com o env() real — o primeiro paint sai correto — e sao
+       CONGELADOS em px pelo script do theme.liquid assim que o body
+       existe. O motivo: no iOS o env() muda enquanto a barra do
+       navegador recolhe durante a rolagem, e qualquer padding de
+       layout que dependa dele faz a caixa crescer no meio do scroll.
+       Depois de congelados so mudam quando o aparelho gira. */
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+
+    /* Quanto o topo fixo REALMENTE ocupa: a barra mais o recorte da
+       tela que ela precisa vencer. Quem reserva espaco (o <main>) e
+       quem sobe por baixo dela (hero, banner de colecao) leem este
+       token, nunca --header-height sozinho — senao as duas contas
+       divergem em aparelho com notch. */
+    --header-total: calc(var(--header-height) + var(--sat, 0px));
+
     /* Layout */
     --page-width: {{ settings.page_width }}px;
     --spacing-sections: {{ settings.spacing_sections }}px;
@@ -550,8 +569,13 @@
     --cor-verde: var(--color-success);
   }
 
+  /* 64px, nao 60: a fileira interna da header no celular tem
+     min-height: 64px (ver sections/nav.liquid). Reservar 60 deixava
+     4px de conteudo permanentemente escondido embaixo da barra fixa
+     em TODA pagina, e empurrava o scroll-margin-top de qualquer
+     ancora 4px para dentro da header. */
   @media screen and (max-width: 1000px) {
-    :root { --header-height: 60px; }
+    :root { --header-height: 64px; }
   }
 
   body {

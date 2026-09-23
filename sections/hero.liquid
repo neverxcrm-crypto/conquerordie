@@ -191,7 +191,7 @@
   }
 
   .hero {
-    margin-top: calc(-1 * var(--header-height, 70px));
+    margin-top: calc(-1 * var(--header-total, var(--header-height, 70px)));
     position: relative;
     background-color: var(--color-background, #000000);
     overflow: hidden;
@@ -218,12 +218,40 @@
     box-sizing: border-box;
   }
 
-  /* Alturas Modernas (suporte a svh para iOS) */
+  /* ==========================================================
+     ALTURAS — por que o hero crescia ao rolar no celular
+     ==========================================================
+     Duas causas somadas, as duas resolvidas aqui e no bloco de
+     .hero__content logo abaixo.
+
+     1. Mistura de unidades. `vh` mede a tela COM a barra de endereço
+        recolhida (a tela grande) e `svh`, com ela visível (a tela
+        pequena). Cada altura do hero usava uma delas: as tres
+        opcoes do lojista mediam coisas diferentes, e a diferenca
+        entre elas e justamente a altura da barra do navegador.
+        Agora as tres usam `svh`, com `vh` so como queda para
+        navegador antigo. `dvh` fica de fora de proposito: ele
+        acompanha a barra em tempo real, ou seja, redimensiona o
+        hero durante o gesto — exatamente o defeito que estamos
+        corrigindo.
+
+     2. Recorte de tela dentro de um padding de layout. Ver o
+        comentario em .hero__content.
+
+     `height` e nao `min-height` no modo Tela Cheia: com min-height,
+     qualquer crescimento do conteudo (uma linha a mais no titulo ao
+     trocar de slide, o teclado abrindo) empurrava a caixa para
+     alem da tela. O conteudo interno ja rola se precisar. */
   .hero--short .hero__slide { min-height: clamp(420px, 60vh, 600px); }
+  .hero--short .hero__slide { min-height: clamp(420px, 60svh, 600px); }
+
   .hero--default .hero__slide { min-height: clamp(520px, 80vh, 850px); }
-  .hero--tall .hero__slide { 
-    min-height: 100vh; 
-    min-height: 100svh; /* Resolve o bug da barra de endereços no mobile */
+  .hero--default .hero__slide { min-height: clamp(520px, 80svh, 850px); }
+
+  .hero--tall .hero__slide {
+    min-height: 100vh;
+    min-height: 100svh;
+    min-height: var(--vh-estavel, 100svh);
   }
 
   @media screen and (min-width: 1001px) {
@@ -280,13 +308,28 @@
     width: 100%;
     display: flex;
     box-sizing: border-box;
-    padding-top: calc(var(--header-height, 70px) + max(20px, env(safe-area-inset-top, 0px)));
+    /* AQUI ESTAVA O CRESCIMENTO.
+
+       Este padding era `calc(--header-height + max(20px,
+       env(safe-area-inset-top)))`. No Safari do iPhone, com
+       viewport-fit=cover, os valores de env(safe-area-inset-*)
+       MUDAM enquanto a barra do navegador recolhe durante a
+       rolagem. Como .hero__content participa do layout do slide, o
+       padding maior empurrava a caixa e — quando o conteudo ja
+       preenchia o slide — o proprio slide ficava mais alto. No
+       meio do scroll. Sem nada ter mudado na pagina.
+
+       --sat e o mesmo recorte, mas CONGELADO em px pelo script do
+       theme.liquid logo depois do primeiro paint. Ele so muda
+       quando o aparelho gira. E --header-total ja soma o recorte a
+       altura da barra, entao a conta nao o aplica duas vezes. */
+    padding-top: calc(var(--header-total, var(--header-height, 70px)) + 20px);
     padding-bottom: clamp(60px, 10vh, 120px);
   }
 
   @media screen and (min-width: 1001px) {
     .hero__content {
-      padding-top: calc(var(--header-height, 70px) + 60px);
+      padding-top: calc(var(--header-total, var(--header-height, 70px)) + 60px);
       padding-bottom: 80px;
     }
   }
@@ -524,8 +567,8 @@
     /* Ajustes críticos de espaçamento no mobile */
     .hero__content { 
       padding-bottom: 90px; /* Dá espaço seguro para o indicador não bater no texto */
-      padding-left: max(20px, env(safe-area-inset-left)); 
-      padding-right: max(20px, env(safe-area-inset-right));
+      padding-left: max(20px, var(--sal, 0px));
+      padding-right: max(20px, var(--sar, 0px));
     }
 
     .hero__heading { 
@@ -550,7 +593,7 @@
 
     /* Indicador centralizado estilo "Pílula Glassmorphism" no mobile */
     .hero__indicator {
-      bottom: max(24px, env(safe-area-inset-bottom, 24px)); 
+      bottom: max(24px, var(--sab, 0px)); 
       left: 50%;
       right: auto;
       transform: translateX(-50%);
@@ -600,7 +643,7 @@
      coisa que sobra. */
   @media (orientation: landscape) and (max-height: 540px) {
     .hero__content {
-      padding-top: calc(var(--header-height, 70px) + max(10px, env(safe-area-inset-top, 0px)));
+      padding-top: calc(var(--header-total, var(--header-height, 70px)) + 10px);
       padding-bottom: clamp(24px, 6vh, 44px);
     }
     .hero__heading {
@@ -636,8 +679,25 @@
       var index = 0;
       var autoPlayInterval;
 
-      var isAutoplay = root.getAttribute('data-autoplay') === 'true';
+      /* ---------------------------------------------------------
+         AUTOPLAY — quando ele NAO deve rodar
+
+         Um carrossel que troca sozinho e conteudo em movimento que
+         a pessoa nao pediu. Tres situacoes em que ele para:
+
+         1. prefers-reduced-motion. Quem desligou animacoes no
+            sistema tambem desligou esta.
+         2. Aba em segundo plano. Rodar ali gasta bateria para
+            ninguem e faz a pessoa voltar num slide diferente do que
+            deixou.
+         3. Dedo, mouse ou teclado no hero. Ler um titulo enquanto
+            ele desliza para fora e o motivo de a WCAG 2.2.2 exigir
+            uma forma de pausar.
+      --------------------------------------------------------- */
+      var semMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var isAutoplay = root.getAttribute('data-autoplay') === 'true' && !semMovimento;
       var autoplaySpeed = parseInt(root.getAttribute('data-speed'), 10) || 5000;
+      var pausado = false;
 
       function pad(n) { return (n < 10 ? '0' : '') + n; }
 
@@ -662,15 +722,35 @@
       }
 
       function startAutoplay() {
-        if (!isAutoplay) return;
+        if (!isAutoplay || pausado || document.hidden) return;
+        clearInterval(autoPlayInterval);
         autoPlayInterval = setInterval(function() { show(index + 1); }, autoplaySpeed);
+      }
+
+      function stopAutoplay() {
+        clearInterval(autoPlayInterval);
       }
 
       function resetAutoplay() {
         if (!isAutoplay) return;
-        clearInterval(autoPlayInterval);
+        stopAutoplay();
         startAutoplay();
       }
+
+      function pausar() { pausado = true; stopAutoplay(); }
+      function retomar() { pausado = false; startAutoplay(); }
+
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) stopAutoplay();
+        else startAutoplay();
+      });
+
+      root.addEventListener('mouseenter', pausar);
+      root.addEventListener('mouseleave', retomar);
+      root.addEventListener('focusin', pausar);
+      root.addEventListener('focusout', function (event) {
+        if (!root.contains(event.relatedTarget)) retomar();
+      });
 
       show(0);
 
@@ -694,14 +774,17 @@
       root.addEventListener('touchstart', function (event) {
         startX = event.changedTouches[0].clientX;
         startY = event.changedTouches[0].clientY;
-        clearInterval(autoPlayInterval);
+        stopAutoplay();
       }, { passive: true });
 
       root.addEventListener('touchend', function (event) {
         var dx = event.changedTouches[0].clientX - startX;
         var dy = event.changedTouches[0].clientY - startY;
         // Permite o swipe apenas se o movimento horizontal for maior que o vertical
-        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+        /* O gesto so conta como swipe se for claramente horizontal.
+           Sem a segunda condicao, rolar a pagina para baixo com o
+           dedo comecando no hero trocava o slide no caminho. */
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
           show(dx < 0 ? index + 1 : index - 1);
         } else {
           resetAutoplay();
@@ -712,7 +795,7 @@
       if (Shopify.designMode) {
         document.addEventListener('shopify:block:select', function(event) {
           if (event.detail.sectionId !== '{{ section.id }}') return;
-          clearInterval(autoPlayInterval);
+          stopAutoplay();
           var selectedSlide = slides.find(s => s.dataset.shopifyEditorBlock === JSON.stringify({id: event.detail.blockId}));
           if (selectedSlide) {
             show(slides.indexOf(selectedSlide));

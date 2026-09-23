@@ -371,6 +371,24 @@
     visibility: hidden;
     pointer-events: none;
   }
+  /* A RAIZ e quem mede a tela; o painel apenas preenche 100% dela e
+     distribui cabecalho, lista rolante e rodape por flexbox.
+
+     Aqui `dvh` e a unidade CERTA, ao contrario do hero: este e um
+     elemento fixed e, enquanto o carrinho esta aberto, o body fica
+     travado — a barra do navegador nao se move, entao dvh nao
+     oscila. E se o carrinho for aberto com a barra JA recolhida,
+     dvh e a unica unidade que descreve a tela como ela esta nesse
+     instante; svh deixaria uma faixa da pagina aparecendo embaixo.
+
+     O defeito antigo nao era o dvh em si: era usa-lo no FILHO
+     enquanto o pai media por `inset: 0`. Duas medidas diferentes
+     para a mesma tela, e o rodape com o botao de finalizar caia
+     para fora da area visivel. */
+  .cart-drawer { height: 100%; }
+  @supports (height: 100dvh) {
+    .cart-drawer { height: 100dvh; }
+  }
   .cart-drawer.is-open { visibility: visible; pointer-events: auto; }
 
   .cart-drawer__scrim {
@@ -409,6 +427,10 @@
     justify-content: space-between;
     gap: 16px;
     padding: 24px var(--space-block, 28px);
+    /* O painel encosta em y=0: sem este respiro o titulo e o X ficam
+       embaixo do notch / da ilha dinamica. */
+    padding-top: calc(24px + var(--sat, 0px));
+    padding-right: max(var(--space-block, 28px), var(--sar, 0px));
     border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
   }
@@ -422,17 +444,30 @@
   }
   .cart-drawer__count { color: var(--color-text-muted); font-weight: var(--font-weight-regular); }
   .cart-drawer__count::before { content: ' · '; }
+  /* O X do carrinho tinha o tamanho do proprio desenho: 18x18. Esse
+     era o alvo de toque do unico botao de SAIR do painel — metade
+     do minimo de 44px da WCAG 2.5.5, e o controle mais errado de
+     acertar com o polegar em toda a loja. A margem negativa deixa o
+     alvo crescer para fora sem desalinhar o icone da borda. */
   .cart-drawer__close {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex: none;
+    min-width: 44px;
+    min-height: 44px;
+    margin: -8px -10px -8px 0;
+    border-radius: 50%;
     background: none;
     border: none;
     color: var(--color-text-secondary);
     cursor: pointer;
-    transition: color var(--dur-normal) var(--ease-out);
+    transition:
+      color var(--dur-normal) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out);
   }
-  .cart-drawer__close:hover { color: var(--color-text-primary); }
+  .cart-drawer__close:hover { color: var(--color-text-primary); background-color: rgba(255, 255, 255, 0.07); }
+  .cart-drawer__close:active { background-color: rgba(255, 255, 255, 0.12); }
   .cart-drawer__close svg { width: 18px; height: 18px; }
 
   /* ---- Progresso de frete (fixo, e status) ---- */
@@ -625,7 +660,12 @@
   /* ---- Resumo + CTA (fixos) ---- */
   .cart-drawer__footer {
     flex-shrink: 0;
-    padding: 20px var(--space-block, 28px) calc(20px + env(safe-area-inset-bottom, 0px));
+    /* --sab e o recorte inferior CONGELADO em px (ver theme.liquid).
+       Com env() ao vivo o rodape mudava de altura enquanto a barra
+       do navegador recolhia — e o botao de finalizar, que e o unico
+       caminho para a receita, dancava debaixo do dedo. */
+    padding: 20px var(--space-block, 28px) calc(20px + var(--sab, 0px));
+    padding-right: max(var(--space-block, 28px), var(--sar, 0px));
     border-top: 1px solid var(--color-border);
     background-color: var(--color-background);
     /* Sombra para CIMA: o rodape passa por cima da lista que rola,
@@ -771,11 +811,25 @@
   }
 
   @media screen and (max-width: 749px) {
-    /* Largura total; o painel usa a altura real do viewport para o
-       CTA nao ficar atras da barra do navegador. */
+    /* Largura total.
+
+       A altura voltou a ser 100% — ou seja, a do proprio
+       .cart-drawer, que e `position: fixed; inset: 0` e portanto ja
+       mede exatamente a area visivel.
+
+       Estava 100dvh, e isso era um erro de duas pontas: `dvh`
+       acompanha a barra do navegador em tempo real, enquanto a
+       caixa do pai NAO acompanha. Quando as duas medidas divergiam
+       — que e durante toda a animacao da barra — o painel ficava
+       mais alto que o pai e o rodape inteiro (subtotal, frete,
+       FINALIZAR COMPRA) descia para fora da tela. Com o body
+       travado em position: fixed enquanto o carrinho esta aberto, a
+       pessoa nao tinha como rolar ate ele. O carrinho virava um beco
+       sem saida. */
     .cart-drawer__panel {
       width: 100%;
-      height: 100dvh;
+      height: 100%;
+      max-height: 100%;
       border-left: none;
     }
     .cart-drawer__header,

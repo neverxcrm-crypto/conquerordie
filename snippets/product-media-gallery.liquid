@@ -431,7 +431,7 @@
     display: none;
     align-items: center;
     gap: var(--space-sm);
-    padding: var(--space-2xs) var(--page-gutter) calc(var(--space-2xs) + env(safe-area-inset-bottom, 0px));
+    padding: var(--space-2xs) var(--page-gutter) calc(var(--space-2xs) + var(--sab, 0px));
     background-color: rgba(10, 10, 12, 0.92);
     border-top: 1px solid var(--color-border);
     transform: translateY(110%);
@@ -442,6 +442,11 @@
     -webkit-backdrop-filter: blur(16px) saturate(160%);
   }
   .pdp__sticky.is-visivel { transform: none; }
+  /* Com o menu ou o carrinho abertos a barra de comprar nao tem
+     funcao: ela fica atras do scrim, meio apagada, competindo com o
+     painel que a pessoa acabou de abrir. body.bloquear e a classe
+     que os dois paineis ja usam para travar a rolagem. */
+  body.bloquear .pdp__sticky { transform: translateY(110%); }
   .pdp__sticky-info { display: grid; gap: 2px; min-width: 0; flex: 1; }
   .pdp__sticky-titulo {
     font-family: var(--font-ui-family);
@@ -586,7 +591,7 @@
     .product__title { font-size: var(--f6); }
     .pdp__sticky { display: flex; }
     /* Espaço para a barra fixa não cobrir o fim da página */
-    .pdp { padding-bottom: calc(var(--space-section) + 64px); }
+    .pdp { padding-bottom: calc(var(--space-section) + 64px + var(--sab, 0px)); }
   }
 
   @media screen and (max-width: 480px) {

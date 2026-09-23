@@ -142,11 +142,11 @@
     align-items: flex-end;
     min-height: clamp(320px, 42vh, 520px);
     /* Sobe para debaixo da header transparente (ver nav.liquid) */
-    margin-top: calc(-1 * var(--header-height));
+    margin-top: calc(-1 * var(--header-total, var(--header-height)));
     overflow: hidden;
   }
   #shopify-section-{{ section.id }} .col-hero--foto .col-hero__inner {
-    padding-top: calc(var(--header-height) + var(--space-md));
+    padding-top: calc(var(--header-total, var(--header-height)) + var(--space-md));
     padding-bottom: clamp(28px, 4vw, 56px);
   }
   #shopify-section-{{ section.id }} .col-hero__media {

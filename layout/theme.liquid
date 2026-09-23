@@ -85,6 +85,72 @@
     {% render 'css-variables' %}
 
     <script>document.documentElement.className = document.documentElement.className.replace('no-js', 'js');</script>
+
+    {%- comment -%}
+      MEDIDAS ESTAVEIS DE VIEWPORT (--sat / --sab / --vh-estavel)
+      ==========================================================
+      No Safari do iPhone e no Chrome do Android, env(safe-area-inset-*)
+      MUDA enquanto a barra de endereco recolhe durante a rolagem. Usar
+      esses valores num padding que participa do layout — como o topo do
+      hero — faz a caixa crescer alguns pixels no meio do scroll: e o
+      "hero que aumenta de tamanho ao rolar".
+
+      A correcao e congelar a medida. O CSS nasce com o env() real (o
+      primeiro paint sai certo, sem salto) e este script substitui o
+      valor por um numero fixo em px assim que o body existe. Dali em
+      diante nada mais depende da barra do navegador.
+
+      A remedicao so acontece quando a LARGURA muda (rotacao, troca de
+      janela). Altura sozinha mudando e exatamente a barra do navegador
+      aparecendo/sumindo — o caso que estamos evitando.
+    {%- endcomment -%}
+    <script>
+      (function () {
+        var raiz = document.documentElement;
+        var larguraAnterior = -1;
+
+        function medirInsets() {
+          if (!document.body) return;
+          var sonda = document.createElement('div');
+          sonda.style.cssText =
+            'position:absolute;top:0;left:0;visibility:hidden;pointer-events:none;' +
+            'padding-top:env(safe-area-inset-top,0px);' +
+            'padding-bottom:env(safe-area-inset-bottom,0px);' +
+            'padding-left:env(safe-area-inset-left,0px);' +
+            'padding-right:env(safe-area-inset-right,0px);';
+          document.body.appendChild(sonda);
+          var estilo = window.getComputedStyle(sonda);
+          raiz.style.setProperty('--sat', (parseFloat(estilo.paddingTop) || 0) + 'px');
+          raiz.style.setProperty('--sab', (parseFloat(estilo.paddingBottom) || 0) + 'px');
+          raiz.style.setProperty('--sal', (parseFloat(estilo.paddingLeft) || 0) + 'px');
+          raiz.style.setProperty('--sar', (parseFloat(estilo.paddingRight) || 0) + 'px');
+          document.body.removeChild(sonda);
+        }
+
+        function medirAltura() {
+          raiz.style.setProperty('--vh-estavel', window.innerHeight + 'px');
+        }
+
+        function medir() {
+          var largura = window.innerWidth;
+          if (largura === larguraAnterior) return;
+          larguraAnterior = largura;
+          medirAltura();
+          medirInsets();
+        }
+
+        medirAltura();
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', medir);
+        } else {
+          medir();
+        }
+        window.addEventListener('resize', medir);
+        window.addEventListener('orientationchange', function () {
+          window.setTimeout(function () { larguraAnterior = -1; medir(); }, 250);
+        });
+      })();
+    </script>
     <script src="{{ 'carrinho.js' | asset_url }}" defer="defer"></script>
     <script src="{{ 'revelar.js' | asset_url }}" defer="defer"></script>
     {%- comment -%}

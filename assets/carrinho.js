@@ -194,6 +194,10 @@
 
   function openDrawer(opener) {
     lastOpener = opener || document.activeElement;
+    /* Menu mobile e carrinho nunca convivem: os dois travam a
+       rolagem e os dois tem scrim. Abertos juntos, fechar um
+       destravava a pagina por baixo do outro. */
+    if (window.CODFecharMenu) window.CODFecharMenu(true);
     root.classList.add('is-open');
     travarRolagem();
     document.addEventListener('keydown', onKeydown);
@@ -202,13 +206,18 @@
     if (closeBtn) closeBtn.focus();
   }
 
-  function closeDrawer() {
+  /* manterTrava: quem fecha o carrinho para abrir OUTRO painel
+     modal passa true. Sem isso a sequencia "abrir menu com o
+     carrinho aberto" destravava a rolagem por um frame e a travava
+     de novo — e no iPhone essa ida e volta aparece como um pulo da
+     pagina, porque destravar restaura o scroll com window.scrollTo. */
+  function closeDrawer(manterTrava) {
     if (!root.classList.contains('is-open')) return;
     root.classList.remove('is-open');
     // O drawer do menu mobile (sections/nav.liquid) também usa
     // .bloquear; se ele ainda estiver aberto, quem destrava o
     // scroll é o fechamento dele, não o do carrinho.
-    if (!document.querySelector('.header__mobile-nav.is-open')) {
+    if (!manterTrava && !document.querySelector('.header__mobile-nav.is-open')) {
       destravarRolagem();
     }
     document.removeEventListener('keydown', onKeydown);
@@ -226,6 +235,10 @@
     }
     lastOpener = null;
   }
+
+  /* O menu mobile precisa conseguir fechar o carrinho sem conhecer
+     o interior deste arquivo (ver sections/nav.liquid). */
+  window.CODFecharCarrinho = closeDrawer;
 
   /* ---------------------------------------------------------
      Atualização de conteúdo via Section Rendering API
