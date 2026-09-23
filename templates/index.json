@@ -49,7 +49,7 @@
         "slide_1"
       ],
       "settings": {
-        "height": "default",
+        "height": "tall",
         "autoplay": true,
         "autoplay_speed": 5,
         "show_arrows": true,
