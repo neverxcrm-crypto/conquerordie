@@ -506,37 +506,72 @@
      680px viraria uma caixa cortada pela borda da tela. */
   @media screen and (max-width: 1000px) {
     /* ==========================================================
-       FILTRAR / ORDENAR ACOMPANHAM A ROLAGEM
+       BARRA DE FILTRO E ORDENAÇÃO — no fluxo, não grudada
        ==========================================================
-       Numa coleção longa a barra ficava lá em cima: depois de
-       algumas telas de produtos, mudar a ordem ou tirar um filtro
-       exigia rolar tudo de volta — e a maioria das pessoas
-       simplesmente desiste e sai.
+       A barra era position: sticky logo abaixo da header. A ideia
+       era boa (não obrigar a rolar de volta para trocar a ordem),
+       mas o preço no celular era alto demais:
 
-       Grudada logo abaixo da header fixa, ela fica ao alcance do
-       polegar o tempo inteiro. O fundo é sólido porque ela passa por
-       cima das fotos da grade.
+       1. Ela flutuava com fundo sólido POR CIMA da grade. Como a
+          primeira fileira de produtos passa por baixo, o que sobrava
+          na tela era o título e o preço de um card cujo a foto
+          estava escondida atrás da barra — a página parecia quebrada,
+          com texto solto antes das imagens.
 
-       No desktop não: lá a página inteira cabe melhor na tela e uma
-       barra grudada só rouba altura útil do catálogo.
+       2. Num celular a soma header fixa + barra grudada come uma
+          faixa permanente do alto da tela. Numa vitrine, essa faixa
+          é justamente o espaço do produto.
+
+       Agora ela vive no fluxo: rola junto, não cobre nada e o
+       catálogo recupera a altura inteira.
+
+       O DESENHO: a contagem é metadado e fica sozinha em cima, miúda.
+       Embaixo, filtrar e ordenar dividem a largura em duas metades
+       iguais separadas por um fio — cada uma vira um alvo largo, o
+       que no polegar vale mais que dois links pequenos lado a lado.
+       É também o que remove a ambiguidade de "onde eu toco para
+       filtrar", que é a dúvida número um numa coleção no celular.
        ========================================================== */
     #shopify-section-{{ section.id }} .collection__toolbar {
-      position: sticky;
-      top: calc(var(--header-height) + var(--aviso-altura, 0px));
-      z-index: 20;
+      display: grid;
+      grid-template-columns: 1fr;
       gap: var(--space-2xs);
-      margin-inline: calc(var(--page-gutter) * -1);
-      padding-inline: var(--page-gutter);
-      background-color: var(--color-background);
+      padding-block: var(--space-2xs) 0;
     }
-    /* Com o ScrollSmoother o sticky do CSS não vale (o conteúdo é
-       movido por transform). O smoother só existe a partir de
-       1001px, então dentro desta media query nunca há conflito —
-       mas a guarda fica explícita para o dia em que esse limite
-       mudar. Ver assets/movimento.js. */
-    .has-smooth-scroll #shopify-section-{{ section.id }} .collection__toolbar {
-      position: relative;
-      top: auto;
+    #shopify-section-{{ section.id }} .toolbar__count {
+      /* Metadado: informa, não compete com os controles. */
+      font-size: var(--f0);
+      color: var(--color-text-muted);
+    }
+    #shopify-section-{{ section.id }} .toolbar__actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: stretch;
+      gap: 0;
+      /* O fio de cima fecha o bloco contra a contagem; o de baixo
+         separa a barra da primeira fileira de produtos. A borda da
+         .toolbar base já dá os fios externos, então aqui só entra o
+         divisor interno (ver .collection__sort abaixo). */
+      border-top: 1px solid var(--color-border);
+    }
+    /* Os dois controles ocupam a metade inteira — inclusive a área
+       vazia ao redor do rótulo. Tocar em qualquer ponto da metade
+       aciona o controle daquele lado. */
+    #shopify-section-{{ section.id }} .filtros__botao,
+    #shopify-section-{{ section.id }} .collection__sort-select {
+      width: 100%;
+      min-height: 52px;
+      justify-content: center;
+    }
+    #shopify-section-{{ section.id }} .collection__sort {
+      border-left: 1px solid var(--color-border);
+    }
+    #shopify-section-{{ section.id }} .collection__sort-select {
+      /* Centralizado, mas com folga à direita para a seta desenhada
+         não encostar no rótulo. */
+      padding-inline: var(--space-md);
+      text-align: center;
+      text-align-last: center;
     }
     #shopify-section-{{ section.id }} .filtros { position: static; }
     #shopify-section-{{ section.id }} .filtros__painel {
