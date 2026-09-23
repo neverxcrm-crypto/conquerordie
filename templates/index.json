@@ -38,7 +38,7 @@
             "image": "shopify://shop_images/ChatGPT_Image_18_de_set._de_2026_14_37_38.png",
             "image_mobile": "shopify://shop_images/A1FF48D2-8135-4609-B9EB-FFD142BC5718.png",
             "overlay_color": "#000000",
-            "overlay_opacity": 30,
+            "overlay_opacity": 0,
             "desktop_content_position": "middle",
             "desktop_text_alignment": "left",
             "mobile_content_position": "bottom",
