@@ -13,7 +13,13 @@
   "sections": {
     "nav": {
       "type": "nav",
-      "settings": {}
+      "settings": {
+        "menu": "main-menu",
+        "logo_width": 80,
+        "logo_width_mobile": 60,
+        "transparent_on_top": true,
+        "show_progress_bar": true
+      }
     }
   },
   "order": [
