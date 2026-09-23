@@ -1,6 +1,6 @@
 {%- comment -%}
   ============================================================
-  MARQUEE BELOW HERO — Barra de Anúncios Infinita (Corrigida)
+  MARQUEE PÓS-HERO — Barra de Anúncios Infinita (Bulletproof)
   ============================================================
 {%- endcomment -%}
 
@@ -9,18 +9,25 @@
   assign total = avisos.size
   assign velocidade = section.settings.speed | default: 25
 
-  # Multiplicador inteligente: mantém o tamanho físico da faixa parecido
-  # independentemente de quantos blocos você cadastrou, o que garante 
-  # que a "velocidade visual" do texto seja sempre consistente.
-  assign repeat_count = 2
+  # Cálculo rigoroso de repetições: garante que o bloco seja 
+  # mais largo que telas 4K/Ultrawide para não faltar texto na animação.
+  # Quantos itens formam UM ciclo de mensagens. Usado pela regra de
+  # prefers-reduced-motion mais abaixo para mostrar apenas o primeiro
+  # ciclo em vez das dezenas de repeticoes que existem so para
+  # alimentar a animacao. O fallback de painel vazio emite 6 itens
+  # iguais, e nele basta mostrar 1.
+  assign ciclo = total
+  if total == 0
+    assign ciclo = 1
+  endif
+
+  assign repeat_count = 3
   if total == 1
-    assign repeat_count = 12
+    assign repeat_count = 15
   elsif total == 2
-    assign repeat_count = 6
+    assign repeat_count = 8
   elsif total == 3
-    assign repeat_count = 4
-  elsif total == 4
-    assign repeat_count = 3
+    assign repeat_count = 5
   endif
 -%}
 
@@ -43,74 +50,75 @@
     --marquee-gap: {{ section.settings.item_gap }}px;
   "
 >
-  <div class="marquee-hero__track">
-    {%- if total > 0 -%}
-      {%- comment -%} Criação de 2 grupos perfeitamente idênticos para o looping {%- endcomment -%}
-      {%- for g in (1..2) -%}
-        <div class="marquee-hero__group" {% if g == 2 %}aria-hidden="true"{% endif %}>
-          {%- for r in (1..repeat_count) -%}
-            {%- for block in avisos -%}
-              <div class="marquee-hero__item" {{ block.shopify_attributes }}>
-                
-                {%- if block.settings.link != blank -%}
-                  <a href="{{ block.settings.link }}" class="marquee-hero__texto marquee-hero__texto--link tap-target" {% if g == 2 %}tabindex="-1"{% endif %}>
-                    <span>{{ block.settings.text | escape }}</span>
-                    {%- if section.settings.show_arrow -%}
-                      <svg class="marquee-hero__seta" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                        <path d="M3 9l6-6M4 3h5v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    {%- endif -%}
-                  </a>
-                {%- else -%}
-                  <span class="marquee-hero__texto">{{ block.settings.text | escape }}</span>
-                {%- endif -%}
+  <div class="marquee-hero__track-container">
+    <div class="marquee-hero__track">
+      {%- if total > 0 -%}
+        {%- comment -%} Dois grupos idênticos que deslizam -50% para um loop infinito perfeito {%- endcomment -%}
+        {%- for g in (1..2) -%}
+          <div class="marquee-hero__group" {% if g == 2 %}aria-hidden="true"{% endif %}>
+            {%- for r in (1..repeat_count) -%}
+              {%- for block in avisos -%}
+                <div class="marquee-hero__item" {{ block.shopify_attributes }}>
+                  
+                  {%- if block.settings.link != blank -%}
+                    <a href="{{ block.settings.link }}" class="marquee-hero__texto marquee-hero__texto--link tap-target" {% if g == 2 %}tabindex="-1"{% endif %}>
+                      <span>{{ block.settings.text | escape }}</span>
+                      {%- if section.settings.show_arrow -%}
+                        <svg class="marquee-hero__seta" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                          <path d="M3 9l6-6M4 3h5v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      {%- endif -%}
+                    </a>
+                  {%- else -%}
+                    <span class="marquee-hero__texto">{{ block.settings.text | escape }}</span>
+                  {%- endif -%}
 
+                  <span class="marquee-hero__separador" aria-hidden="true">
+                    {%- case section.settings.separator_symbol -%}
+                      {%- when 'circle_outline' -%}
+                        <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="none">
+                          <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                      {%- when 'circle_filled' -%}
+                        <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="currentColor">
+                          <circle cx="6" cy="6" r="4"/>
+                        </svg>
+                      {%- when 'star' -%}
+                        <svg class="marquee-hero__icon" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                      {%- else -%}
+                        <span class="marquee-hero__char">{{ section.settings.separator_custom | default: '•' }}</span>
+                    {%- endcase -%}
+                  </span>
+
+                </div>
+              {%- endfor -%}
+            {%- endfor -%}
+          </div>
+        {%- endfor -%}
+      {%- else -%}
+        {%- comment -%} Fallback para o painel vazio {%- endcomment -%}
+        {%- for g in (1..2) -%}
+          <div class="marquee-hero__group" {% if g == 2 %}aria-hidden="true"{% endif %}>
+            {%- for i in (1..6) -%}
+              <div class="marquee-hero__item">
+                <span class="marquee-hero__texto">ADICIONE UM AVISO NO PAINEL</span>
                 <span class="marquee-hero__separador" aria-hidden="true">
-                  {%- case section.settings.separator_symbol -%}
-                    {%- when 'circle_outline' -%}
-                      <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="none">
-                        <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-                      </svg>
-                    {%- when 'circle_filled' -%}
-                      <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="currentColor">
-                        <circle cx="6" cy="6" r="4"/>
-                      </svg>
-                    {%- when 'star' -%}
-                      <svg class="marquee-hero__icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                      </svg>
-                    {%- else -%}
-                      <span class="marquee-hero__char">{{ section.settings.separator_custom | default: '•' }}</span>
-                  {%- endcase -%}
+                  <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/></svg>
                 </span>
-
               </div>
             {%- endfor -%}
-          {%- endfor -%}
-        </div>
-      {%- endfor -%}
-
-    {%- else -%}
-      {%- comment -%} Demonstração prévia no painel caso não tenha blocos {%- endcomment -%}
-      {%- for g in (1..2) -%}
-        <div class="marquee-hero__group" {% if g == 2 %}aria-hidden="true"{% endif %}>
-          {%- for i in (1..6) -%}
-            <div class="marquee-hero__item">
-              <span class="marquee-hero__texto">ADICIONE UM AVISO NO PAINEL</span>
-              <span class="marquee-hero__separador" aria-hidden="true">
-                <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/></svg>
-              </span>
-            </div>
-          {%- endfor -%}
-        </div>
-      {%- endfor -%}
-    {%- endif -%}
+          </div>
+        {%- endfor -%}
+      {%- endif -%}
+    </div>
   </div>
 </section>
 
 <style>
   /* ==========================================================
-     ESTRUTURA BASE E TRACK
+     ESTRUTURA BASE
      ========================================================== */
   .marquee-hero {
     display: block;
@@ -119,69 +127,129 @@
     background-color: var(--marquee-bg, #000000);
     border-top: 1px solid var(--marquee-border-color, rgba(255, 255, 255, 0.15));
     border-bottom: 1px solid var(--marquee-border-color, rgba(255, 255, 255, 0.15));
-    overflow: hidden;
-    user-select: none;
     padding-block: var(--marquee-padding-v, 12px);
     width: 100%;
   }
 
-  .marquee-hero__track {
-    display: flex;
-    align-items: center;
+  .marquee-hero__track-container {
+    overflow: hidden !important;
     width: 100%;
+    display: flex;
   }
 
   /* ==========================================================
-     ANIMAÇÃO PERFEITA: Os GRUPOS se movem, não a Track
+     TRILHA E GRUPOS (O Segredo para não quebrar)
      ========================================================== */
+  .marquee-hero__track {
+    display: flex;
+    flex-wrap: nowrap !important;
+    width: max-content !important;
+    white-space: nowrap !important;
+    animation: marquee-loop var(--marquee-duracao, 25s) linear infinite;
+    will-change: transform;
+
+    /* ESTA LINHA É O QUE FAZ O LOOP ENCAIXAR.
+
+       A trilha é um flex item de .marquee-hero__track-container, que
+       é display: flex. Flex item nasce com flex-shrink: 1, então o
+       `width: max-content` acima funciona apenas como base de
+       cálculo: o flexbox comprime a trilha de volta até a largura do
+       container, porque ela é muito mais larga que ele.
+
+       O estrago não é visual na parada — é na animação. O
+       translate3d(-50%) do keyframe é relativo à largura REAL do
+       elemento. Comprimida, a trilha desliza meia TELA em vez de
+       meio CONTEÚDO, o segundo grupo não chega na posição do
+       primeiro ao fim do ciclo, e a faixa dá um salto visível a
+       cada volta.
+
+       Os grupos e os itens já tinham flex-shrink: 0; faltava em
+       quem é, de fato, o flex item comprimido. */
+    flex-shrink: 0 !important;
+  }
+
   .marquee-hero__group {
     display: flex;
+    flex-wrap: nowrap !important;
     align-items: center;
-    flex-shrink: 0;
+    flex-shrink: 0 !important; /* Impede que o grupo seja esmagado pelo flexbox */
+
+    /* Rede de segurança para pouco conteúdo: com um aviso curto numa
+       tela ultrawide, a trilha poderia ser mais estreita que o
+       container e a metade do ciclo mostraria um vazio à direita.
+       Com cada grupo valendo no mínimo uma tela, a trilha tem no
+       mínimo duas — e o -50% continua caindo exatamente no início do
+       segundo grupo, porque os dois grupos são sempre idênticos. */
     min-width: 100%;
-    /* max-content garante que a caixa envolva todo o texto sem quebrar linha */
-    width: max-content; 
-    will-change: transform;
-    animation: marquee-hero-loop var(--marquee-duracao, 25s) linear infinite;
   }
 
-  @keyframes marquee-hero-loop {
+  .marquee-hero__item {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  /* ==========================================================
+     ANIMAÇÃO LOOP INFINITO
+     ========================================================== */
+  @keyframes marquee-loop {
     0% { transform: translate3d(0, 0, 0); }
-    /* Move exatamente o tamanho de UM grupo. O segundo grupo toma o lugar perfeitamente. */
-    100% { transform: translate3d(-100%, 0, 0); } 
+    100% { transform: translate3d(-50%, 0, 0); } /* Desliza exatamente a metade (1 grupo inteiro) */
   }
 
-  /* Pausa a rotação ao passar o cursor (Apenas Desktop) */
+  /* Pausa a rotação ao passar o mouse */
   @media (hover: hover) {
-    .marquee-hero:hover .marquee-hero__group {
+    .marquee-hero:hover .marquee-hero__track {
       animation-play-state: paused;
     }
   }
 
-  /* Acessibilidade: Desliga a animação para quem tem "Reduzir Movimento" ativado no PC/Celular */
+  /* ==========================================================
+     MENOS MOVIMENTO — a faixa PARA, e para de repetir
+     ==========================================================
+     Texto deslizando sem parar e justamente o padrao que incomoda
+     quem liga "reduzir movimento" no sistema — por isso a animacao
+     sai por completo aqui.
+
+     Mas parar nao basta. As {{ repeat_count }} repeticoes por grupo
+     existem SO para dar largura a animacao; congeladas, virariam uma
+     parede da mesma frase repetida dezenas de vezes. Entao, alem de
+     parar, a faixa passa a mostrar apenas o primeiro ciclo de
+     mensagens ({{ ciclo }} {% if ciclo == 1 %}item{% else %}itens{% endif %}),
+     centralizado — a informacao inteira, uma vez so.
+
+     O separador do ultimo item visivel sai: sem a sequencia
+     continuando, ele ficaria pendurado no fim da frase. */
   @media (prefers-reduced-motion: reduce) {
-    .marquee-hero__group {
+    .marquee-hero__track {
       animation: none !important;
-      width: 100%;
-      min-width: 0;
-      flex-wrap: wrap;
+      width: 100% !important;
+      min-width: 0 !important;
+      white-space: normal !important;
+      flex-wrap: wrap !important;
+      justify-content: center;
+      will-change: auto;
+    }
+    .marquee-hero__group {
+      min-width: 0 !important;
+      flex-wrap: wrap !important;
       justify-content: center;
     }
-    .marquee-hero__group[aria-hidden="true"] {
-      display: none; /* Esconde o segundo grupo duplicado */
+    .marquee-hero__group[aria-hidden='true'] {
+      display: none !important;
+    }
+    .marquee-hero__item:nth-child(n + {{ ciclo | plus: 1 }}) {
+      display: none !important;
+    }
+    .marquee-hero__item:nth-child({{ ciclo }}) .marquee-hero__separador {
+      display: none !important;
     }
   }
 
   /* ==========================================================
-     ITENS E TIPOGRAFIA
+     TEXTO E ELEMENTOS
      ========================================================== */
-  .marquee-hero__item {
-    display: inline-flex;
-    align-items: center;
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-
   .marquee-hero__texto {
     display: inline-flex;
     align-items: center;
@@ -195,15 +263,11 @@
     color: var(--marquee-cor, #ffffff);
     text-decoration: none;
     line-height: 1;
-    -webkit-font-smoothing: antialiased;
-    transition: opacity 0.2s ease;
+    transition: opacity var(--dur-fast) var(--ease-out);
   }
 
-  .marquee-hero__texto--link:hover {
-    opacity: 0.8;
-  }
+  .marquee-hero__texto--link:hover { opacity: 0.8; }
 
-  /* SEPARADORES (Bolinhas, Estrelas, etc) */
   .marquee-hero__separador {
     display: inline-flex;
     align-items: center;
@@ -213,19 +277,11 @@
     opacity: 0.8;
   }
 
-  .marquee-hero__icon {
-    width: 12px;
-    height: 12px;
-    display: block;
-  }
-
-  .marquee-hero__char {
-    font-size: var(--marquee-fonte, 13px);
-    line-height: 1;
-  }
+  .marquee-hero__icon { width: 12px; height: 12px; display: block; }
+  .marquee-hero__char { font-size: var(--marquee-fonte, 13px); line-height: 1; }
 
   /* ==========================================================
-     EFEITOS ESPECIAIS (Ouro e Seta)
+     EFEITO OURO METÁLICO
      ========================================================== */
   .marquee-hero--ouro .marquee-hero__texto {
     background: linear-gradient(100deg, #FBF0B9 0%, #E3C98B 28%, #C9A24D 55%, #E9D49A 82%, #FBF0B9 100%);
@@ -244,32 +300,32 @@
     width: 10px;
     height: 10px;
     flex: none;
-    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: transform var(--dur-normal) var(--ease-out);
   }
-
-  .marquee-hero__texto--link:hover .marquee-hero__seta {
-    transform: translate(3px, -3px) scale(1.1);
-  }
+  .marquee-hero__texto--link:hover .marquee-hero__seta { transform: translate(3px, -3px) scale(1.1); }
 
   /* ==========================================================
-     RESPONSIVIDADE (Celular)
+     RESPONSIVIDADE E CALIBRAÇÃO MOBILE
      ========================================================== */
   @media screen and (max-width: 749px) {
     .marquee-hero {
-      /* Reduz levemente o padding em telas pequenas para economizar espaço */
-      padding-block: max(8px, calc(var(--marquee-padding-v, 12px) - 3px));
+      padding-block: max(8px, calc(var(--marquee-padding-v, 12px) - 2px));
     }
     .marquee-hero__texto {
-      /* Texto um pouco menor no celular para caber melhor na tela */
       font-size: max(11px, calc(var(--marquee-fonte, 13px) - 2px));
     }
+    /* O espaçamento entre itens encolhe de verdade, mexendo na
+       margem. A tentativa anterior usava transform: scale(0.85) —
+       mas transform não altera margin: ele redesenha o glifo menor e
+       deixa o vão do desktop intacto, então no celular a redução
+       simplesmente não acontecia. O comentário que acompanhava a
+       regra ("não pode ser lido direto via CSS no mobile") também não
+       procede: o token é uma custom property comum e sobrescrever
+       dentro de uma media query é exatamente o caminho. */
     .marquee-hero__separador {
-      margin-inline: max(16px, calc(var(--marquee-gap, 28px) - 8px));
+      margin-inline: max(14px, calc(var(--marquee-gap, 28px) - 10px));
     }
-    .marquee-hero__icon {
-      width: 10px;
-      height: 10px;
-    }
+    .marquee-hero__icon { width: 10px; height: 10px; }
   }
 </style>
 
@@ -378,7 +434,7 @@
       "id": "separator_symbol",
       "label": "Estilo do separador",
       "options": [
-        { "value": "circle_outline", "label": "Círculo Vazado (Moderno)" },
+        { "value": "circle_outline", "label": "Círculo Vazado" },
         { "value": "circle_filled", "label": "Círculo Preenchido" },
         { "value": "star", "label": "Estrela" },
         { "value": "custom", "label": "Caractere Personalizado" }
@@ -416,7 +472,7 @@
     {
       "type": "color",
       "id": "border_color",
-      "label": "Cor das Bordas (Superior e Inferior)",
+      "label": "Cor das Bordas",
       "default": "rgba(255, 255, 255, 0.15)"
     },
     {

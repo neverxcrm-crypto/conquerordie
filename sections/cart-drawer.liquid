@@ -392,6 +392,11 @@
     flex-direction: column;
     background-color: var(--color-background);
     border-left: 1px solid var(--color-border);
+    /* O painel precisa parecer uma CAMADA sobre a pagina, nao uma
+       area colada na borda. A sombra larga e de baixo contraste faz
+       esse trabalho sozinha — e a mesma --shadow-lg que o tema ja
+       usa para superficies elevadas, entao nao nasce um valor novo. */
+    box-shadow: var(--shadow-lg);
     transform: translateX(100%);
     transition: transform var(--dur-emphasis) var(--ease-out);
   }
@@ -484,8 +489,27 @@
     padding: 20px var(--space-block, 28px);
     border-bottom: 1px solid var(--color-border);
   }
-  .cart-item-drawer__media { display: block; background-color: var(--color-surface); }
-  .cart-item-drawer__image { display: block; width: 100%; height: auto; }
+  /* A miniatura tinha height: auto, ou seja, cada item ficava com uma
+     altura diferente conforme a proporcao da foto cadastrada. Numa
+     lista vertical isso aparece como fileiras desalinhadas — o
+     defeito mais visivel do drawer.
+
+     A proporcao 3/4 e a mesma que settings.card_image_ratio usa por
+     padrao, entao a miniatura do carrinho passa a enquadrar o produto
+     igual a grade da coleção: a pessoa reconhece a foto que clicou. */
+  .cart-item-drawer__media {
+    display: block;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    border-radius: var(--media-radius, 0);
+    background-color: var(--color-surface);
+  }
+  .cart-item-drawer__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
   .cart-item-drawer__body { min-width: 0; }
   .cart-item-drawer__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
   .cart-item-drawer__name {
@@ -552,9 +576,18 @@
     font-size: var(--f2);
     line-height: 1;
     cursor: pointer;
-    transition: color var(--dur-normal) var(--ease-out);
+    transition:
+      color var(--dur-normal) var(--ease-out),
+      /* O press precisa ser IMEDIATO: no --dur-normal a resposta
+         chegaria depois de o dedo ja ter saido da tela. */
+      transform var(--dur-fast) var(--ease-out);
   }
   .quantity-drawer__button:hover { color: var(--color-text-primary); }
+  /* Feedback de toque: no celular nao existe hover, e mudar a
+     quantidade e a interacao mais repetida do drawer. Sem isto, o
+     unico sinal de que o toque pegou chegava depois da ida ao
+     servidor. */
+  .quantity-drawer__button:active { transform: scale(0.88); }
   .quantity-drawer__value {
     min-width: 28px;
     text-align: center;
@@ -575,6 +608,7 @@
     transition: color var(--dur-normal) var(--ease-out);
   }
   .cart-item-drawer__remove:hover { color: var(--color-text-primary); }
+  .cart-item-drawer__remove:active { opacity: 0.6; }
 
   /* ---- Order bump: pequeno, ignoravel, sem pressao ---- */
   .cart-bump {
@@ -594,6 +628,14 @@
     padding: 20px var(--space-block, 28px) calc(20px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--color-border);
     background-color: var(--color-background);
+    /* Sombra para CIMA: o rodape passa por cima da lista que rola,
+       entao a borda de 1px sozinha nao dizia que ha conteudo
+       continuando por baixo. E a mesma pista que um app nativo da
+       numa barra fixa. */
+    box-shadow: 0 -12px 24px -16px rgba(0, 0, 0, 0.55);
+    /* Acima do conteudo rolante para a sombra nao ficar por baixo. */
+    position: relative;
+    z-index: 1;
   }
   .cart-drawer__discounts {
     list-style: none;
@@ -626,7 +668,14 @@
     color: var(--color-text-muted);
     margin: 4px 0 16px;
   }
-  .cart-drawer__checkout { width: 100%; }
+  /* O botao de finalizar e o unico caminho para a receita: ele nao
+     pode ter a mesma altura de um botao secundario. 52px e o degrau
+     que o deixa confortavel no polegar sem virar uma barra. */
+  .cart-drawer__checkout {
+    width: 100%;
+    min-height: 52px;
+    font-size: var(--f2);
+  }
 
   .cart-drawer__payment {
     display: flex;
@@ -742,6 +791,9 @@
     .cart-drawer__panel,
     .cart-drawer__scrim,
     .cart-drawer__progress-bar { transition-duration: 0.01ms !important; }
+    /* O feedback de toque continua existindo (ele informa, nao
+       decora), mas sem o passo de escala: vira so a troca de cor. */
+    .quantity-drawer__button:active { transform: none; }
   }
 </style>
 

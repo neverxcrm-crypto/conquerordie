@@ -157,7 +157,36 @@
     var restaurar = !comSmoother() && document.body.style.top !== '';
     document.body.classList.remove('bloquear');
     document.body.style.top = '';
-    if (restaurar) window.scrollTo(0, scrollTravado);
+    if (!restaurar) return;
+
+    /* ---------------------------------------------------------
+       A VOLTA PRECISA SER INSTANTANEA
+
+       normalizar.css declara `html { scroll-behavior: smooth }` e so
+       o desativa quando o ScrollSmoother assume (html.has-smooth-scroll).
+       No celular — e em qualquer desktop em motion-lite — ele esta
+       valendo.
+
+       O problema: tirar o position:fixed do body devolve o documento
+       ao scroll 0 no mesmo quadro. O scrollTo logo abaixo e o que
+       traz a pessoa de volta ao ponto onde ela estava — mas, com
+       scroll-behavior: smooth, ele deixa de ser um salto e vira uma
+       ANIMACAO saindo do topo. O resultado na tela e o carrinho
+       fechar, a pagina piscar la em cima e so entao voltar rolando.
+       Pior: qualquer toque durante o percurso cancela a animacao e a
+       pessoa fica presa no inicio da pagina.
+
+       Desligar por style inline vence a regra da folha (que nao usa
+       !important nesse seletor) e cobre todos os navegadores —
+       diferente de scrollTo({behavior:'instant'}), que e mais novo.
+       O valor anterior e devolvido logo em seguida para a rolagem
+       suave das ancoras continuar funcionando normalmente.
+    --------------------------------------------------------- */
+    var html = document.documentElement;
+    var comportamentoAnterior = html.style.scrollBehavior;
+    html.style.scrollBehavior = 'auto';
+    window.scrollTo(0, scrollTravado);
+    html.style.scrollBehavior = comportamentoAnterior;
   }
 
   window.CODTravarRolagem = travarRolagem;

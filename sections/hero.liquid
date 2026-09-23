@@ -327,9 +327,26 @@
 
   /* Animações Premium */
   .js .hero__slide .hero__element { opacity: 0; }
+  /* RITMO DA ENTRADA — ligado aos tokens do tema.
+
+     Estava em 0.8s de duracao com degraus de 80ms e 100ms de atraso
+     base. Para o CTA (--hero-i: 4) a conta dava 420ms de atraso mais
+     800ms de animacao: o botao principal do hero nascia em opacity 0
+     (o `both` preenche para tras) e so ficava visivel por completo
+     1,22s depois da abertura. Ele continuava clicavel o tempo todo —
+     o que e pior, porque estava clicavel e invisivel.
+
+     Agora usa --dur-reveal (560ms) e --stagger (70ms), os mesmos que
+     governam a entrada de qualquer outra coisa no site. O CTA fecha
+     em ~900ms e a sequencia inteira passa a falar a mesma lingua do
+     resto do tema, em vez de ter um ritmo proprio so aqui.
+
+     Ganho de brinde: --dur-reveal e zerado automaticamente pelo
+     bloco global de prefers-reduced-motion em css-variables; o
+     --hero-dur-reveal, por ser local, nunca era. */
   .js .hero__slide.is-active .hero__element {
-    animation: heroEntrada var(--hero-dur-reveal) var(--hero-ease-out) both;
-    animation-delay: calc(var(--hero-i, 0) * 80ms + 100ms);
+    animation: heroEntrada var(--dur-reveal) var(--hero-ease-out) both;
+    animation-delay: calc(var(--hero-i, 0) * var(--stagger) + 60ms);
   }
   .hero__element--eyebrow { --hero-i: 0; }
   .hero__element--heading { --hero-i: 1; }
@@ -407,7 +424,16 @@
     letter-spacing: 0.05em;
     border-radius: 4px; /* Leve arredondamento moderno */
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s var(--hero-ease-out);
+    /* Lista explicita em vez de `all`. Com `all`, o navegador observa
+       TODA propriedade animavel do elemento a cada mudanca de estado —
+       inclusive as que nunca mudam aqui — e qualquer propriedade de
+       layout que venha a ser adicionada no futuro passa a animar sem
+       ninguem ter pedido. */
+    transition:
+      transform var(--dur-fast) var(--hero-ease-out),
+      box-shadow var(--dur-normal) var(--hero-ease-out),
+      background-color var(--dur-fast) var(--hero-ease-out),
+      color var(--dur-fast) var(--hero-ease-out);
   }
   
   .hero__cta:hover {
@@ -440,7 +466,14 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 50%;
     cursor: pointer;
-    transition: all 0.3s ease;
+    /* `all` aqui incluia o backdrop-filter na transicao: a cada hover
+       o navegador reprocessava o desfoque do que passa atras da seta,
+       quadro a quadro, durante 300ms. So cor, borda e transform
+       precisam se mover — o blur fica parado. */
+    transition:
+      background-color var(--dur-normal) var(--ease-out),
+      border-color var(--dur-normal) var(--ease-out),
+      transform var(--dur-normal) var(--ease-out);
   }
   
   .hero__arrow:hover {
@@ -549,6 +582,41 @@
   }
 
   /* Redução de Movimento */
+  /* ==========================================================
+     CELULAR DEITADO — a orientacao que o hero nao previa
+     ==========================================================
+     O titulo e dimensionado por LARGURA (6vw + 1rem). Deitado, um
+     celular tem ~844px de largura e ~390px de altura: a conta
+     devolve um titulo de ~66px dentro de uma tela de 390px de alto.
+     Somando ~140px de respiro vertical, o conteudo estoura a altura
+     e o slide cresce — a "tela cheia" vira uma tela e meia, e a
+     pessoa precisa rolar so para passar do hero.
+
+     O bloco de celular para em 749px de LARGURA, entao um aparelho
+     deitado nunca chega la: ele e tratado como desktop estreito.
+     Por isso a condicao aqui e por ALTURA, nao por largura.
+
+     O texto de apoio sai: com 390px de altura, ele e a primeira
+     coisa que sobra. */
+  @media (orientation: landscape) and (max-height: 540px) {
+    .hero__content {
+      padding-top: calc(var(--header-height, 70px) + max(10px, env(safe-area-inset-top, 0px)));
+      padding-bottom: clamp(24px, 6vh, 44px);
+    }
+    .hero__heading {
+      font-size: clamp(1.75rem, 4.2vw, 2.75rem);
+      line-height: 1.05;
+    }
+    .hero__element--eyebrow { margin-bottom: 6px; }
+    .hero__element--heading { margin-bottom: 10px; }
+    .hero__element--subheading { margin-bottom: 10px; }
+    .hero__element--body { display: none; }
+    /* Deitado sobra largura: o CTA volta ao tamanho do proprio rotulo
+       em vez de atravessar a tela. */
+    .hero__element--cta { width: auto; margin-top: 4px; }
+    .hero__cta { width: auto; padding: 12px 28px; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .js .hero__slide .hero__element { opacity: 1; }
     .js .hero__slide.is-active .hero__element, .hero__slide.is-active .hero__image { animation: none; }
