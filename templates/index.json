@@ -19,13 +19,17 @@
             "image_mobile": "shopify://shop_images/ChatGPT_Image_23_de_set._de_2026_11_45_47.png",
             "overlay_color": "#000000",
             "overlay_opacity": 30,
-            "text_alignment": "left",
+            "desktop_content_position": "middle",
+            "desktop_text_alignment": "center",
+            "mobile_content_position": "bottom",
+            "mobile_text_alignment": "center",
             "eyebrow": "",
             "heading": "",
-            "subheading": "",
             "text": "",
             "button_label": "",
-            "button_link": ""
+            "button_link": "",
+            "button_label_2": "",
+            "button_link_2": ""
           }
         },
         "slide_1": {
@@ -35,13 +39,17 @@
             "image_mobile": "shopify://shop_images/A1FF48D2-8135-4609-B9EB-FFD142BC5718.png",
             "overlay_color": "#000000",
             "overlay_opacity": 30,
-            "text_alignment": "left",
+            "desktop_content_position": "middle",
+            "desktop_text_alignment": "center",
+            "mobile_content_position": "bottom",
+            "mobile_text_alignment": "center",
             "eyebrow": "Streetwear dark",
             "heading": "Conquer\nor Die",
-            "subheading": "Not made to blend in.",
             "text": "<p>Mais que roupas, uma mentalidade.</p><p>Conquiste o que é seu.</p>",
             "button_label": "Comprar agora",
-            "button_link": "shopify://collections/all"
+            "button_link": "shopify://collections/all",
+            "button_label_2": "",
+            "button_link_2": ""
           }
         }
       },
@@ -50,11 +58,12 @@
         "slide_1"
       ],
       "settings": {
-        "height": "tall",
+        "desktop_height": "adapt",
+        "mobile_height": "500px",
         "autoplay": true,
         "autoplay_speed": 5,
         "show_arrows": true,
-        "show_indicator": true
+        "show_dots": true
       }
     },
     "marquee_below_hero_M8HkFV": {
