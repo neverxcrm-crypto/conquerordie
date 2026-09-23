@@ -1,0 +1,461 @@
+{%- comment -%}
+  ============================================================
+  guia-de-tamanhos — tabela de medidas sem sair da página
+  ============================================================
+
+  O QUE FAZ:
+  Abre a tabela de medidas do produto numa janela sobre a página,
+  usando <dialog> nativo — o mesmo padrão da lightbox da galeria
+  (ver snippets/product-media-gallery.liquid).
+
+  POR QUE EXISTE:
+  O guia de tamanhos era um link comum (<a href>) para outra página.
+  Numa loja de roupa isso é um vazamento de conversão claro: a dúvida
+  "qual tamanho eu visto?" aparece exatamente no momento de escolher,
+  e responder a ela mandando a pessoa embora da página de produto
+  significa que ela precisa voltar, reencontrar a cor que tinha
+  escolhido e recomeçar. Quem não volta, não compra.
+
+  Agora a resposta chega por cima da página: a escolha de variante que
+  já estava feita continua feita, e fechar a janela devolve a pessoa
+  exatamente onde ela estava.
+
+  DE ONDE VEM O CONTEÚDO (nesta ordem):
+  1. Metafield do produto  — product.metafields.custom.tabela_medidas
+     Permite tabela por produto sem tocar no tema. Uma linha por
+     tamanho, colunas separadas por vírgula ou ponto e vírgula.
+  2. Settings do bloco     — a mesma tabela, valendo para a loja toda.
+  Se nenhum dos dois existir, o botão não é renderizado: uma janela
+  vazia é pior que nenhuma janela.
+
+  FORMATO DA TABELA:
+  Texto simples, uma linha por linha da tabela, colunas separadas por
+  vírgula. A PRIMEIRA linha é o cabeçalho.
+
+      Tamanho, Peito (cm), Comprimento (cm), Ombro (cm)
+      P,  108, 70, 50
+      M,  114, 72, 52
+      G,  120, 74, 54
+
+  Escolhi texto simples porque o Shopify não tem um campo de tabela
+  no editor de temas, e qualquer alternativa (um bloco por linha,
+  JSON colado à mão) é mais trabalhosa para quem cadastra produto.
+
+  PARÂMETROS:
+  - bloco: o bloco variant_picker, de onde saem os settings.
+  - id_section: id da section, para o dialog ter id único na página.
+{%- endcomment -%}
+
+{%- liquid
+  assign tabela_bruta = blank
+  assign fonte_metafield = product.metafields.custom.tabela_medidas
+  if fonte_metafield != blank
+    assign tabela_bruta = fonte_metafield | metafield_text
+  elsif bloco.settings.size_guide_tabela != blank
+    assign tabela_bruta = bloco.settings.size_guide_tabela
+  endif
+
+  assign tem_tabela = false
+  if tabela_bruta != blank
+    assign tem_tabela = true
+  endif
+
+  assign tem_extras = false
+  if bloco.settings.size_guide_nota != blank or bloco.settings.size_guide_medir != blank
+    assign tem_extras = true
+  endif
+-%}
+
+{%- if tem_tabela or tem_extras -%}
+  {%- assign guia_id = 'GuiaTamanhos-' | append: id_section -%}
+
+  <button
+    type="button"
+    class="pdp__guia"
+    data-guia-abrir="{{ guia_id }}"
+    aria-haspopup="dialog"
+  >
+    {{ 'products.product.size_guide' | t }}
+  </button>
+
+  <dialog class="guia" id="{{ guia_id }}" aria-labelledby="{{ guia_id }}-titulo">
+    <div class="guia__painel scheme-dark">
+      <div class="guia__cabecalho">
+        <h2 class="guia__titulo" id="{{ guia_id }}-titulo">
+          {{- bloco.settings.size_guide_titulo | default: 'Guia de tamanhos' -}}
+        </h2>
+        <button type="button" class="guia__fechar" data-guia-fechar aria-label="{{ 'accessibility.close' | t }}">
+          {% render 'icon', name: 'close' %}
+        </button>
+      </div>
+
+      <div class="guia__corpo">
+        {%- if tem_tabela -%}
+          {%- comment -%}
+            A troca cm ↔ polegadas é feita no navegador a partir dos
+            números que já estão na tabela, e não com uma segunda
+            tabela cadastrada à mão: duas tabelas divergem no dia em
+            que alguém edita só uma.
+          {%- endcomment -%}
+          {%- if bloco.settings.size_guide_polegadas -%}
+            <div class="guia__unidades" role="group" aria-label="Unidade de medida">
+              <button type="button" class="guia__unidade is-ativa" data-guia-unidade="cm">cm</button>
+              <button type="button" class="guia__unidade" data-guia-unidade="pol">pol</button>
+            </div>
+          {%- endif -%}
+
+          <div class="guia__rolagem">
+            {%- assign linhas = tabela_bruta | strip | newline_to_br | split: '<br />' -%}
+            {%- assign cabecalho = linhas | first | replace: ';', ',' | split: ',' -%}
+            <table class="guia__tabela" data-guia-tabela>
+              <thead>
+                <tr>
+                  {%- for celula in cabecalho -%}
+                    <th scope="col">{{ celula | strip | escape }}</th>
+                  {%- endfor -%}
+                </tr>
+              </thead>
+              <tbody>
+                {%- comment -%}
+                  offset: 1 pula o cabeçalho. O <thead> e o <tbody>
+                  ficam escritos por inteiro, cada um com sua abertura
+                  e seu fechamento no mesmo nível: montar a tabela
+                  dentro de um único laço abria o <tbody> dentro de um
+                  {% if %} e o fechava fora dele, o que o parser do
+                  Shopify recusa — com razão, porque é justamente o
+                  formato que produz HTML quebrado quando a tabela vem
+                  com uma linha só.
+                {%- endcomment -%}
+                {%- for linha in linhas offset: 1 -%}
+                  {%- assign celulas = linha | replace: ';', ',' | split: ',' -%}
+                  {%- if celulas.size > 0 -%}
+                    <tr>
+                      {%- for celula in celulas -%}
+                        {%- assign valor = celula | strip -%}
+                        {%- if forloop.first -%}
+                          <th scope="row">{{ valor | escape }}</th>
+                        {%- else -%}
+                          <td data-medida="{{ valor | escape }}">{{ valor | escape }}</td>
+                        {%- endif -%}
+                      {%- endfor -%}
+                    </tr>
+                  {%- endif -%}
+                {%- endfor -%}
+              </tbody>
+            </table>
+          </div>
+        {%- endif -%}
+
+        {%- if bloco.settings.size_guide_nota != blank -%}
+          <div class="guia__nota rte">{{ bloco.settings.size_guide_nota }}</div>
+        {%- endif -%}
+
+        {%- if bloco.settings.size_guide_medir != blank -%}
+          <details class="guia__medir">
+            <summary class="guia__medir-titulo">Como medir</summary>
+            <div class="guia__medir-corpo rte">{{ bloco.settings.size_guide_medir }}</div>
+          </details>
+        {%- endif -%}
+      </div>
+    </div>
+  </dialog>
+
+  <style>
+    /* ==========================================================
+       GUIA DE TAMANHOS
+       ==========================================================
+       Mesma linguagem do resto do tema: fundo do sistema, hairline
+       de --color-border, raio e espaçamentos vindos dos tokens.
+       Nada aqui inventa valor próprio. */
+    .guia {
+      width: min(560px, calc(100vw - var(--space-md)));
+      max-height: min(86vh, 720px);
+      padding: 0;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background-color: var(--color-background);
+      color: var(--color-text-primary);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+    .guia::backdrop { background-color: var(--color-overlay); }
+
+    /* Safari/WebView antigos sem showModal() — mesmo caminho que a
+       lightbox da galeria já usa. */
+    .guia.is-fallback {
+      position: fixed;
+      inset: auto;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10002;
+      display: none;
+    }
+    .guia.is-fallback.is-open { display: block; }
+
+    .guia__painel { display: flex; flex-direction: column; max-height: inherit; }
+
+    .guia__cabecalho {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      padding: var(--space-md);
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .guia__titulo {
+      font-family: var(--font-ui-family);
+      font-size: var(--f2);
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      margin: 0;
+    }
+    /* O alvo cresce para fora para o X continuar alinhado à borda. */
+    .guia__fechar {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      min-width: var(--control-h);
+      min-height: var(--control-h);
+      margin: -10px -10px -10px 0;
+      border: none;
+      border-radius: 50%;
+      background: none;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: color var(--dur-normal) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+    }
+    .guia__fechar:hover { color: var(--color-text-primary); background-color: rgba(255, 255, 255, 0.07); }
+    .guia__fechar svg { width: 18px; height: 18px; }
+
+    .guia__corpo {
+      padding: var(--space-md);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .guia__unidades {
+      display: inline-flex;
+      margin-bottom: var(--space-sm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .guia__unidade {
+      min-height: 36px;
+      padding: 0 var(--space-sm);
+      border: none;
+      background: none;
+      color: var(--color-text-muted);
+      font-family: var(--font-ui-family);
+      font-size: var(--f0);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+    }
+    .guia__unidade.is-ativa {
+      color: var(--color-text-on-accent);
+      background-color: var(--color-accent);
+    }
+
+    /* Numa tabela de medidas a coluna do tamanho é a âncora da
+       leitura: ela fica presa enquanto o resto rola no celular. */
+    .guia__rolagem { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .guia__tabela {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-ui-family);
+      font-size: var(--f1);
+      font-variant-numeric: tabular-nums;
+    }
+    .guia__tabela th,
+    .guia__tabela td {
+      padding: var(--space-xs) var(--space-2xs);
+      text-align: right;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .guia__tabela thead th {
+      font-size: var(--f0);
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+    .guia__tabela th[scope='row'] {
+      text-align: left;
+      position: sticky;
+      left: 0;
+      background-color: var(--color-background);
+      font-weight: var(--font-weight-semibold);
+    }
+    .guia__tabela thead th:first-child { text-align: left; }
+    .guia__tabela tbody tr:last-child th,
+    .guia__tabela tbody tr:last-child td { border-bottom: none; }
+
+    .guia__nota {
+      margin-top: var(--space-sm);
+      font-size: var(--f1);
+      color: var(--color-text-secondary);
+    }
+    .guia__nota p { margin: 0 0 var(--space-2xs); }
+    .guia__nota p:last-child { margin-bottom: 0; }
+
+    .guia__medir { margin-top: var(--space-sm); border-top: 1px solid var(--color-border); }
+    .guia__medir-titulo {
+      display: flex;
+      align-items: center;
+      min-height: var(--control-h);
+      font-family: var(--font-ui-family);
+      font-size: var(--f1);
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+      list-style: none;
+    }
+    .guia__medir-titulo::-webkit-details-marker { display: none; }
+    .guia__medir-titulo::after {
+      content: '+';
+      margin-left: auto;
+      font-size: var(--f3);
+      color: var(--color-text-muted);
+    }
+    .guia__medir[open] .guia__medir-titulo::after { content: '−'; }
+    .guia__medir-corpo {
+      padding-bottom: var(--space-sm);
+      font-size: var(--f1);
+      color: var(--color-text-secondary);
+    }
+
+    /* O botão que abre a janela: continua parecendo um link discreto
+       ao lado do rótulo de tamanho, como era antes. */
+    .pdp__guia {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    @media screen and (max-width: 600px) {
+      /* No celular a janela vira uma folha que sobe do rodapé: é o
+         gesto que o polegar espera e deixa a tabela com a largura
+         inteira da tela para respirar. */
+      .guia {
+        width: 100vw;
+        max-width: 100vw;
+        max-height: 88dvh;
+        margin: auto auto 0;
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+        border-bottom: none;
+      }
+      .guia__corpo { padding-bottom: calc(var(--space-md) + var(--sab, 0px)); }
+    }
+  </style>
+
+  <script>
+    (function () {
+      var dialog = document.getElementById('{{ guia_id }}');
+      if (!dialog) return;
+      var abrir = document.querySelector('[data-guia-abrir="{{ guia_id }}"]');
+
+      /* ---------------------------------------------------------
+         O DIALOG VAI PARA O <body>
+
+         Ele nasce dentro de .pdp__info, e no desktop esse elemento
+         recebe um `pin` do ScrollTrigger (ver [data-smooth-sticky]
+         em assets/movimento.js), que trabalha aplicando TRANSFORM.
+
+         Um ancestral com transform passa a ser o bloco de referência
+         de qualquer position: fixed dentro dele. O <dialog> aberto
+         com showModal() é imune, porque vai para a top layer do
+         navegador — mas o caminho de queda (Safari/WebView antigos,
+         sem showModal, que usam position: fixed) ficaria preso
+         dentro da coluna de informações, fora do lugar.
+
+         Mover uma vez para o body resolve os dois caminhos e protege
+         contra qualquer transform que apareça acima daqui depois.
+         A guarda evita nó órfão quando o editor de temas
+         re-renderiza a section.
+      --------------------------------------------------------- */
+      if (dialog.parentNode !== document.body) {
+        var anterior = document.querySelector('body > .guia#{{ guia_id }}');
+        if (anterior && anterior !== dialog) anterior.parentNode.removeChild(anterior);
+        document.body.appendChild(dialog);
+      }
+      var fechar = dialog.querySelector('[data-guia-fechar]');
+      var nativo = typeof dialog.showModal === 'function';
+      if (!nativo) dialog.classList.add('is-fallback');
+      var ultimoFoco = null;
+
+      function abrirGuia() {
+        ultimoFoco = document.activeElement;
+        if (nativo) dialog.showModal();
+        else { dialog.classList.add('is-open'); dialog.setAttribute('open', ''); }
+        if (fechar) fechar.focus();
+      }
+
+      function fecharGuia() {
+        if (nativo) dialog.close();
+        else { dialog.classList.remove('is-open'); dialog.removeAttribute('open'); }
+        /* preventScroll: devolver o foco ao gatilho é o certo para quem
+           navega por teclado, mas ele não pode arrastar a página — o
+           gatilho fica no meio da ficha do produto. */
+        if (ultimoFoco && document.contains(ultimoFoco)) {
+          try { ultimoFoco.focus({ preventScroll: true }); } catch (e) { ultimoFoco.focus(); }
+        }
+        ultimoFoco = null;
+      }
+
+      if (abrir) abrir.addEventListener('click', abrirGuia);
+      if (fechar) fechar.addEventListener('click', fecharGuia);
+
+      /* Clique no fundo fecha. O <dialog> nativo entrega o clique do
+         ::backdrop no próprio dialog, então comparar o alvo basta. */
+      dialog.addEventListener('click', function (evento) {
+        if (evento.target === dialog) fecharGuia();
+      });
+      if (!nativo) {
+        document.addEventListener('keydown', function (evento) {
+          if (evento.key === 'Escape' && dialog.classList.contains('is-open')) fecharGuia();
+        });
+      }
+
+      {%- if bloco.settings.size_guide_polegadas -%}
+      /* ---------------------------------------------------------
+         cm ↔ polegadas
+
+         Converte a partir do número que já está na célula, guardado
+         em data-medida. Célula sem número (um "—", um texto) passa
+         intacta: a tabela é livre e nem toda coluna é medida.
+      --------------------------------------------------------- */
+      var botoes = dialog.querySelectorAll('[data-guia-unidade]');
+      botoes.forEach(function (botao) {
+        botao.addEventListener('click', function () {
+          var unidade = botao.getAttribute('data-guia-unidade');
+          botoes.forEach(function (b) { b.classList.toggle('is-ativa', b === botao); });
+          dialog.querySelectorAll('[data-medida]').forEach(function (celula) {
+            var bruto = celula.getAttribute('data-medida');
+            var numero = parseFloat(String(bruto).replace(',', '.'));
+            if (isNaN(numero)) { celula.textContent = bruto; return; }
+            celula.textContent = unidade === 'pol'
+              ? (numero / 2.54).toFixed(1).replace('.', ',')
+              : bruto;
+          });
+        });
+      });
+      {%- endif -%}
+    })();
+  </script>
+{%- elsif bloco.settings.size_guide != blank -%}
+  {%- comment -%}
+    Queda: lojas que ainda usam o link para uma página continuam
+    funcionando exatamente como antes.
+  {%- endcomment -%}
+  <a href="{{ bloco.settings.size_guide }}" class="pdp__guia">
+    {{ 'products.product.size_guide' | t }}
+  </a>
+{%- endif -%}

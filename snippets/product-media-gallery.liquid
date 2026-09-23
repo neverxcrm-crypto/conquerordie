@@ -463,6 +463,67 @@
   .pdp__sticky .button { flex: none; padding-inline: var(--space-md); }
 
   /* ==========================================================
+     CAIMENTO
+     ==========================================================
+     Lista de definição em vez de parágrafo corrido: "Modelo /
+     1,82 m — veste M" é um par rótulo-valor, e marcar como <dl>
+     deixa o leitor de tela anunciar os dois juntos. Visualmente é
+     o mesmo ritmo das outras fichas da página.
+
+     Fundo de superfície e hairline, sem sombra: é informação de
+     apoio, não um card que compete com a área de compra. */
+  .caimento {
+    padding: var(--space-sm);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+  .caimento__titulo {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-xs);
+  }
+  .caimento__lista {
+    display: grid;
+    gap: var(--space-2xs);
+    margin: 0;
+  }
+  .caimento__item {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr);
+    gap: var(--space-2xs);
+    align-items: baseline;
+  }
+  .caimento__rotulo {
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+  .caimento__valor {
+    margin: 0;
+    font-size: var(--f1);
+    color: var(--color-text-primary);
+  }
+  .caimento__nota {
+    margin: var(--space-xs) 0 0;
+    padding-top: var(--space-xs);
+    border-top: 1px solid var(--color-border);
+    font-size: var(--f1);
+    color: var(--color-text-secondary);
+  }
+  /* Abaixo de 380px a coluna de rótulo fixa espremia o valor a duas
+     ou três palavras por linha. Empilhar lê melhor que espremer. */
+  @media screen and (max-width: 380px) {
+    .caimento__item { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  }
+
+  /* ==========================================================
      LIGHTBOX — zoom da foto
      ==========================================================
      <dialog> nativo: o navegador entrega de graça o foco preso

@@ -369,10 +369,13 @@
                             {{ option.name }}:
                             <strong data-opcao-valor="{{ forloop.index0 }}">{{ option.selected_value }}</strong>
                           </legend>
-                          {%- if eh_tamanho and block.settings.size_guide != blank -%}
-                            <a href="{{ block.settings.size_guide }}" class="pdp__guia">
-                              {{ 'products.product.size_guide' | t }}
-                            </a>
+                          {%- if eh_tamanho -%}
+                            {%- comment -%}
+                              O guia decide sozinho se abre uma janela
+                              com a tabela (quando há tabela) ou se cai
+                              no link antigo. Ver snippets/guia-de-tamanhos.
+                            {%- endcomment -%}
+                            {% render 'guia-de-tamanhos', bloco: block, id_section: section.id, product: product %}
                           {%- endif -%}
                         </div>
 
@@ -539,6 +542,65 @@
                   {%- endif -%}
                 </div>
 
+              {%- comment -%}
+                ============================================================
+                CAIMENTO — a informação que decide a compra de roupa
+                ============================================================
+                Numa loja de moda, a dúvida que mais trava a compra (e a
+                que mais gera troca depois) não é preço: é "como isso
+                veste em mim?". A tabela de medidas responde metade;
+                a outra metade é a referência humana — a altura de quem
+                está na foto e o tamanho que essa pessoa está usando.
+
+                Cada campo só aparece se estiver preenchido, e todos
+                aceitam um metafield do produto, para a loja cadastrar
+                por peça sem mexer no tema. Nada aqui é inventado: campo
+                vazio simplesmente não existe na tela.
+              {%- endcomment -%}
+              {%- when 'caimento' -%}
+                {%- liquid
+                  assign mf = product.metafields.custom
+                  assign fit_modelo   = mf.modelo_veste   | default: block.settings.modelo_veste
+                  assign fit_modelagem = mf.modelagem     | default: block.settings.modelagem
+                  assign fit_tecido   = mf.composicao     | default: block.settings.composicao
+                  assign fit_extra    = mf.nota_caimento  | default: block.settings.nota
+
+                  assign tem_caimento = false
+                  if fit_modelo != blank or fit_modelagem != blank or fit_tecido != blank or fit_extra != blank
+                    assign tem_caimento = true
+                  endif
+                -%}
+                {%- if tem_caimento -%}
+                  <div class="caimento" {{ block.shopify_attributes }}>
+                    {%- if block.settings.titulo != blank -%}
+                      <h2 class="caimento__titulo">{{ block.settings.titulo | escape }}</h2>
+                    {%- endif -%}
+                    <dl class="caimento__lista">
+                      {%- if fit_modelo != blank -%}
+                        <div class="caimento__item">
+                          <dt class="caimento__rotulo">Modelo</dt>
+                          <dd class="caimento__valor">{{ fit_modelo }}</dd>
+                        </div>
+                      {%- endif -%}
+                      {%- if fit_modelagem != blank -%}
+                        <div class="caimento__item">
+                          <dt class="caimento__rotulo">Modelagem</dt>
+                          <dd class="caimento__valor">{{ fit_modelagem }}</dd>
+                        </div>
+                      {%- endif -%}
+                      {%- if fit_tecido != blank -%}
+                        <div class="caimento__item">
+                          <dt class="caimento__rotulo">Tecido</dt>
+                          <dd class="caimento__valor">{{ fit_tecido }}</dd>
+                        </div>
+                      {%- endif -%}
+                    </dl>
+                    {%- if fit_extra != blank -%}
+                      <p class="caimento__nota">{{ fit_extra }}</p>
+                    {%- endif -%}
+                  </div>
+                {%- endif -%}
+
               {%- when 'trust' -%}
                 <ul class="trust-row pdp__trust" role="list" {{ block.shopify_attributes }}>
                   {%- for i in (1..3) -%}
@@ -659,6 +721,61 @@
 {% render 'product-gallery', section_id: section.id %}
 {% render 'product-variant-selection', section_id: section.id, product_form_id: product_form_id %}
 
+{%- comment -%}
+  ============================================================
+  FAQ EM DADOS ESTRUTURADOS (schema.org/FAQPage)
+  ============================================================
+  Os acordeões da ficha do produto já são, na prática, um FAQ:
+  "Entrega e devolução", "Detalhes do produto", e o que mais o
+  lojista adicionar. Declará-los como FAQPage faz o Google poder
+  exibi-los como resultado expandido na busca — a resposta aparece
+  antes do clique, o que traz gente que já entrou sabendo o prazo
+  de entrega e a política de troca.
+
+  Não há interface nova aqui: é o mesmo conteúdo que já está na
+  página, descrito numa linguagem que o buscador entende. Por isso
+  só entram acordeões com título E conteúdo preenchidos — declarar
+  uma pergunta sem resposta é marcação inválida.
+
+  A descrição do produto fica de fora de propósito: ela já é
+  descrita pelo JSON-LD de Product (ver structured-data-product) e
+  repetir a mesma informação nos dois lugares confunde o rastreador.
+{%- endcomment -%}
+{%- liquid
+  assign faq_blocos = section.blocks | where: 'type', 'accordion'
+  assign faq_total = 0
+  for b in faq_blocos
+    if b.settings.title != blank and b.settings.content != blank
+      assign faq_total = faq_total | plus: 1
+    endif
+  endfor
+-%}
+{%- if faq_total > 0 -%}
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {%- assign escritos = 0 -%}
+        {%- for b in faq_blocos -%}
+          {%- if b.settings.title != blank and b.settings.content != blank -%}
+            {%- if escritos > 0 -%},{%- endif -%}
+            {
+              "@type": "Question",
+              "name": {{ b.settings.title | strip_html | json }},
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": {{ b.settings.content | strip_html | strip_newlines | json }}
+              }
+            }
+            {%- assign escritos = escritos | plus: 1 -%}
+          {%- endif -%}
+        {%- endfor -%}
+      ]
+    }
+  </script>
+{%- endif -%}
+
 {% schema %}
 {
   "name": "t:sections.main_product.name",
@@ -693,10 +810,81 @@
       "limit": 1,
       "settings": [
         {
+          "type": "header",
+          "content": "Guia de tamanhos"
+        },
+        {
+          "type": "textarea",
+          "id": "size_guide_tabela",
+          "label": "Tabela de medidas",
+          "info": "Uma linha por tamanho, colunas separadas por vírgula. A primeira linha é o cabeçalho. Ex.: Tamanho, Peito (cm), Comprimento (cm) — depois P, 108, 70. Deixe vazio para usar o link abaixo. Um produto específico pode sobrescrever esta tabela pelo metafield custom.tabela_medidas."
+        },
+        {
+          "type": "text",
+          "id": "size_guide_titulo",
+          "label": "Título da janela",
+          "default": "Guia de tamanhos"
+        },
+        {
+          "type": "checkbox",
+          "id": "size_guide_polegadas",
+          "label": "Permitir trocar para polegadas",
+          "default": false,
+          "info": "Converte os números da tabela na hora. Útil se você vende para fora do Brasil."
+        },
+        {
+          "type": "richtext",
+          "id": "size_guide_nota",
+          "label": "Observação de modelagem",
+          "info": "Ex.: esta peça tem modelagem oversized — se você prefere mais justo, escolha um tamanho abaixo."
+        },
+        {
+          "type": "richtext",
+          "id": "size_guide_medir",
+          "label": "Como medir",
+          "info": "Instruções que aparecem recolhidas no fim da janela."
+        },
+        {
           "type": "url",
           "id": "size_guide",
-          "label": "Guia de tamanhos",
-          "info": "Link exibido ao lado da opção de tamanho."
+          "label": "Link do guia (alternativa)",
+          "info": "Usado apenas quando não houver tabela preenchida acima."
+        }
+      ]
+    },
+    {
+      "type": "caimento",
+      "name": "Caimento e modelagem",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Responde \"como isso veste em mim?\". Cada campo pode ser preenchido por produto através de um metafield (custom.modelo_veste, custom.modelagem, custom.composicao, custom.nota_caimento); o valor abaixo vale como padrão da loja. Campo vazio não aparece na página."
+        },
+        { "type": "text", "id": "titulo", "label": "Título", "default": "Caimento" },
+        {
+          "type": "text",
+          "id": "modelo_veste",
+          "label": "Modelo",
+          "info": "Ex.: 1,82 m — veste M"
+        },
+        {
+          "type": "text",
+          "id": "modelagem",
+          "label": "Modelagem",
+          "info": "Ex.: Oversized, Regular, Slim"
+        },
+        {
+          "type": "text",
+          "id": "composicao",
+          "label": "Tecido",
+          "info": "Ex.: 100% algodão 240g"
+        },
+        {
+          "type": "text",
+          "id": "nota",
+          "label": "Observação",
+          "info": "Ex.: se você prefere mais justo, escolha um tamanho abaixo."
         }
       ]
     },
@@ -814,6 +1002,7 @@
         { "type": "title" },
         { "type": "price" },
         { "type": "variant_picker" },
+        { "type": "caimento" },
         { "type": "quantity" },
         { "type": "buy_buttons" },
         { "type": "trust" },
