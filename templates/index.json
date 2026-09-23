@@ -51,6 +51,7 @@
       ],
       "settings": {
         "height": "tall",
+        "content_position": "centro",
         "autoplay": true,
         "autoplay_speed": 6,
         "show_arrows": true,
@@ -184,6 +185,89 @@
         "count_label": "peças"
       }
     },
+    "instagram": {
+      "type": "instagram",
+      "blocks": {
+        "post_Wai8ni": {
+          "type": "post",
+          "settings": {
+            "link": "",
+            "alt": ""
+          }
+        },
+        "post_FXpwGt": {
+          "type": "post",
+          "settings": {
+            "link": "",
+            "alt": ""
+          }
+        },
+        "post_re9hpb": {
+          "type": "post",
+          "settings": {
+            "link": "",
+            "alt": ""
+          }
+        },
+        "post_nwgCU7": {
+          "type": "post",
+          "settings": {
+            "link": "",
+            "alt": ""
+          }
+        },
+        "post_B78U8x": {
+          "type": "post",
+          "settings": {
+            "link": "",
+            "alt": ""
+          }
+        },
+        "post_r8qXiN": {
+          "type": "post",
+          "settings": {
+            "link": "",
+            "alt": ""
+          }
+        },
+        "post_xQPCw4": {
+          "type": "post",
+          "settings": {
+            "link": "",
+            "alt": ""
+          }
+        },
+        "post_C7Wm8w": {
+          "type": "post",
+          "settings": {
+            "link": "",
+            "alt": ""
+          }
+        }
+      },
+      "block_order": [
+        "post_Wai8ni",
+        "post_FXpwGt",
+        "post_re9hpb",
+        "post_nwgCU7",
+        "post_B78U8x",
+        "post_r8qXiN",
+        "post_xQPCw4",
+        "post_C7Wm8w"
+      ],
+      "settings": {
+        "eyebrow": "Comunidade",
+        "heading": "No Instagram",
+        "arroba": "conquerordie_clothing",
+        "perfil_url": "https://www.instagram.com/conquerordie_clothing/",
+        "cta_label": "",
+        "colunas": 4,
+        "video": "shopify://files/videos/SaveClip.App_AQPUC8O1ee4n1aWJTHaPXVvwgH9oprDT1DLuY22Ir2HRl_rQhzBMWT899edFTbD5maS5shn1R9vLL9uAuRzksgi5nMiMxyGjEvkiRyU.mp4",
+        "video_url": "",
+        "video_descricao": "",
+        "reels_lado": "esquerda"
+      }
+    },
     "brand_story": {
       "type": "brand-story",
       "blocks": {
@@ -252,61 +336,6 @@
         "countdown_date": "",
         "countdown_time": "00:00"
       }
-    },
-    "instagram": {
-      "type": "instagram",
-      "blocks": {
-        "post_1": {
-          "type": "post",
-          "settings": {}
-        },
-        "post_2": {
-          "type": "post",
-          "settings": {}
-        },
-        "post_3": {
-          "type": "post",
-          "settings": {}
-        },
-        "post_4": {
-          "type": "post",
-          "settings": {}
-        },
-        "post_5": {
-          "type": "post",
-          "settings": {}
-        },
-        "post_6": {
-          "type": "post",
-          "settings": {}
-        },
-        "post_7": {
-          "type": "post",
-          "settings": {}
-        },
-        "post_8": {
-          "type": "post",
-          "settings": {}
-        }
-      },
-      "block_order": [
-        "post_1",
-        "post_2",
-        "post_3",
-        "post_4",
-        "post_5",
-        "post_6",
-        "post_7",
-        "post_8"
-      ],
-      "settings": {
-        "eyebrow": "Comunidade",
-        "heading": "No Instagram",
-        "arroba": "@conquerordie",
-        "cta_label": "Seguir no Instagram",
-        "colunas": 4,
-        "reels_lado": "esquerda"
-      }
     }
   },
   "order": [
@@ -314,8 +343,8 @@
     "marquee_below_hero_M8HkFV",
     "latest_drop",
     "collections",
-    "brand_story",
     "instagram",
+    "brand_story",
     "campaign"
   ]
 }
