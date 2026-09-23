@@ -137,14 +137,93 @@
      position:fixed sozinho jogaria a página de volta ao topo.
   --------------------------------------------------------- */
   var scrollTravado = 0;
+  var souDonoDaPosicao = false;
+  var raf = window.requestAnimationFrame || function (cb) { return window.setTimeout(cb, 16); };
 
   function comSmoother() {
     return document.documentElement.classList.contains('has-smooth-scroll');
   }
 
+  /* O ScrollSmoother e quem sabe onde a pagina esta no desktop.
+     window.scrollY NAO serve ali: com `effects: true` os elementos
+     com data-speed mudam a altura rolavel, e as duas medidas
+     divergem — medi 2916 (janela) contra 3368 (smoother) na mesma
+     tela parada. Guardar a medida errada e voltar para ela e, por si
+     so, um salto de 450px. */
+  function smootherAtivo() {
+    var m = window.CODMotion;
+    return comSmoother() && m && m.smoother ? m.smoother : null;
+  }
+
+  function posicaoAtual() {
+    var s = smootherAtivo();
+    if (s) return Math.round(s.scrollTop());
+    return Math.round(window.scrollY || document.documentElement.scrollTop || 0);
+  }
+
+  /* ---------------------------------------------------------
+     A VOLTA PRECISA SER INSTANTANEA
+
+     normalizar.css declara `html { scroll-behavior: smooth }` e so o
+     desativa quando o ScrollSmoother assume. No celular — e em
+     qualquer desktop em motion-lite — ele esta valendo, e entao o
+     scrollTo abaixo deixaria de ser um corte e viraria uma ANIMACAO
+     saindo do topo: o carrinho fecha, a pagina pisca la em cima e so
+     depois volta rolando. Qualquer toque no meio do percurso cancela
+     a animacao e a pessoa fica presa no inicio da pagina.
+
+     Desligar por style inline vence a regra da folha (que nao usa
+     !important nesse seletor) e cobre todos os navegadores —
+     diferente de scrollTo({ behavior: 'instant' }), que e mais novo.
+  --------------------------------------------------------- */
+  function irPara(y) {
+    var html = document.documentElement;
+    var anterior = html.style.scrollBehavior;
+    html.style.scrollBehavior = 'auto';
+    var s = smootherAtivo();
+    if (s) s.scrollTop(y);
+    else window.scrollTo(0, y);
+    html.style.scrollBehavior = anterior;
+  }
+
+  /* ---------------------------------------------------------
+     FOCO QUE NAO ARRASTA A PAGINA
+
+     Esta e a causa mais direta do "fechou o carrinho e voltou pro
+     topo". element.focus() rola o elemento para dentro da tela por
+     padrao. Fechando o carrinho o foco volta para quem o abriu — que
+     no fluxo real e o botao "adicionar ao carrinho" la no meio da
+     pagina, nao o icone do header. E quando esse botao ja nao existe
+     (a section foi re-renderizada depois do /cart/add.js), o foco cai
+     no <body>/<main>, e <main> comeca no topo do documento: a pagina
+     inteira sobe.
+
+     preventScroll desliga essa rolagem. O foco vai para onde deve ir,
+     a pagina nao se mexe. O catch cobre navegador antigo que ignore o
+     objeto de opcoes.
+  --------------------------------------------------------- */
+  function focarSemRolar(el) {
+    if (!el || typeof el.focus !== 'function' || !document.contains(el)) return false;
+    try {
+      el.focus({ preventScroll: true });
+    } catch (e) {
+      el.focus();
+    }
+    return document.activeElement === el;
+  }
+
   function travarRolagem() {
-    if (document.body.classList.contains('bloquear')) return;
-    scrollTravado = window.scrollY || document.documentElement.scrollTop || 0;
+    /* Se a pagina JA esta travada, quem travou antes (o menu mobile)
+       guardou a posicao e vai restaura-la. Assumir a posse aqui era o
+       defeito: `window.scrollY` com o body ja fixado vale 0, entao o
+       carrinho guardava ZERO e, ao fechar, mandava a pagina para o
+       topo com toda a certeza do mundo. */
+    if (document.body.classList.contains('bloquear')) {
+      souDonoDaPosicao = false;
+      return;
+    }
+    scrollTravado = posicaoAtual();
+    souDonoDaPosicao = true;
     // Com o ScrollSmoother quem rola é o transform do #smooth-content,
     // não o body: o movimento.js pausa o smoother na mesma classe e
     // fixar o body ali só criaria um salto. Ver normalizar.css.
@@ -154,39 +233,88 @@
 
   function destravarRolagem() {
     if (!document.body.classList.contains('bloquear')) return;
-    var restaurar = !comSmoother() && document.body.style.top !== '';
+
+    /* De onde vem a posicao de volta?
+
+       Se fui eu quem travou, e a que guardei. Se NAO fui — outro
+       painel travou e o carrinho esta destravando por cima —, entao
+       a posicao esta no proprio `body.style.top`, que e exatamente o
+       que aquele painel escreveu ali para nao perder o lugar. Ler
+       dali fecha o buraco: antes o carrinho apagava esse valor e
+       saia sem restaurar nada, e a pagina caia no topo por nao ter
+       mais nem o offset nem o scroll.
+
+       Com o ScrollSmoother o `top` nunca e escrito (o body nao e
+       fixado ali), entao alvo fica nulo e nada e forcado — que e o
+       certo: naquele modo quem manda na posicao e o smoother. */
+    var alvo = null;
+    if (souDonoDaPosicao) {
+      alvo = scrollTravado;
+    } else {
+      var topoGuardado = parseFloat(document.body.style.top);
+      if (!isNaN(topoGuardado)) alvo = Math.round(-topoGuardado);
+    }
+    souDonoDaPosicao = false;
+
     document.body.classList.remove('bloquear');
     document.body.style.top = '';
-    if (!restaurar) return;
+    if (alvo === null) return;
 
-    /* ---------------------------------------------------------
-       A VOLTA PRECISA SER INSTANTANEA
+    restaurarPosicao(alvo);
+  }
 
-       normalizar.css declara `html { scroll-behavior: smooth }` e so
-       o desativa quando o ScrollSmoother assume (html.has-smooth-scroll).
-       No celular — e em qualquer desktop em motion-lite — ele esta
-       valendo.
+  /* ---------------------------------------------------------
+     RESTAURAR E DEFENDER A POSICAO POR UM INSTANTE
 
-       O problema: tirar o position:fixed do body devolve o documento
-       ao scroll 0 no mesmo quadro. O scrollTo logo abaixo e o que
-       traz a pessoa de volta ao ponto onde ela estava — mas, com
-       scroll-behavior: smooth, ele deixa de ser um salto e vira uma
-       ANIMACAO saindo do topo. O resultado na tela e o carrinho
-       fechar, a pagina piscar la em cima e so entao voltar rolando.
-       Pior: qualquer toque durante o percurso cancela a animacao e a
-       pessoa fica presa no inicio da pagina.
+     Reposicionar uma unica vez nao basta, e a razao e sutil:
+     normalizar.css declara `html { scroll-behavior: smooth }`. Com
+     isso, QUALQUER scrollTo/scrollIntoView disparado por outro
+     pedaco do tema deixa de ser um salto e vira uma ANIMACAO de
+     varias centenas de milissegundos. Uma animacao dessas, iniciada
+     um pouco antes do fechamento, continua correndo DEPOIS de o
+     carrinho ter reposto a posicao — e vai levando a pagina embora,
+     dois ou tres pixels por quadro, ate o topo.
 
-       Desligar por style inline vence a regra da folha (que nao usa
-       !important nesse seletor) e cobre todos os navegadores —
-       diferente de scrollTo({behavior:'instant'}), que e mais novo.
-       O valor anterior e devolvido logo em seguida para a rolagem
-       suave das ancoras continuar funcionando normalmente.
-    --------------------------------------------------------- */
-    var html = document.documentElement;
-    var comportamentoAnterior = html.style.scrollBehavior;
-    html.style.scrollBehavior = 'auto';
-    window.scrollTo(0, scrollTravado);
-    html.style.scrollBehavior = comportamentoAnterior;
+     Medido aqui: logo apos o fechamento a pagina lia 1565 (certo),
+     e nos quadros seguintes 1563, 1557, 1547, 1533... ate zero. Uma
+     conferencia imediata nao ve nada de errado, porque no primeiro
+     quadro ainda nao ha desvio nenhum.
+
+     Por isso a posicao e vigiada por ~600ms. Cada correcao emite um
+     scroll instantaneo, que tambem CANCELA a animacao em curso.
+
+     E a vigilancia para no instante em que a pessoa encosta na
+     pagina — roda, toca, usa o teclado. Restaurar depois disso
+     deixaria de ser conserto e viraria o tema brigando com quem
+     esta navegando, que e um defeito bem pior do que o original.
+  --------------------------------------------------------- */
+  function restaurarPosicao(alvo) {
+    irPara(alvo);
+
+    var eventos = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
+    var fim = Date.now() + 600;
+    var vigiando = true;
+
+    function soltar() {
+      if (!vigiando) return;
+      vigiando = false;
+      for (var i = 0; i < eventos.length; i++) {
+        window.removeEventListener(eventos[i], soltar, true);
+      }
+    }
+
+    for (var i = 0; i < eventos.length; i++) {
+      window.addEventListener(eventos[i], soltar, { capture: true, passive: true });
+    }
+
+    (function vigiar() {
+      if (!vigiando) return;
+      // 2px de tolerancia: zoom e densidade de tela produzem
+      // arredondamentos de 1px que nao sao desvio de verdade.
+      if (Math.abs(posicaoAtual() - alvo) > 2) irPara(alvo);
+      if (Date.now() < fim) raf(vigiar);
+      else soltar();
+    })();
   }
 
   window.CODTravarRolagem = travarRolagem;
@@ -202,8 +330,7 @@
     travarRolagem();
     document.addEventListener('keydown', onKeydown);
     // Foco vai para o botão de fechar — primeiro elemento operável do painel.
-    var closeBtn = root.querySelector('.cart-drawer__close');
-    if (closeBtn) closeBtn.focus();
+    focarSemRolar(root.querySelector('.cart-drawer__close'));
   }
 
   /* manterTrava: quem fecha o carrinho para abrir OUTRO painel
@@ -226,12 +353,15 @@
        meio do caminho: quem clica no "+" de um card e depois muda a
        quantidade tem o botão original trocado pelo HTML novo da
        section. .focus() num nó fora do documento não faz nada, e o
-       foco cairia no <body> — de volta ao topo da página. */
-    if (lastOpener && document.contains(lastOpener) && typeof lastOpener.focus === 'function') {
-      lastOpener.focus();
-    } else {
-      var voltar = document.querySelector('[data-cart-open]');
-      if (voltar) voltar.focus();
+       foco cairia no <body> — de volta ao topo da página.
+
+       As duas tentativas usam focarSemRolar: devolver o foco e certo
+       (quem navega por teclado precisa continuar de onde parou), mas
+       ele nao pode arrastar a pagina junto. O icone do carrinho no
+       header e a ultima rede de seguranca — ele esta sempre na tela,
+       entao o foco nunca fica orfao no <body>. */
+    if (!focarSemRolar(lastOpener)) {
+      focarSemRolar(document.querySelector('[data-cart-open]'));
     }
     lastOpener = null;
   }
@@ -272,11 +402,35 @@
           }
         }
 
+        /* Quem estava com o foco pode estar dentro do que vai ser
+           substituido (o "+" de um item, por exemplo). Trocar o HTML
+           embaixo do elemento focado joga o foco no <body> — e dali o
+           navegador rola para o topo do documento na proxima
+           interacao. Guardamos onde o foco estava para devolve-lo ao
+           equivalente no HTML novo. */
+        var focoAntigo = document.activeElement;
+        var precisaRefocar = focoAntigo && inner.contains(focoAntigo);
+        var marcaFoco = null;
+        if (precisaRefocar) {
+          marcaFoco = focoAntigo.getAttribute('data-cart-change') ||
+                      focoAntigo.getAttribute('data-cart-remove') ||
+                      (focoAntigo.className || '').toString().split(' ')[0];
+        }
+
         inner.innerHTML = newInner.innerHTML;
 
         if (scrollRegion) {
           var newScrollRegion = root.querySelector('[data-cart-scroll]');
           if (newScrollRegion) newScrollRegion.scrollTop = scrollTop;
+        }
+
+        if (precisaRefocar) {
+          var destino = null;
+          if (marcaFoco) {
+            destino = inner.querySelector('[data-cart-change="' + marcaFoco + '"]') ||
+                      inner.querySelector('.' + marcaFoco);
+          }
+          focarSemRolar(destino || root.querySelector('.cart-drawer__close'));
         }
       }
     }

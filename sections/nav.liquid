@@ -198,9 +198,10 @@
     z-index: 100; transform: translate3d(0, 0, 0) !important;
   }
 
-  /* --- VIDRO ZERO LINHAS (Estado Topo) --- */
+  /* --- VIDRO ZERO LINHAS E PROTEÇÃO DE LEITURA (Estado Topo) --- */
   .header__glass {
-    position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    z-index: -1; pointer-events: none;
     background-color: transparent;
     border-bottom: none;
     box-shadow: none;
@@ -208,19 +209,36 @@
       background-color var(--hd-duration) var(--hd-ease),
       border-color var(--hd-duration) var(--hd-ease),
       box-shadow var(--hd-duration) var(--hd-ease),
-      backdrop-filter var(--hd-duration) var(--hd-ease);
+      backdrop-filter var(--hd-duration) var(--hd-ease),
+      bottom var(--hd-duration) var(--hd-ease);
   }
 
   .header:not(.header--transparent-top):not(.header--scrolled) .header__glass {
     background-color: var(--color-background, #0A0A0C);
   }
 
+  /* Degradê alongado para baixo da header para esfumar sem corte brusco */
   .header.header--transparent-top:not(.header--scrolled) .header__glass {
-    background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 100%);
+    bottom: -150px; /* Dá espaço para o gradiente descer suavemente */
+    background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.2) 65%, transparent 100%);
+  }
+
+  /* Sombras dinâmicas nos itens apenas no estado do topo */
+  .header.header--transparent-top:not(.header--scrolled) .header__menu-link,
+  .header.header--transparent-top:not(.header--scrolled) .header__logo-text {
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+  }
+  .header.header--transparent-top:not(.header--scrolled) .header__action-button svg,
+  .header.header--transparent-top:not(.header--scrolled) .header__burger,
+  .header.header--transparent-top:not(.header--scrolled) .header__burger::before,
+  .header.header--transparent-top:not(.header--scrolled) .header__burger::after,
+  .header.header--transparent-top:not(.header--scrolled) .header__menu-caret svg {
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
   }
 
   /* --- VIDRO ATIVADO (Ao Rolar) --- */
   .header--scrolled .header__glass {
+    bottom: 0; /* Retorna a máscara ao tamanho estrito do header ao rolar */
     background-color: rgba(10, 10, 12, 0.85);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -259,10 +277,6 @@
   }
   .header--scrolled .header__inner { padding: 6px 0; }
 
-  /* O recorte da tela entra AQUI e nao no <main>: a header e fixed,
-     entao mexer no padding dela nao remede o documento inteiro.
-     O .header__glass e absolute com inset: 0, logo o vidro cobre o
-     notch junto — sem faixa transparente no topo. */
   .header { padding-top: var(--sat, 0px); }
   .header__left-group { display: flex; align-items: center; gap: 4px; }
 
@@ -292,10 +306,6 @@
 
   .header__menu-link {
     display: inline-flex; align-items: center; gap: 6px;
-    /* O padding vertical mora AQUI e nao no <li>: no <li> ele
-       aumentava a fileira sem aumentar o alvo, e o link continuava
-       com 19px de altura clicavel. A altura total da header nao
-       muda — so o que responde ao clique. */
     padding: 12px 0;
     font-size: var(--f0, 0.8125rem); font-weight: var(--font-weight-semibold, 600);
     text-transform: uppercase; letter-spacing: var(--tracking-label, 0.05em);
@@ -337,24 +347,10 @@
   .header__submenu-link:focus-visible { opacity: 1; background-color: rgba(255, 255, 255, 0.06); transform: translateX(4px); }
 
   /* ==========================================================
-     BUSCA — o painel que nao tinha folha de estilo
-     ==========================================================
-     Esta é a correção do defeito mais visível do tema: o
-     .header__search-panel só tinha regra dentro do @media de
-     celular (top/left/right) e NENHUMA regra base. Sem position,
-     esses três valores não faziam nada; sem fundo e sem estado
-     fechado, o <details> aberto derramava lupa, campo e seta no
-     fluxo da header, empurrando o logo e os ícones.
-
-     O <summary> também precisa perder o triângulo nativo — ele
-     aparecia ao lado da lupa, que é o segundo ícone de busca
-     duplicado que se via na tela. */
+     BUSCA
+     ========================================================== */
   .header__search { position: relative; }
-
-  .header__search > summary {
-    list-style: none;
-    cursor: pointer;
-  }
+  .header__search > summary { list-style: none; cursor: pointer; }
   .header__search > summary::-webkit-details-marker { display: none; }
   .header__search > summary::marker { content: ''; }
 
@@ -386,60 +382,23 @@
     to   { opacity: 1; transform: none; }
   }
 
-  .header__search-form {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .header__search-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: none;
-    width: 24px;
-    margin-left: 6px;
-    color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
-  }
+  .header__search-form { display: flex; align-items: center; gap: 8px; }
+  .header__search-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; margin-left: 6px; color: var(--color-text-muted, rgba(255, 255, 255, 0.5)); }
   .header__search-icon svg { width: 18px; height: 18px; }
 
-  /* O campo perde a moldura própria: quem é a caixa aqui é o
-     painel. Duas bordas aninhadas a 10px de distância viram ruído. */
   .header__search-input.field__input {
-    flex: 1 1 auto;
-    min-width: 0;
-    min-height: 44px;
-    padding: 10px 4px;
-    background: transparent;
-    border: none;
-    border-radius: 0;
+    flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 10px 4px;
+    background: transparent; border: none; border-radius: 0;
   }
   .header__search-input.field__input:hover,
-  .header__search-input.field__input:focus {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    outline: none;
-  }
-  /* A cruz nativa do type=search no WebKit fica cinza sobre fundo
-     escuro e some. Fora ela: o Esc e o clique fora já fecham. */
+  .header__search-input.field__input:focus { background: transparent; border: none; box-shadow: none; outline: none; }
   .header__search-input::-webkit-search-cancel-button { -webkit-appearance: none; }
 
   .header__search-submit {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: none;
-    width: 44px;
-    height: 44px;
-    background-color: var(--color-accent, #C9A24D);
-    color: var(--color-text-on-accent, #000000);
-    border: none;
-    border-radius: var(--radius-sm, 8px);
-    cursor: pointer;
-    transition:
-      filter var(--dur-fast, 0.2s) var(--ease-out, ease),
-      transform var(--dur-fast, 0.2s) var(--ease-out, ease);
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 44px; height: 44px; background-color: var(--color-accent, #C9A24D);
+    color: var(--color-text-on-accent, #000000); border: none; border-radius: var(--radius-sm, 8px);
+    cursor: pointer; transition: filter var(--dur-fast, 0.2s) var(--ease-out, ease), transform var(--dur-fast, 0.2s) var(--ease-out, ease);
   }
   .header__search-submit svg { width: 18px; height: 18px; }
   .header__search-submit:hover { filter: brightness(1.12); }
@@ -468,8 +427,7 @@
     font-size: 11px; font-weight: var(--font-weight-bold, 700); line-height: 18px; text-align: center;
     font-variant-numeric: tabular-nums;
     color: var(--color-text-on-accent, #000000); background-color: var(--color-accent, #C9A24D);
-    border-radius: var(--radius-pill, 99px);
-    transform-origin: center center;
+    border-radius: var(--radius-pill, 99px); transform-origin: center center;
   }
 
   @keyframes cartCountBump {
@@ -514,50 +472,21 @@
     .header__account--desktop { display: none !important; }
     .header__account--mobile { display: inline-flex; }
 
-    /* Novo Layout de Grelha (Grid) Mobile Corrigido */
     .header__inner {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      min-height: 64px;
-      padding-top: 8px;
-      padding-bottom: 8px;
-      padding-left: 16px; /* Define um espaço de segurança lateral */
-      padding-right: 16px; 
-      gap: 12px; /* Garante que os ícones não se sobrepõem ao logo */
+      display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+      min-height: 64px; padding-top: 8px; padding-bottom: 8px;
+      padding-left: 16px; padding-right: 16px; gap: 12px;
     }
     .header--scrolled .header__inner { min-height: 56px; }
 
-    .header__left-group { 
-      grid-column: 1; 
-      justify-self: start; 
-      margin: 0; /* Removidas margens negativas problemáticas */
-    }
-    .header__logo-link { 
-      grid-column: 2; 
-      justify-self: center; 
-    }
-    .header__actions { 
-      grid-column: 3; 
-      justify-self: end; 
-      margin: 0; /* Removidas margens negativas problemáticas */
-    }
+    .header__left-group { grid-column: 1; justify-self: start; margin: 0; }
+    .header__logo-link { grid-column: 2; justify-self: center; }
+    .header__actions { grid-column: 3; justify-self: end; margin: 0; }
 
-    .header__logo-image {
-      width: {{ section.settings.logo_width_mobile }}px;
-      max-height: 36px; /* Aumentado para garantir melhor leitura */
-    }
+    .header__logo-image { width: {{ section.settings.logo_width_mobile }}px; max-height: 36px; }
 
-    /* No celular o painel atravessa a header inteira, entao o
-       ponto de referencia passa a ser a header e nao o botao. */
     .header__search { position: static; }
-    .header__search-panel {
-      top: calc(100% + 8px);
-      left: max(12px, var(--sal, 0px));
-      right: max(12px, var(--sar, 0px));
-      width: auto;
-      transform-origin: top center;
-    }
+    .header__search-panel { top: calc(100% + 8px); left: max(12px, var(--sal, 0px)); right: max(12px, var(--sar, 0px)); width: auto; transform-origin: top center; }
   }
 
   @media screen and (min-width: 1001px) {
@@ -567,47 +496,9 @@
     .header__scrim, .header__mobile-nav { display: none !important; }
   }
 
-  /* ==========================================================
-     GAVETA MOBILE (Drawer)
-     ==========================================================
-     ATENCAO — o scrim e a gaveta SO funcionam porque o script
-     abaixo os move para dentro do <body> assim que a section
-     carrega. Enquanto ficavam onde o Liquid os escreve, eles eram
-     filhos do wrapper .section-header, que tem `transform` (ele
-     desliza para baixo da barra de avisos) E altura ZERO — porque
-     todo o conteudo dele e fixed e sai do fluxo.
+  /* --- GAVETA MOBILE (Drawer) --- */
+  .header__scrim[hidden], .header__mobile-nav[hidden] { display: none !important; }
 
-     Um `transform` no ancestral faz `position: fixed` passar a se
-     medir por esse ancestral em vez da tela. Resultado: o scrim com
-     `inset: 0` virava uma faixa de largura cheia e ZERO PIXEL de
-     altura — invisivel e sem area de toque. Era por isso que o
-     fundo nao escurecia ao abrir o menu e que tocar fora nao
-     fechava nada. A gaveta herdava o mesmo deslocamento e nascia
-     fora de lugar.
-
-     Ver a funcao `portar()` no script no fim deste arquivo. */
-
-  /* O atributo hidden precisa vencer o display da regra seguinte:
-     sem isto a gaveta continuava renderizada (so empurrada para
-     fora da tela), tabulavel pelo teclado e lida pelo leitor de
-     tela mesmo fechada. */
-  .header__scrim[hidden],
-  .header__mobile-nav[hidden] { display: none !important; }
-
-  /* ==========================================================
-     A PILHA (z-index) — o que fica na frente de que
-     ==========================================================
-     Enquanto o scrim e a gaveta viviam DENTRO do wrapper
-     .section-header, os dois herdavam o contexto de empilhamento
-     dele (z-index: 500) e apareciam na frente da pagina de graca.
-     Agora que foram movidos para o <body> (ver `portar()` no
-     script), eles disputam a pilha em pe de igualdade com todo o
-     resto — e 150/160 os deixaria ATRAS da propria header (500) e
-     atras da barra de comprar do produto (400).
-
-     Os valores novos ficam acima dos dois e abaixo do carrinho
-     (10000) e dos avisos (10001), que continuam sendo as camadas
-     mais altas do tema. */
   .header__scrim {
     position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.82);
     opacity: 0; z-index: 950; transition: opacity var(--dur-emphasis, 0.4s) var(--ease-out, ease);
@@ -616,14 +507,7 @@
   .header__scrim.is-open { opacity: 1; }
 
   .header__mobile-nav {
-    position: fixed; top: 0; left: 0;
-    /* dvh: a gaveta e fixed e, enquanto esta aberta, o body fica
-       travado — a barra do navegador nao se mexe e dvh nao oscila.
-       Se o menu for aberto com a barra ja recolhida, dvh e a unica
-       unidade que descreve a tela naquele instante. 100vh fica como
-       queda para navegador sem suporte. */
-    height: 100vh;
-    height: 100dvh;
+    position: fixed; top: 0; left: 0; height: 100vh; height: 100dvh;
     width: min(86vw, 380px); display: flex; flex-direction: column;
     background-color: var(--cod-charcoal, #121212); border-right: 1px solid var(--color-border, rgba(255,255,255,0.1));
     z-index: 960; transform: translateX(-100%); transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -631,49 +515,32 @@
   }
   .header__mobile-nav.is-open { transform: translateX(0); }
 
-  /* O topo da gaveta encosta em y=0, ou seja, embaixo do notch e da
-     ilha dinamica. Sem este respiro o titulo MENU e o botao de
-     fechar ficam por baixo da barra de status — e a unica forma de
-     fechar o menu desaparece. */
   .header__mobile-header {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: var(--space-xs, 8px);
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-xs, 8px);
     padding: var(--space-sm, 16px) var(--space-md, 24px);
     padding-top: calc(var(--space-sm, 16px) + var(--sat, 0px));
     padding-left: max(var(--space-md, 24px), var(--sal, 0px));
-    border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.1));
-    flex-shrink: 0;
+    border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.1)); flex-shrink: 0;
   }
   .header__mobile-title {
     font-size: var(--f0, 0.8125rem); font-weight: var(--font-weight-bold, 700); text-transform: uppercase;
     letter-spacing: var(--tracking-label, 0.05em); color: var(--color-accent, #C9A24D);
   }
   .header__mobile-close {
-    display: inline-flex; align-items: center; justify-content: center;
-    flex: none;
-    background: none; border: none; color: var(--color-text-primary, #ffffff);
-    min-width: 44px; min-height: 44px;
-    /* margin negativa: o alvo de 44px cresce para FORA, entao o X
-       continua alinhado com a borda do padding da gaveta. */
-    margin-right: -10px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: background-color var(--dur-fast, 0.2s) var(--ease-out, ease);
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    background: none; border: none; color: var(--color-text-primary, #ffffff); min-width: 44px; min-height: 44px;
+    margin-right: -10px; border-radius: 50%; cursor: pointer; transition: background-color var(--dur-fast, 0.2s) var(--ease-out, ease);
   }
   .header__mobile-close:hover { background-color: rgba(255, 255, 255, 0.08); }
   .header__mobile-close:active { background-color: rgba(255, 255, 255, 0.14); }
 
   .header__mobile-body {
-    flex: 1 1 auto; min-height: 0;
-    overflow-y: auto; overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-    padding: var(--space-xs, 8px) var(--space-md, 24px);
-    padding-left: max(var(--space-md, 24px), var(--sal, 0px));
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    padding: var(--space-xs, 8px) var(--space-md, 24px); padding-left: max(var(--space-md, 24px), var(--sal, 0px));
   }
   .header__mobile-menu { list-style: none; margin: 0; padding: 0; }
   .header__mobile-link {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: var(--space-sm, 16px);
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm, 16px);
     padding: 18px 0; font-size: var(--f3, 1.25rem); font-weight: var(--font-weight-medium, 500); text-transform: uppercase;
     color: var(--color-text-primary, #ffffff); text-decoration: none; border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.1));
   }
@@ -682,69 +549,40 @@
   .header__mobile-link--summary { list-style: none; cursor: pointer; }
   .header__mobile-link--summary::-webkit-details-marker { display: none; }
   .header__mobile-link--summary::marker { content: ''; }
-  .header__mobile-chevron {
-    display: inline-flex; flex: none;
-    transition: transform var(--dur-normal, 0.3s) var(--hd-ease);
-  }
+  .header__mobile-chevron { display: inline-flex; flex: none; transition: transform var(--dur-normal, 0.3s) var(--hd-ease); }
   .header__mobile-details[open] .header__mobile-chevron { transform: rotate(180deg); }
   .header__mobile-submenu { list-style: none; margin: 0; padding: 0 0 8px 12px; }
-  .header__mobile-link--child {
-    font-size: var(--f2, 1rem);
-    text-transform: none;
-    opacity: 0.75;
-    padding: 14px 0;
-    border-bottom: none;
-  }
+  .header__mobile-link--child { font-size: var(--f2, 1rem); text-transform: none; opacity: 0.75; padding: 14px 0; border-bottom: none; }
   .header__mobile-link--child[aria-current='page'] { opacity: 1; }
 
-  .header__mobile-item {
-    opacity: 0;
-    transform: translateY(8px);
-  }
+  .header__mobile-item { opacity: 0; transform: translateY(8px); }
   .header__mobile-nav.is-open .header__mobile-item {
-    opacity: 1;
-    transform: none;
-    transition:
-      opacity var(--dur-normal, 0.3s) var(--ease-out, ease),
-      transform var(--dur-normal, 0.3s) var(--ease-out, ease);
+    opacity: 1; transform: none;
+    transition: opacity var(--dur-normal, 0.3s) var(--ease-out, ease), transform var(--dur-normal, 0.3s) var(--ease-out, ease);
     transition-delay: calc(120ms + var(--item-i, 0) * (var(--stagger, 70ms) / 2));
   }
-  .header__mobile-item:nth-child(1) { --item-i: 0; }
-  .header__mobile-item:nth-child(2) { --item-i: 1; }
-  .header__mobile-item:nth-child(3) { --item-i: 2; }
-  .header__mobile-item:nth-child(4) { --item-i: 3; }
-  .header__mobile-item:nth-child(5) { --item-i: 4; }
-  .header__mobile-item:nth-child(6) { --item-i: 5; }
+  .header__mobile-item:nth-child(1) { --item-i: 0; } .header__mobile-item:nth-child(2) { --item-i: 1; }
+  .header__mobile-item:nth-child(3) { --item-i: 2; } .header__mobile-item:nth-child(4) { --item-i: 3; }
+  .header__mobile-item:nth-child(5) { --item-i: 4; } .header__mobile-item:nth-child(6) { --item-i: 5; }
   .header__mobile-item:nth-child(n + 7) { --item-i: 6; }
 
   .header__mobile-footer { opacity: 0; transition: opacity var(--dur-normal, 0.3s) var(--ease-out, ease); }
-  .header__mobile-nav.is-open .header__mobile-footer {
-    opacity: 1;
-    transition-delay: calc(120ms + 3 * (var(--stagger, 70ms) / 2));
-  }
+  .header__mobile-nav.is-open .header__mobile-footer { opacity: 1; transition-delay: calc(120ms + 3 * (var(--stagger, 70ms) / 2)); }
 
   @media (prefers-reduced-motion: reduce) {
-    .header__mobile-item,
-    .header__mobile-footer { opacity: 1; transform: none; }
-    .header__mobile-nav.is-open .header__mobile-item,
-    .header__mobile-nav.is-open .header__mobile-footer {
-      transition: none;
-      transition-delay: 0s;
-    }
+    .header__mobile-item, .header__mobile-footer { opacity: 1; transform: none; }
+    .header__mobile-nav.is-open .header__mobile-item, .header__mobile-nav.is-open .header__mobile-footer { transition: none; transition-delay: 0s; }
   }
 
   .header__mobile-footer {
-    flex-shrink: 0;
-    padding: var(--space-sm, 16px) var(--space-md, 24px);
-    padding-bottom: calc(var(--space-sm, 16px) + var(--sab, 0px));
+    flex-shrink: 0; padding: var(--space-sm, 16px) var(--space-md, 24px); padding-bottom: calc(var(--space-sm, 16px) + var(--sab, 0px));
     padding-left: max(var(--space-md, 24px), var(--sal, 0px));
     border-top: 1px solid var(--color-border, rgba(255,255,255,0.1)); background-color: rgba(255, 255, 255, 0.02);
   }
   .header__mobile-account-btn {
     display: flex; align-items: center; gap: var(--space-xs, 8px); min-height: 48px;
     padding: 14px 18px; border-radius: var(--radius-sm, 4px); background: rgba(255, 255, 255, 0.08);
-    color: var(--color-text-primary, #ffffff); text-decoration: none;
-    font-size: var(--f2, 1rem); font-weight: var(--font-weight-semibold, 600);
+    color: var(--color-text-primary, #ffffff); text-decoration: none; font-size: var(--f2, 1rem); font-weight: var(--font-weight-semibold, 600);
   }
 </style>
 
@@ -759,26 +597,6 @@
     var drawer = document.getElementById('MobileNav-{{ section.id }}');
     var scrimEl = document.querySelector('[data-mobile-scrim]');
 
-    /* ---------------------------------------------------------
-       PORTAL PARA O <body>
-
-       O wrapper desta section (.section-header) e fixed E tem
-       transform — ele desliza para baixo da barra de avisos. Um
-       ancestral com transform passa a ser o bloco de referencia de
-       qualquer position: fixed que esteja dentro dele. E como todo
-       o conteudo do wrapper e fixed, o wrapper tem altura ZERO.
-
-       Consequencia exata: o scrim, com `inset: 0`, media a largura
-       da tela por ZERO PIXEL de altura. Ele existia, estava no DOM
-       e simplesmente nao cobria nada — o fundo nunca escurecia e
-       tocar fora da gaveta nao fechava o menu. A gaveta, pelo mesmo
-       motivo, nascia deslocada da barra de avisos para baixo.
-
-       Mover os dois para o <body> devolve a tela como referencia.
-       Feito uma unica vez, e idempotente: no editor de temas a
-       section e re-renderizada varias vezes e a guarda abaixo
-       impede que um no orfao fique para tras.
-    --------------------------------------------------------- */
     function portar(el) {
       if (!el || el.parentNode === document.body) return el;
       var anterior = document.querySelector('[data-portado="' + el.id + '"]');
@@ -793,7 +611,6 @@
       if (scrimEl) {
         if (!scrimEl.id) scrimEl.id = 'MobileScrim-{{ section.id }}';
         portar(scrimEl);
-        // O scrim precisa vir ANTES da gaveta na ordem de pintura.
         document.body.insertBefore(scrimEl, drawer);
       }
     }
@@ -856,9 +673,6 @@
       document.addEventListener('click', function (event) {
         if (search.open && !search.contains(event.target)) search.open = false;
       });
-      /* Esc fecha e devolve o foco para a lupa. Sem isto o unico
-         jeito de sair do painel era tocar fora — e quem chegou ali
-         pelo teclado ficava preso num campo sem saida obvia. */
       search.addEventListener('keydown', function (event) {
         if (event.key !== 'Escape') return;
         event.stopPropagation();
@@ -866,7 +680,6 @@
         var resumo = search.querySelector('summary');
         if (resumo) resumo.focus();
       });
-      /* Busca vazia recarregaria /search sem termo nenhum. */
       var formBusca = search.querySelector('form');
       if (formBusca) {
         formBusca.addEventListener('submit', function (event) {
@@ -883,23 +696,6 @@
     var closeBtn = drawer ? drawer.querySelector('[data-mobile-close]') : null;
     var scrim = scrimEl;
 
-    /* ---------------------------------------------------------
-       TRAVA DE ROLAGEM
-
-       O caminho normal e reaproveitar as funcoes do carrinho
-       (assets/carrinho.js), que ja resolvem o caso do Safari do
-       iPhone. A queda abaixo existe para quando esse arquivo ainda
-       nao executou — ele e `defer`, e este script e inline: numa
-       conexao ruim da para tocar no menu antes de ele chegar.
-
-       A queda ANTIGA era `classList.add('bloquear')` e nada mais. So
-       que normalizar.css transforma body.bloquear em `position:
-       fixed`, e um body fixado SEM o deslocamento guardado em `top`
-       salta para o inicio da pagina. Fechar o menu devolvia a
-       rolagem, mas nao o lugar: quem estava no meio de uma colecao
-       reaparecia la em cima. A queda agora guarda e restaura o
-       deslocamento igual ao carrinho faz.
-    --------------------------------------------------------- */
     var rolagemGuardada = 0;
 
     function travar() {
@@ -920,9 +716,6 @@
       document.body.classList.remove('bloquear');
       document.body.style.top = '';
       if (!restaurar) return;
-      /* Instantaneo, nao animado: normalizar.css declara
-         scroll-behavior: smooth no <html>, e sem isto o retorno
-         viraria uma rolagem visivel saindo do topo. */
       var html = document.documentElement;
       var anterior = html.style.scrollBehavior;
       html.style.scrollBehavior = 'auto';
@@ -966,9 +759,6 @@
       aberto = true;
       if (fecharTimer) { window.clearTimeout(fecharTimer); fecharTimer = null; }
 
-      /* Dois paineis do mesmo header abertos ao mesmo tempo e um
-         estado que ninguem pediu: o painel de busca ficava por cima
-         da gaveta, com o scrim entre os dois. */
       fecharBusca();
       if (window.CODFecharCarrinho) window.CODFecharCarrinho(true);
 
@@ -985,7 +775,6 @@
       if (closeBtn) closeBtn.focus();
     }
 
-    /* manterTrava: ver a mesma conversa em assets/carrinho.js. */
     function closeDrawer(manterTrava) {
       if (!aberto) return;
       aberto = false;
@@ -995,9 +784,6 @@
       if (toggle) toggle.setAttribute('aria-expanded', 'false');
       document.removeEventListener('keydown', onKeydown);
 
-      /* O foco volta ANTES do hidden: devolver o foco a um elemento
-         que esta prestes a virar display:none joga o cursor no
-         <body> — e no celular isso reposiciona a pagina no topo. */
       if (ultimoFoco && document.contains(ultimoFoco) && typeof ultimoFoco.focus === 'function') {
         ultimoFoco.focus();
       } else if (toggle) {
@@ -1013,8 +799,6 @@
       }, 500);
     }
 
-    /* Outros componentes (o carrinho) precisam conseguir fechar o
-       menu sem conhecer o interior desta section. */
     window.CODFecharMenu = closeDrawer;
 
     if (drawer && scrim) {
@@ -1022,9 +806,6 @@
         if (aberto) closeDrawer();
         else openDrawer();
       });
-      /* Envolvido numa funcao: passar o handler direto entregaria o
-         objeto Event como `manterTrava`, que e truthy — a pagina
-         ficaria travada para sempre depois de fechar pelo X. */
       if (closeBtn) closeBtn.addEventListener('click', function () { closeDrawer(); });
       scrim.addEventListener('click', function () { closeDrawer(); });
 
@@ -1033,20 +814,6 @@
         if (link) closeDrawer();
       });
 
-      /* ---------------------------------------------------------
-         ARRASTAR PARA FECHAR
-
-         Num celular grande o X fica no canto superior — longe do
-         polegar de quem segura o aparelho com uma mao. Arrastar a
-         gaveta para a esquerda e o gesto que todo app nativo aceita
-         e que o menu nao aceitava.
-
-         A gaveta acompanha o dedo em tempo real (sem transition
-         durante o gesto, senao ele fica emborrachado) e so fecha se
-         o percurso passar de 1/3 da largura ou se o gesto for
-         rapido. Abaixo disso ela volta — um puxao acidental nao
-         pode fechar o menu.
-      --------------------------------------------------------- */
       var toqueX = 0, toqueY = 0, toqueT = 0, arrastando = false, eixoDefinido = false;
 
       drawer.addEventListener('touchstart', function (event) {
@@ -1065,13 +832,12 @@
 
         if (!eixoDefinido) {
           if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-          // Rolagem vertical da lista vence: o gesto nao e nosso.
           if (Math.abs(dy) > Math.abs(dx)) { arrastando = false; return; }
           eixoDefinido = true;
           drawer.style.transition = 'none';
         }
 
-        if (dx > 0) dx = 0; // so para a esquerda
+        if (dx > 0) dx = 0;
         drawer.style.transform = 'translateX(' + dx + 'px)';
         if (scrim) scrim.style.opacity = String(Math.max(0, 1 + dx / drawer.offsetWidth));
       }, { passive: true });
