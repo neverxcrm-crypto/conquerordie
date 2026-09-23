@@ -188,13 +188,6 @@
     "instagram": {
       "type": "instagram",
       "blocks": {
-        "post_Wai8ni": {
-          "type": "post",
-          "settings": {
-            "link": "",
-            "alt": ""
-          }
-        },
         "post_FXpwGt": {
           "type": "post",
           "settings": {
@@ -246,7 +239,6 @@
         }
       },
       "block_order": [
-        "post_Wai8ni",
         "post_FXpwGt",
         "post_re9hpb",
         "post_nwgCU7",
