@@ -1,26 +1,26 @@
 {%- comment -%}
   ============================================================
-  MARQUEE BELOW HERO — Barra de Anúncios Infinita Continuada
+  MARQUEE BELOW HERO — Barra de Anúncios Infinita (Corrigida)
   ============================================================
 {%- endcomment -%}
 
 {%- liquid
   assign avisos = section.blocks
   assign total = avisos.size
-  assign velocidade = section.settings.speed
-  if velocidade == blank or velocidade == 0
-    assign velocidade = 25
-  endif
+  assign velocidade = section.settings.speed | default: 25
 
-  # Cálculo de repetição inteligente: garante que a faixa de texto seja 
-  # MUITO maior que qualquer tela ultrawide (4K) para não deixar buracos pretos.
-  assign repeat_count = 4
+  # Multiplicador inteligente: mantém o tamanho físico da faixa parecido
+  # independentemente de quantos blocos você cadastrou, o que garante 
+  # que a "velocidade visual" do texto seja sempre consistente.
+  assign repeat_count = 2
   if total == 1
     assign repeat_count = 12
   elsif total == 2
-    assign repeat_count = 8
-  elsif total == 3
     assign repeat_count = 6
+  elsif total == 3
+    assign repeat_count = 4
+  elsif total == 4
+    assign repeat_count = 3
   endif
 -%}
 
@@ -43,159 +43,150 @@
     --marquee-gap: {{ section.settings.item_gap }}px;
   "
 >
-  <div class="marquee-hero__container">
-    <div class="marquee-hero__track">
-      {%- if total > 0 -%}
-        {%- comment -%} Criação de 2 grupos perfeitamente idênticos {%- endcomment -%}
-        {%- for g in (1..2) -%}
-          <div class="marquee-hero__group" {% if g == 2 %}aria-hidden="true"{% endif %}>
-            {%- for r in (1..repeat_count) -%}
-              {%- for block in avisos -%}
-                <div class="marquee-hero__item" {{ block.shopify_attributes }}>
-                  {%- if block.settings.link != blank -%}
-                    <a href="{{ block.settings.link }}" class="marquee-hero__texto marquee-hero__texto--link" {% if g == 2 %}tabindex="-1"{% endif %}>
-                      <span>{{ block.settings.text | escape }}</span>
-                      {%- if section.settings.show_arrow -%}
-                        <svg class="marquee-hero__seta" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                          <path d="M3 9l6-6M4 3h5v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                      {%- endif -%}
-                    </a>
-                  {%- else -%}
-                    <span class="marquee-hero__texto">{{ block.settings.text | escape }}</span>
-                  {%- endif -%}
+  <div class="marquee-hero__track">
+    {%- if total > 0 -%}
+      {%- comment -%} Criação de 2 grupos perfeitamente idênticos para o looping {%- endcomment -%}
+      {%- for g in (1..2) -%}
+        <div class="marquee-hero__group" {% if g == 2 %}aria-hidden="true"{% endif %}>
+          {%- for r in (1..repeat_count) -%}
+            {%- for block in avisos -%}
+              <div class="marquee-hero__item" {{ block.shopify_attributes }}>
+                
+                {%- if block.settings.link != blank -%}
+                  <a href="{{ block.settings.link }}" class="marquee-hero__texto marquee-hero__texto--link tap-target" {% if g == 2 %}tabindex="-1"{% endif %}>
+                    <span>{{ block.settings.text | escape }}</span>
+                    {%- if section.settings.show_arrow -%}
+                      <svg class="marquee-hero__seta" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                        <path d="M3 9l6-6M4 3h5v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    {%- endif -%}
+                  </a>
+                {%- else -%}
+                  <span class="marquee-hero__texto">{{ block.settings.text | escape }}</span>
+                {%- endif -%}
 
-                  <span class="marquee-hero__separador" aria-hidden="true">
-                    {%- case section.settings.separator_symbol -%}
-                      {%- when 'circle_outline' -%}
-                        <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="none">
-                          <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
-                        </svg>
-                      {%- when 'circle_filled' -%}
-                        <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="currentColor">
-                          <circle cx="6" cy="6" r="4"/>
-                        </svg>
-                      {%- when 'star' -%}
-                        <svg class="marquee-hero__icon" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                        </svg>
-                      {%- else -%}
-                        <span class="marquee-hero__char">{{ section.settings.separator_custom | default: '•' }}</span>
-                    {%- endcase -%}
-                  </span>
-                </div>
-              {%- endfor -%}
-            {%- endfor -%}
-          </div>
-        {%- endfor -%}
-      {%- else -%}
-        {%- comment -%} Demonstração prévia de preenchimento continuo {%- endcomment -%}
-        {%- for g in (1..2) -%}
-          <div class="marquee-hero__group" {% if g == 2 %}aria-hidden="true"{% endif %}>
-            {%- for i in (1..6) -%}
-              <div class="marquee-hero__item">
-                <span class="marquee-hero__texto">FRETE GRÁTIS ACIMA DE R$585!</span>
                 <span class="marquee-hero__separador" aria-hidden="true">
-                  <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/></svg>
+                  {%- case section.settings.separator_symbol -%}
+                    {%- when 'circle_outline' -%}
+                      <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="none">
+                        <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+                      </svg>
+                    {%- when 'circle_filled' -%}
+                      <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="currentColor">
+                        <circle cx="6" cy="6" r="4"/>
+                      </svg>
+                    {%- when 'star' -%}
+                      <svg class="marquee-hero__icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    {%- else -%}
+                      <span class="marquee-hero__char">{{ section.settings.separator_custom | default: '•' }}</span>
+                  {%- endcase -%}
                 </span>
-                <span class="marquee-hero__texto">EM ATÉ 10X SEM JUROS</span>
-                <span class="marquee-hero__separador" aria-hidden="true">
-                  <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/></svg>
-                </span>
+
               </div>
             {%- endfor -%}
-          </div>
-        {%- endfor -%}
-      {%- endif -%}
-    </div>
+          {%- endfor -%}
+        </div>
+      {%- endfor -%}
+
+    {%- else -%}
+      {%- comment -%} Demonstração prévia no painel caso não tenha blocos {%- endcomment -%}
+      {%- for g in (1..2) -%}
+        <div class="marquee-hero__group" {% if g == 2 %}aria-hidden="true"{% endif %}>
+          {%- for i in (1..6) -%}
+            <div class="marquee-hero__item">
+              <span class="marquee-hero__texto">ADICIONE UM AVISO NO PAINEL</span>
+              <span class="marquee-hero__separador" aria-hidden="true">
+                <svg class="marquee-hero__icon" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/></svg>
+              </span>
+            </div>
+          {%- endfor -%}
+        </div>
+      {%- endfor -%}
+    {%- endif -%}
   </div>
 </section>
 
 <style>
+  /* ==========================================================
+     ESTRUTURA BASE E TRACK
+     ========================================================== */
   .marquee-hero {
-    display: block !important;
+    display: block;
     position: relative;
     z-index: 9;
     background-color: var(--marquee-bg, #000000);
     border-top: 1px solid var(--marquee-border-color, rgba(255, 255, 255, 0.15));
     border-bottom: 1px solid var(--marquee-border-color, rgba(255, 255, 255, 0.15));
+    overflow: hidden;
     user-select: none;
-    overflow: hidden !important;
     padding-block: var(--marquee-padding-v, 12px);
-    width: 100% !important;
-  }
-
-  .marquee-hero__container {
-    display: flex !important;
-    overflow: hidden !important;
-    width: 100% !important;
+    width: 100%;
   }
 
   .marquee-hero__track {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    width: max-content !important;
-    min-width: max-content !important;
-    flex-shrink: 0 !important;
-    will-change: transform;
-    animation: marquee-hero-loop var(--marquee-duracao, 25s) linear infinite !important;
-  }
-
-  /* Pausa a rotação ao passar o cursor */
-  .marquee-hero:hover .marquee-hero__track,
-  .marquee-hero:focus-within .marquee-hero__track {
-    animation-play-state: paused !important;
+    display: flex;
+    align-items: center;
+    width: 100%;
   }
 
   /* ==========================================================
-     MENOS MOVIMENTO — a faixa PARA
-     ==========================================================
-     Esta era a unica animação infinita do tema sem saída: ela roda
-     para sempre, atravessa a tela inteira e usa !important, então
-     nem os tokens zerados em css-variables (que desligam o resto do
-     site de uma vez) a alcançavam.
+     ANIMAÇÃO PERFEITA: Os GRUPOS se movem, não a Track
+     ========================================================== */
+  .marquee-hero__group {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    min-width: 100%;
+    /* max-content garante que a caixa envolva todo o texto sem quebrar linha */
+    width: max-content; 
+    will-change: transform;
+    animation: marquee-hero-loop var(--marquee-duracao, 25s) linear infinite;
+  }
 
-     Texto deslizando sem parar é justamente o padrão que causa
-     desconforto em quem tem sensibilidade vestibular — é por isso
-     que a pessoa liga "reduzir movimento" no sistema.
+  @keyframes marquee-hero-loop {
+    0% { transform: translate3d(0, 0, 0); }
+    /* Move exatamente o tamanho de UM grupo. O segundo grupo toma o lugar perfeitamente. */
+    100% { transform: translate3d(-100%, 0, 0); } 
+  }
 
-     A faixa não é escondida: o conteúdo continua ali, legível e
-     parado. Perde-se o movimento, não a informação. O
-     `!important` é necessário para vencer o `!important` da regra
-     original — não por preferência de estilo.
-
-     justify-content: center porque, parada no ponto zero, a
-     trilha nasceria alinhada à esquerda com um vazio à direita. */
-  @media (prefers-reduced-motion: reduce) {
-    .marquee-hero__track {
-      animation: none !important;
-      will-change: auto !important;
-      justify-content: center !important;
-      min-width: 0 !important;
-      width: 100% !important;
-      flex-wrap: wrap !important;
+  /* Pausa a rotação ao passar o cursor (Apenas Desktop) */
+  @media (hover: hover) {
+    .marquee-hero:hover .marquee-hero__group {
+      animation-play-state: paused;
     }
   }
 
-  .marquee-hero__group {
-    display: flex !important;
-    align-items: center !important;
-    flex-wrap: nowrap !important;
-    flex-shrink: 0 !important;
+  /* Acessibilidade: Desliga a animação para quem tem "Reduzir Movimento" ativado no PC/Celular */
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-hero__group {
+      animation: none !important;
+      width: 100%;
+      min-width: 0;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .marquee-hero__group[aria-hidden="true"] {
+      display: none; /* Esconde o segundo grupo duplicado */
+    }
   }
 
+  /* ==========================================================
+     ITENS E TIPOGRAFIA
+     ========================================================== */
   .marquee-hero__item {
-    display: inline-flex !important;
-    align-items: center !important;
-    flex-shrink: 0 !important;
-    white-space: nowrap !important;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 
   .marquee-hero__texto {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-family: inherit;
+    gap: 8px;
+    font-family: var(--font-body-family, inherit);
     font-size: var(--marquee-fonte, 13px);
     font-style: var(--marquee-italico, normal);
     font-weight: var(--marquee-peso, 700);
@@ -204,15 +195,22 @@
     color: var(--marquee-cor, #ffffff);
     text-decoration: none;
     line-height: 1;
+    -webkit-font-smoothing: antialiased;
+    transition: opacity 0.2s ease;
   }
 
+  .marquee-hero__texto--link:hover {
+    opacity: 0.8;
+  }
+
+  /* SEPARADORES (Bolinhas, Estrelas, etc) */
   .marquee-hero__separador {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     margin-inline: var(--marquee-gap, 28px);
     color: var(--marquee-cor-separador, #ffffff);
-    opacity: 0.9;
+    opacity: 0.8;
   }
 
   .marquee-hero__icon {
@@ -226,7 +224,9 @@
     line-height: 1;
   }
 
-  /* Efeito Ouro Metálico */
+  /* ==========================================================
+     EFEITOS ESPECIAIS (Ouro e Seta)
+     ========================================================== */
   .marquee-hero--ouro .marquee-hero__texto {
     background: linear-gradient(100deg, #FBF0B9 0%, #E3C98B 28%, #C9A24D 55%, #E9D49A 82%, #FBF0B9 100%);
     -webkit-background-clip: text;
@@ -244,32 +244,31 @@
     width: 10px;
     height: 10px;
     flex: none;
-    transition: transform 0.2s ease;
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
   }
 
   .marquee-hero__texto--link:hover .marquee-hero__seta {
-    transform: translate(2px, -2px);
+    transform: translate(3px, -3px) scale(1.1);
   }
 
-  /* Animação Contínua em Loop de -50% (transição perfeita) */
-  @keyframes marquee-hero-loop {
-    0% {
-      transform: translate3d(0, 0, 0);
-    }
-    100% {
-      transform: translate3d(-50%, 0, 0);
-    }
-  }
-
+  /* ==========================================================
+     RESPONSIVIDADE (Celular)
+     ========================================================== */
   @media screen and (max-width: 749px) {
     .marquee-hero {
+      /* Reduz levemente o padding em telas pequenas para economizar espaço */
       padding-block: max(8px, calc(var(--marquee-padding-v, 12px) - 3px));
     }
     .marquee-hero__texto {
-      font-size: max(10px, calc(var(--marquee-fonte, 13px) - 1px));
+      /* Texto um pouco menor no celular para caber melhor na tela */
+      font-size: max(11px, calc(var(--marquee-fonte, 13px) - 2px));
     }
     .marquee-hero__separador {
-      margin-inline: max(14px, calc(var(--marquee-gap, 28px) - 8px));
+      margin-inline: max(16px, calc(var(--marquee-gap, 28px) - 8px));
+    }
+    .marquee-hero__icon {
+      width: 10px;
+      height: 10px;
     }
   }
 </style>
@@ -291,7 +290,8 @@
       "step": 5,
       "unit": "s",
       "label": "Tempo de rotação",
-      "default": 25
+      "default": 25,
+      "info": "Quanto menor o tempo, mais rápido."
     },
     {
       "type": "range",
@@ -326,7 +326,7 @@
       "max": 22,
       "step": 1,
       "unit": "px",
-      "label": "Tamanho da fonte",
+      "label": "Tamanho da fonte (Desktop)",
       "default": 13
     },
     {
@@ -378,7 +378,7 @@
       "id": "separator_symbol",
       "label": "Estilo do separador",
       "options": [
-        { "value": "circle_outline", "label": "Círculo Vazado (Igual referência)" },
+        { "value": "circle_outline", "label": "Círculo Vazado (Moderno)" },
         { "value": "circle_filled", "label": "Círculo Preenchido" },
         { "value": "star", "label": "Estrela" },
         { "value": "custom", "label": "Caractere Personalizado" }
