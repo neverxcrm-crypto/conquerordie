@@ -12,8 +12,8 @@
     "main": {
       "type": "main-product",
       "blocks": {
-        "vendor": {
-          "type": "vendor",
+        "eyebrow": {
+          "type": "eyebrow",
           "settings": {}
         },
         "title": {
@@ -29,7 +29,14 @@
         },
         "variant_picker": {
           "type": "variant_picker",
-          "settings": {}
+          "settings": {
+            "size_guide_tabela": "",
+            "size_guide_titulo": "Guia de tamanhos",
+            "size_guide_polegadas": false,
+            "size_guide_nota": "",
+            "size_guide_medir": "",
+            "size_guide": ""
+          }
         },
         "quantity": {
           "type": "quantity",
@@ -40,22 +47,6 @@
           "settings": {
             "show_dynamic_checkout": true
           }
-        },
-        "description": {
-          "type": "description",
-          "settings": {
-            "in_accordion": true,
-            "accordion_title": "Descrição",
-            "open_by_default": false
-          }
-        },
-        "share": {
-          "type": "share",
-          "settings": {}
-        },
-        "eyebrow": {
-          "type": "eyebrow",
-          "settings": {}
         },
         "trust": {
           "type": "trust",
@@ -68,11 +59,20 @@
             "icon_3": "quality"
           }
         },
+        "description": {
+          "type": "description",
+          "settings": {
+            "in_accordion": true,
+            "accordion_title": "Descrição",
+            "open_by_default": false
+          }
+        },
         "entrega": {
           "type": "accordion",
           "settings": {
             "title": "Entrega e devolução",
             "content": "<p>Enviamos para todo o Brasil. Prazo e valor calculados no checkout. Trocas e devoluções em até 30 dias.</p>",
+            "page": "",
             "open_by_default": false
           }
         },
@@ -81,8 +81,13 @@
           "settings": {
             "title": "Detalhes do produto",
             "content": "<p>Composição, modelagem e cuidados de lavagem.</p>",
+            "page": "",
             "open_by_default": false
           }
+        },
+        "share": {
+          "type": "share",
+          "settings": {}
         }
       },
       "block_order": [
@@ -98,21 +103,53 @@
         "detalhes",
         "share"
       ],
-      "settings": {}
-    },
-    "related": {
-      "type": "related-products",
-      "settings": {}
+      "settings": {
+        "show_low_stock": true,
+        "low_stock_threshold": 5
+      }
     },
     "depoimentos": {
       "type": "product-testimonials",
+      "blocks": {
+        "depoimento_GxRDi8": {
+          "type": "depoimento",
+          "settings": {
+            "texto": "Qualidade extrema",
+            "autor": "Kadu",
+            "origem": "Rio do Sul, SC",
+            "nota": 5
+          }
+        },
+        "depoimento_a9tCGC": {
+          "type": "depoimento",
+          "settings": {
+            "texto": "Bizarro de bom",
+            "autor": "Victor Krieger",
+            "origem": "São Paulo, SP",
+            "nota": 5
+          }
+        }
+      },
+      "block_order": [
+        "depoimento_GxRDi8",
+        "depoimento_a9tCGC"
+      ],
       "settings": {
         "eyebrow": "Quem já comprou",
         "heading": "Depoimentos",
         "scheme": "auto"
-      },
-      "blocks": {},
-      "block_order": []
+      }
+    },
+    "related": {
+      "type": "related-products",
+      "settings": {
+        "enable": true,
+        "intent": "related",
+        "eyebrow": "",
+        "heading": "Você também pode gostar",
+        "products_to_show": 4,
+        "columns_desktop": 4
+      }
     }
   },
   "order": [
