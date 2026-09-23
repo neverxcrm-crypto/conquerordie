@@ -221,34 +221,24 @@
 
   /* --- VIDRO ATIVADO (Ao Rolar) --- */
   .header--scrolled .header__glass {
-    /* rgba literal de proposito: e um VEU sobre a pagina, nao uma cor
-       da paleta. color-mix() resolveria com o token, mas so existe a
-       partir do Chrome 111 / Safari 16.2 — mais novo que a linha de
-       base que o resto do tema sustenta (ha fallback ate Chrome 85
-       aqui do lado), e um navegador sem suporte descartaria a
-       declaracao e deixaria a header transparente ao rolar. */
     background-color: rgba(10, 10, 12, 0.85);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.05));
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
   }
 
-  /* No toque o blur do vidro sai: a header e fixa e fica sobre a
-     pagina rolando, entao o navegador refazia o desfoque do conteudo
-     que passa por tras dela a cada frame de rolagem. E a mesma
-     politica ja adotada no resto do tema para backdrop-filter. */
   @media (hover: none) {
     .header--scrolled .header__glass {
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
-      background-color: var(--cod-black-deep);
+      background-color: var(--cod-black-deep, #050505);
     }
   }
   .motion-lite .header--scrolled .header__glass {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    background-color: var(--cod-black-deep);
+    background-color: var(--cod-black-deep, #050505);
   }
 
   /* --- PROGRESSO DOURADO --- */
@@ -256,7 +246,7 @@
     position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
     background: linear-gradient(90deg, transparent, var(--color-accent, #C9A24D) 40%, #E3C98B);
     transform: scaleX(0); transform-origin: left center; opacity: 0;
-    transition: opacity var(--dur-normal) var(--ease-out);
+    transition: opacity var(--dur-normal, 0.3s) var(--ease-out, ease);
   }
   .header--scrolled .header__progress { opacity: 1; }
 
@@ -277,7 +267,7 @@
   }
   .header__logo-image {
     width: {{ section.settings.logo_width }}px;
-    max-height: 30px; /* Impede esticamento vertical */
+    max-height: 36px;
     height: auto;
     object-fit: contain;
     transition: transform var(--hd-duration) var(--hd-ease);
@@ -285,7 +275,7 @@
   .header--scrolled .header__logo-image { transform: scale(0.95); }
 
   .header__logo-text {
-    font-size: clamp(1.1rem, 2vw, 1.3rem); font-weight: var(--font-weight-bold); color: var(--color-text-primary);
+    font-size: clamp(1.1rem, 2vw, 1.3rem); font-weight: var(--font-weight-bold, 700); color: var(--color-text-primary, #ffffff);
   }
 
   /* --- MENU DESKTOP --- */
@@ -295,49 +285,42 @@
 
   .header__menu-link {
     display: inline-flex; align-items: center; gap: 6px;
-    font-size: var(--f0); font-weight: var(--font-weight-semibold);
-    text-transform: uppercase; letter-spacing: var(--tracking-label);
-    color: var(--color-text-primary); text-decoration: none; opacity: 0.75;
-    transition: opacity var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+    font-size: var(--f0, 0.8125rem); font-weight: var(--font-weight-semibold, 600);
+    text-transform: uppercase; letter-spacing: var(--tracking-label, 0.05em);
+    color: var(--color-text-primary, #ffffff); text-decoration: none; opacity: 0.75;
+    transition: opacity var(--dur-fast, 0.2s) var(--ease-out, ease), color var(--dur-fast, 0.2s) var(--ease-out, ease);
   }
   .header__menu-link:hover, .header__menu-item:focus-within > .header__menu-link { opacity: 1; }
-  .header__menu-link[aria-current='page'] { opacity: 1; color: var(--color-accent); }
+  .header__menu-link[aria-current='page'] { opacity: 1; color: var(--color-accent, #C9A24D); }
 
-  .header__menu-caret { display: inline-flex; transition: transform var(--dur-normal) var(--ease-out); opacity: 0.6; }
+  .header__menu-caret { display: inline-flex; transition: transform var(--dur-normal, 0.3s) var(--ease-out, ease); opacity: 0.6; }
   .header__menu-item:hover .header__menu-caret,
   .header__menu-item:focus-within .header__menu-caret { transform: rotate(180deg); opacity: 1; }
 
   /* SUBMENU DESKTOP */
   .header__submenu {
     position: absolute; top: 100%; left: -16px; min-width: 220px;
-    background-color: var(--cod-graphite); border: 1px solid var(--color-border);
-    border-radius: var(--radius-md); box-shadow: var(--shadow-md);
-    padding: var(--space-2xs); list-style: none; margin: 0;
+    background-color: var(--cod-graphite, #1A1A1A); border: 1px solid var(--color-border, rgba(255,255,255,0.1));
+    border-radius: var(--radius-md, 8px); box-shadow: var(--shadow-md, 0 10px 20px rgba(0,0,0,0.5));
+    padding: var(--space-2xs, 8px); list-style: none; margin: 0;
     opacity: 0; visibility: hidden; transform: translateY(8px);
     transition:
-      opacity var(--dur-normal) var(--ease-out),
-      visibility var(--dur-normal) var(--ease-out),
-      transform var(--dur-normal) var(--ease-out);
+      opacity var(--dur-normal, 0.3s) var(--ease-out, ease),
+      visibility var(--dur-normal, 0.3s) var(--ease-out, ease),
+      transform var(--dur-normal, 0.3s) var(--ease-out, ease);
     z-index: 20;
   }
-  /* :focus-within entra junto do :hover. Sem ele, o submenu so existia
-     para quem tem mouse: navegando por Tab o foco entrava em links de
-     um painel invisivel, e os itens de segundo nivel do menu eram
-     inalcancaveis por teclado. */
   .header__menu-item:hover > .header__submenu,
   .header__menu-item:focus-within > .header__submenu { opacity: 1; visibility: visible; transform: translateY(0); }
 
   .header__submenu-link {
-    display: block; padding: 10px 12px; font-size: var(--f1); color: var(--color-text-primary);
-    text-decoration: none; border-radius: var(--radius-sm); opacity: 0.7;
+    display: block; padding: 10px 12px; font-size: var(--f1, 0.875rem); color: var(--color-text-primary, #ffffff);
+    text-decoration: none; border-radius: var(--radius-sm, 4px); opacity: 0.7;
     transition:
-      opacity var(--dur-fast) var(--ease-out),
-      background-color var(--dur-fast) var(--ease-out),
-      transform var(--dur-fast) var(--ease-out);
+      opacity var(--dur-fast, 0.2s) var(--ease-out, ease),
+      background-color var(--dur-fast, 0.2s) var(--ease-out, ease),
+      transform var(--dur-fast, 0.2s) var(--ease-out, ease);
   }
-  /* O deslocamento no hover era padding-left, que recalcula o layout do
-     painel a cada entrada do cursor. transform faz o mesmo movimento
-     so na composicao. */
   .header__submenu-link:hover,
   .header__submenu-link:focus-visible { opacity: 1; background-color: rgba(255, 255, 255, 0.06); transform: translateX(4px); }
 
@@ -345,63 +328,40 @@
   .header__actions { display: flex; align-items: center; gap: 4px; }
   .header__action-button {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 40px; height: 40px; color: var(--color-text-primary); background: transparent; border: none; border-radius: 50%;
-    cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+    width: 40px; height: 40px; color: var(--color-text-primary, #ffffff); background: transparent; border: none; border-radius: 50%;
+    cursor: pointer; transition: background-color var(--dur-fast, 0.2s) var(--ease-out, ease), transform var(--dur-fast, 0.2s) var(--ease-out, ease);
   }
   .header__action-button svg { width: 20px; height: 20px; }
   .header__action-button:hover { background-color: rgba(255, 255, 255, 0.1); }
   .header__action-button:active { transform: scale(0.92); }
 
   .header__cart { position: relative; }
-  /* Era 9px. Numero de 9px sobre uma bolinha de 16px nao e legivel —
-     e ele e justamente a confirmacao de que o produto entrou no
-     carrinho. Subiu para 11px com a bolha acompanhando. */
   .header__cart-count {
     position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px;
     padding: 0 4px; box-sizing: border-box;
-    font-size: 11px; font-weight: var(--font-weight-bold); line-height: 18px; text-align: center;
+    font-size: 11px; font-weight: var(--font-weight-bold, 700); line-height: 18px; text-align: center;
     font-variant-numeric: tabular-nums;
-    color: var(--color-text-on-accent); background-color: var(--color-accent);
-    border-radius: var(--radius-pill);
-    /* transform-origin no centro para o "pulo" nao deslocar o badge
-       do canto do icone enquanto cresce. */
+    color: var(--color-text-on-accent, #000000); background-color: var(--color-accent, #C9A24D);
+    border-radius: var(--radius-pill, 99px);
     transform-origin: center center;
   }
 
-  /* O badge reage quando o numero SOBE — a confirmacao de que o
-     produto entrou no carrinho. Um passo curto: cresce 35% e assenta.
-     So transform e opacity, entao roda no compositor e nao toca no
-     layout do header. Sem loop: dispara uma vez por adicao. */
   @keyframes cartCountBump {
     0%   { transform: scale(1); }
     35%  { transform: scale(1.35); }
     100% { transform: scale(1); }
   }
-  .header__cart-count.is-bump {
-    animation: cartCountBump var(--dur-emphasis) var(--ease-out);
-  }
-  /* O icone acompanha de leve — o badge sozinho, tao pequeno, passa
-     despercebido em tela grande. Metade da amplitude: quem conduz o
-     gesto e o numero. */
+  .header__cart-count.is-bump { animation: cartCountBump var(--dur-emphasis, 0.4s) var(--ease-out, ease); }
+  
   @keyframes cartIconNudge {
     0%   { transform: scale(1); }
     35%  { transform: scale(1.12); }
     100% { transform: scale(1); }
   }
-  .header__cart:has(.is-bump) svg {
-    animation: cartIconNudge var(--dur-emphasis) var(--ease-out);
-  }
+  .header__cart:has(.is-bump) svg { animation: cartIconNudge var(--dur-emphasis, 0.4s) var(--ease-out, ease); }
 
-  /* As duas regras ficam SEPARADAS de proposito — e a mesma razao
-     documentada na pilha do topo em base.css: um seletor invalido
-     invalida a LISTA inteira em que esta. Num navegador sem :has()
-     (anterior a Chrome 105 / Safari 15.4), junta-las faria o
-     `animation: none` do badge cair junto, e quem pediu menos
-     movimento veria justamente a animacao que pediu para nao ver. */
   @media (prefers-reduced-motion: reduce) {
     .header__cart-count.is-bump { animation: none; }
-  }
-  @media (prefers-reduced-motion: reduce) {
     .header__cart:has(.is-bump) svg { animation: none; }
   }
 
@@ -411,8 +371,8 @@
     width: 40px; height: 40px; background: none; border: none; padding: 0; cursor: pointer;
   }
   .header__burger, .header__burger::before, .header__burger::after {
-    display: block; width: 18px; height: 1.5px; background-color: var(--color-text-primary); border-radius: 2px;
-    transition: transform var(--dur-normal) var(--hd-ease), top var(--dur-normal) var(--hd-ease), width var(--dur-fast) var(--ease-out);
+    display: block; width: 18px; height: 1.5px; background-color: var(--color-text-primary, #ffffff); border-radius: 2px;
+    transition: transform var(--dur-normal, 0.3s) var(--hd-ease), top var(--dur-normal, 0.3s) var(--hd-ease), width var(--dur-fast, 0.2s) var(--ease-out, ease);
   }
   .header__burger { position: relative; }
   .header__burger::before { content: ''; position: absolute; top: -5px; left: 0; }
@@ -428,28 +388,42 @@
     .header__account--desktop { display: none !important; }
     .header__account--mobile { display: inline-flex; }
 
-    /* GRID MILIMÉTRICO NO MOBILE */
+    /* Novo Layout de Grelha (Grid) Mobile Corrigido */
     .header__inner {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      min-height: 60px;
+      min-height: 64px;
       padding-top: 8px;
       padding-bottom: 8px;
+      padding-left: 16px; /* Define um espaço de segurança lateral */
+      padding-right: 16px; 
+      gap: 12px; /* Garante que os ícones não se sobrepõem ao logo */
     }
-    .header--scrolled .header__inner { min-height: 54px; }
+    .header--scrolled .header__inner { min-height: 56px; }
 
-    .header__left-group { grid-column: 1; justify-self: start; margin-left: -8px; }
-    .header__logo-link { grid-column: 2; justify-self: center; }
-    .header__actions { grid-column: 3; justify-self: end; margin-right: -8px; }
+    .header__left-group { 
+      grid-column: 1; 
+      justify-self: start; 
+      margin: 0; /* Removidas margens negativas problemáticas */
+    }
+    .header__logo-link { 
+      grid-column: 2; 
+      justify-self: center; 
+    }
+    .header__actions { 
+      grid-column: 3; 
+      justify-self: end; 
+      margin: 0; /* Removidas margens negativas problemáticas */
+    }
 
     .header__logo-image {
       width: {{ section.settings.logo_width_mobile }}px;
-      max-height: 24px;
+      max-height: 36px; /* Aumentado para garantir melhor leitura */
     }
 
     .header__search { position: static; }
-    .header__search-panel { top: 100%; left: 12px; right: 12px; width: auto; border-radius: 12px; }
+    .header__search-panel { top: 100%; left: 16px; right: 16px; width: auto; border-radius: 12px; }
   }
 
   @media screen and (min-width: 1001px) {
@@ -460,75 +434,46 @@
   }
 
   /* --- GAVETA MOBILE CSS (Drawer) --- */
-  /* Sem backdrop-filter: o scrim cobre a pagina inteira, entao o blur
-     obriga o navegador a refazer a composicao de TODA a tela a cada
-     frame da animacao de abertura — no celular e o frame que falta.
-     O tema ja evita backdrop-filter no toque nos outros componentes
-     (ver .collection-panel__band em base.css); este tinha escapado.
-     Um preto a 0.82 entrega a mesma separacao de graca. */
   .header__scrim {
     position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.82);
-    opacity: 0; z-index: 150; transition: opacity var(--dur-emphasis) var(--ease-out);
+    opacity: 0; z-index: 150; transition: opacity var(--dur-emphasis, 0.4s) var(--ease-out, ease);
   }
   .header__scrim.is-open { opacity: 1; }
 
   .header__mobile-nav {
     position: fixed; top: 0; left: 0; height: 100vh; height: 100dvh;
     width: min(86vw, 380px); display: flex; flex-direction: column;
-    background-color: var(--cod-charcoal); border-right: 1px solid var(--color-border);
+    background-color: var(--cod-charcoal, #121212); border-right: 1px solid var(--color-border, rgba(255,255,255,0.1));
     z-index: 160; transform: translateX(-100%); transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .header__mobile-nav.is-open { transform: translateX(0); }
 
   .header__mobile-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: var(--space-sm) var(--space-md);
-    border-bottom: 1px solid var(--color-border);
+    padding: var(--space-sm, 16px) var(--space-md, 24px);
+    border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.1));
   }
   .header__mobile-title {
-    font-size: var(--f0); font-weight: var(--font-weight-bold); text-transform: uppercase;
-    letter-spacing: var(--tracking-label); color: var(--color-accent);
+    font-size: var(--f0, 0.8125rem); font-weight: var(--font-weight-bold, 700); text-transform: uppercase;
+    letter-spacing: var(--tracking-label, 0.05em); color: var(--color-accent, #C9A24D);
   }
-  .header__mobile-close { background: none; border: none; color: var(--color-text-primary); width: 40px; height: 40px; cursor: pointer; }
+  .header__mobile-close { background: none; border: none; color: var(--color-text-primary, #ffffff); width: 40px; height: 40px; cursor: pointer; }
 
-  /* overscroll-behavior: contain impede que, ao chegar ao fim da
-     lista, o gesto continue rolando a pagina ATRAS do painel —
-     o efeito de "vazamento" classico de menu em celular. */
   .header__mobile-body {
     flex: 1; overflow-y: auto; overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    padding: var(--space-xs) var(--space-md);
-    padding-bottom: calc(var(--space-xs) + env(safe-area-inset-bottom, 0px));
+    padding: var(--space-xs, 8px) var(--space-md, 24px);
+    padding-bottom: calc(var(--space-xs, 8px) + env(safe-area-inset-bottom, 0px));
   }
   .header__mobile-menu { list-style: none; margin: 0; padding: 0; }
   .header__mobile-link {
     display: flex; align-items: center; justify-content: space-between;
-    gap: var(--space-sm);
-    padding: 18px 0; font-size: var(--f3); font-weight: var(--font-weight-medium); text-transform: uppercase;
-    color: var(--color-text-primary); text-decoration: none; border-bottom: 1px solid var(--color-border);
+    gap: var(--space-sm, 16px);
+    padding: 18px 0; font-size: var(--f3, 1.25rem); font-weight: var(--font-weight-medium, 500); text-transform: uppercase;
+    color: var(--color-text-primary, #ffffff); text-decoration: none; border-bottom: 1px solid var(--color-border, rgba(255,255,255,0.1));
   }
-  .header__mobile-link[aria-current='page'] { color: var(--color-accent); }
+  .header__mobile-link[aria-current='page'] { color: var(--color-accent, #C9A24D); }
 
-  /* ==========================================================
-     ENTRADA DOS ITENS — o painel chega, depois o conteudo
-     ==========================================================
-     Antes o painel deslizava com a lista inteira pronta dentro dele:
-     tecnicamente correto, mas o olho le como uma placa entrando, nao
-     como um menu abrindo.
-
-     Agora os itens sobem 8px logo atras do painel, em degraus de
-     --stagger/2 (35ms). O teto e o 7o item: com a fileira inteira
-     escalonada, o ultimo link de um menu grande chegaria tarde
-     demais e a navegacao pareceria lenta.
-
-     O atraso base (120ms) existe para a lista comecar a aparecer
-     quando o painel ja percorreu parte do caminho — entrar junto
-     desde o quadro zero mistura os dois movimentos.
-
-     IMPORTANTE: so opacity e transform mudam. Nenhum item fica com
-     pointer-events desligado, entao TODOS sao tocaveis desde o
-     primeiro quadro, mesmo os que ainda estao aparecendo. A
-     animacao nunca segura a navegacao. */
   .header__mobile-item {
     opacity: 0;
     transform: translateY(8px);
@@ -537,9 +482,9 @@
     opacity: 1;
     transform: none;
     transition:
-      opacity var(--dur-normal) var(--ease-out),
-      transform var(--dur-normal) var(--ease-out);
-    transition-delay: calc(120ms + var(--item-i, 0) * (var(--stagger) / 2));
+      opacity var(--dur-normal, 0.3s) var(--ease-out, ease),
+      transform var(--dur-normal, 0.3s) var(--ease-out, ease);
+    transition-delay: calc(120ms + var(--item-i, 0) * (var(--stagger, 70ms) / 2));
   }
   .header__mobile-item:nth-child(1) { --item-i: 0; }
   .header__mobile-item:nth-child(2) { --item-i: 1; }
@@ -549,16 +494,12 @@
   .header__mobile-item:nth-child(6) { --item-i: 5; }
   .header__mobile-item:nth-child(n + 7) { --item-i: 6; }
 
-  /* O rodape (conta) fecha a sequencia, depois da lista. */
-  .header__mobile-footer { opacity: 0; transition: opacity var(--dur-normal) var(--ease-out); }
+  .header__mobile-footer { opacity: 0; transition: opacity var(--dur-normal, 0.3s) var(--ease-out, ease); }
   .header__mobile-nav.is-open .header__mobile-footer {
     opacity: 1;
-    transition-delay: calc(120ms + 3 * (var(--stagger) / 2));
+    transition-delay: calc(120ms + 3 * (var(--stagger, 70ms) / 2));
   }
 
-  /* Quem pediu menos movimento recebe o painel com o conteudo ja
-     posto: a gaveta ainda desliza (e a informacao de ONDE ela vem),
-     mas nada escalona. */
   @media (prefers-reduced-motion: reduce) {
     .header__mobile-item,
     .header__mobile-footer { opacity: 1; transform: none; }
@@ -570,15 +511,15 @@
   }
 
   .header__mobile-footer {
-    padding: var(--space-sm) var(--space-md);
-    padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
-    border-top: 1px solid var(--color-border); background-color: rgba(255, 255, 255, 0.02);
+    padding: var(--space-sm, 16px) var(--space-md, 24px);
+    padding-bottom: calc(var(--space-sm, 16px) + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--color-border, rgba(255,255,255,0.1)); background-color: rgba(255, 255, 255, 0.02);
   }
   .header__mobile-account-btn {
-    display: flex; align-items: center; gap: var(--space-xs); min-height: 48px;
-    padding: 14px 18px; border-radius: var(--radius-sm); background: rgba(255, 255, 255, 0.08);
-    color: var(--color-text-primary); text-decoration: none;
-    font-size: var(--f2); font-weight: var(--font-weight-semibold);
+    display: flex; align-items: center; gap: var(--space-xs, 8px); min-height: 48px;
+    padding: 14px 18px; border-radius: var(--radius-sm, 4px); background: rgba(255, 255, 255, 0.08);
+    color: var(--color-text-primary, #ffffff); text-decoration: none;
+    font-size: var(--f2, 1rem); font-weight: var(--font-weight-semibold, 600);
   }
 </style>
 
@@ -652,28 +593,12 @@
     var closeBtn = document.querySelector('[data-mobile-close]');
     var scrim = document.querySelector('[data-mobile-scrim]');
 
-    /* ---------------------------------------------------------
-       TRAVA DE ROLAGEM — a mesma do carrinho, nao uma paralela
-
-       Aqui havia `document.body.style.overflow = 'hidden'`. No
-       Safari do iPhone isso NAO segura a pagina: o dedo continua
-       rolando a coleção atras do menu e, ao fechar, a pessoa
-       reaparece num ponto qualquer da lista.
-
-       O tema ja resolve isso em assets/carrinho.js, que fixa o body
-       guardando o deslocamento e expoe o par CODTravarRolagem /
-       CODDestravarRolagem justamente para ser reaproveitado — tanto
-       que o fechamento do carrinho checa `.header__mobile-nav.is-open`
-       antes de destravar, ou seja, ele ja contava com este menu
-       usando a mesma trava. Era o unico ponto do tema que nao usava.
-    --------------------------------------------------------- */
     function travar() {
       if (window.CODTravarRolagem) window.CODTravarRolagem();
       else document.body.classList.add('bloquear');
     }
 
     function destravar() {
-      // Se o carrinho estiver aberto, quem destrava e o fechamento dele.
       if (document.querySelector('.cart-drawer.is-open')) return;
       if (window.CODDestravarRolagem) window.CODDestravarRolagem();
       else document.body.classList.remove('bloquear');
@@ -681,10 +606,6 @@
 
     var fecharTimer = null;
     var ultimoFoco = null;
-    /* Estado proprio em vez de ler .is-open do DOM: a classe so entra
-       no frame seguinte (dentro do raf, para a transicao acontecer),
-       entao dois toques no mesmo frame liam "fechado" duas vezes e
-       o segundo reabria o painel em vez de fecha-lo. */
     var aberto = false;
 
     function focaveis() {
@@ -694,9 +615,6 @@
       );
     }
 
-    /* aria-modal="true" promete que o resto da pagina esta fora de
-       alcance. Sem prender o Tab, a promessa era falsa: a terceira
-       tabulacao ja estava num link da coleção atras do painel. */
     function prenderFoco(event) {
       if (event.key !== 'Tab') return;
       var lista = focaveis();
@@ -720,9 +638,6 @@
     function openDrawer() {
       if (aberto) return;
       aberto = true;
-      // O fechamento anterior podia ainda ter um timer a caminho: sem
-      // cancelar, ele disparava depois da reabertura e escondia um
-      // painel aberto (drawer.hidden = true num drawer visivel).
       if (fecharTimer) { window.clearTimeout(fecharTimer); fecharTimer = null; }
 
       ultimoFoco = document.activeElement;
@@ -754,8 +669,6 @@
         fecharTimer = null;
       }, 500);
 
-      // Devolve o foco a quem abriu; sem isso o teclado volta para o
-      // topo do documento e a pessoa refaz o caminho inteiro.
       if (ultimoFoco && document.contains(ultimoFoco) && typeof ultimoFoco.focus === 'function') {
         ultimoFoco.focus();
       } else if (toggle) {
@@ -772,18 +685,11 @@
       if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
       scrim.addEventListener('click', closeDrawer);
 
-      // Tocar num link ja navega; o painel precisa sair junto, senao
-      // ele reaparece por cima da pagina nova ao voltar pelo historico.
       drawer.addEventListener('click', function (event) {
         var link = event.target.closest && event.target.closest('a[href]');
         if (link) closeDrawer();
       });
 
-      /* Girar o aparelho para a horizontal pode cruzar os 1000px, e
-         a partir dali o CSS esconde o painel com display: none. O
-         menu sumia da tela mas a trava de rolagem continuava ativa:
-         a pagina inteira ficava impossivel de rolar, sem nada visivel
-         explicando por que. */
       var mqDesktop = window.matchMedia('(min-width: 1001px)');
       var aoTrocarLargura = function (event) {
         if (event.matches) closeDrawer();
