@@ -711,6 +711,24 @@
       padding-right: max(20px, var(--sar, 0px));
     }
 
+    /* ------------------------------------------------------------
+       NO CELULAR O TEXTO DESCE
+
+       "No meio" e uma posicao de tela larga. Num celular em pe a
+       foto e alta e estreita: o assunto dela (a peca, a pessoa)
+       ocupa os dois tercos de cima, e texto no meio cai justamente
+       em cima do produto. Por isso, no celular, o padrao resolve
+       para o terco de baixo — que e onde Nike, Zara e Farfetch
+       colocam a chamada no mobile, e onde o polegar ja esta.
+
+       "Em cima" e "Embaixo" continuam literais: quem escolheu um
+       dos dois escolheu de proposito, e o celular respeita.
+    ------------------------------------------------------------ */
+    .hero--pos-centro {
+      --hero-ancora: flex-end;
+      --hero-respiro-base: clamp(28px, 5vh, 48px);
+    }
+
     /* 11.5vw em vez de 9vw: num iPhone de 390px o título sai de 35px
        para 45px. É a diferença entre um banner que informa e um que
        impõe — e é o que as marcas grandes fazem no celular, onde a
@@ -753,8 +771,14 @@
 
   /* Celular pequeno (iPhone SE e afins): menos ar, senão o bloco de
      texto ocupa a tela inteira e a foto some por trás dele. */
+  @media screen and (max-width: 749px) {
+    .hero--pos-rodape { --hero-respiro-base: clamp(28px, 5vh, 48px); }
+  }
+
   @media screen and (max-width: 380px) {
-    .hero { --hero-respiro-topo: clamp(16px, 4vh, 40px); --hero-respiro-base: clamp(20px, 5vh, 48px); }
+    .hero--pos-topo,
+    .hero--pos-centro,
+    .hero--pos-rodape { --hero-respiro-topo: clamp(16px, 4vh, 40px); --hero-respiro-base: clamp(20px, 4.5vh, 42px); }
     .hero__heading { font-size: clamp(2.15rem, 11vw, 2.75rem); }
   }
 
@@ -943,7 +967,7 @@
       ],
       "default": "centro",
       "label": "Posição do texto",
-      "info": "No meio é o mais seguro: funciona com título curto ou longo, em qualquer tela."
+      "info": "No meio é o mais seguro no computador. No celular ele desce para o terço de baixo sozinho, porque lá a foto é alta e o texto no meio cobriria o produto."
     },
     {
       "type": "header",
