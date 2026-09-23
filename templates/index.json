@@ -19,17 +19,13 @@
             "image_mobile": "shopify://shop_images/ChatGPT_Image_23_de_set._de_2026_11_45_47.png",
             "overlay_color": "#000000",
             "overlay_opacity": 30,
-            "desktop_content_position": "middle",
-            "desktop_text_alignment": "center",
-            "mobile_content_position": "bottom",
-            "mobile_text_alignment": "center",
+            "text_alignment": "left",
             "eyebrow": "",
             "heading": "",
+            "subheading": "",
             "text": "",
             "button_label": "",
-            "button_link": "",
-            "button_label_2": "",
-            "button_link_2": ""
+            "button_link": ""
           }
         },
         "slide_1": {
@@ -39,17 +35,13 @@
             "image_mobile": "shopify://shop_images/A1FF48D2-8135-4609-B9EB-FFD142BC5718.png",
             "overlay_color": "#000000",
             "overlay_opacity": 0,
-            "desktop_content_position": "middle",
-            "desktop_text_alignment": "left",
-            "mobile_content_position": "bottom",
-            "mobile_text_alignment": "left",
+            "text_alignment": "left",
             "eyebrow": "Streetwear dark",
             "heading": "Conquer\nor Die",
+            "subheading": "Descubra o novo padrão",
             "text": "<p>Mais que roupas, uma mentalidade.</p><p>Conquiste o que é seu.</p>",
             "button_label": "Comprar agora",
-            "button_link": "shopify://collections/all",
-            "button_label_2": "",
-            "button_link_2": ""
+            "button_link": "shopify://collections/all"
           }
         }
       },
@@ -58,12 +50,11 @@
         "slide_1"
       ],
       "settings": {
-        "desktop_height": "adapt",
-        "mobile_height": "500px",
+        "height": "tall",
         "autoplay": true,
-        "autoplay_speed": 5,
+        "autoplay_speed": 6,
         "show_arrows": true,
-        "show_dots": true
+        "show_dots": false
       }
     },
     "marquee_below_hero_M8HkFV": {
