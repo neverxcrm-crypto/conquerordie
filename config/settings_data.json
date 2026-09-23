@@ -55,7 +55,7 @@
       "cart-drawer": {
         "type": "cart-drawer",
         "settings": {
-          "show_free_shipping": true,
+          "show_free_shipping": false,
           "free_shipping_threshold": 399,
           "bump_mode": "off",
           "bump_product": "",
