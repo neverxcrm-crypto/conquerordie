@@ -1,16 +1,18 @@
 {%- comment -%}
   ============================================================
-  HERO — Premium Slider (Totalmente Configurável & Autoplay)
+  HERO PREMIUM — Minimalista, Fluido e 100% Configurável
   ============================================================
 {%- endcomment -%}
+
 {%- liquid
   assign slides = section.blocks
   assign slide_count = slides.size
   assign autoplay = section.settings.autoplay
   assign autoplay_speed = section.settings.autoplay_speed | times: 1000
 -%}
+
 <div
-  class="hero scheme-dark hero--{{ section.settings.height }}"
+  class="hero-slider hero--{{ section.settings.desktop_height }} hero-mobile--{{ section.settings.mobile_height }}"
   data-section-id="{{ section.id }}"
   data-header-overlay
   {% if slide_count > 1 %}
@@ -23,127 +25,87 @@
     tabindex="0"
   {% endif %}
 >
-  <ul class="hero__slides" role="list">
+  <ul class="hero__track" role="list">
     {%- for block in slides -%}
       {%- liquid
-        if forloop.first
-          assign slide_loading = 'eager'
-          assign slide_priority = 'high'
-        else
-          assign slide_loading = 'lazy'
-          assign slide_priority = 'auto'
+        assign is_first = forloop.first
+        assign loading_attr = 'lazy'
+        assign fetch_prio = 'auto'
+        if is_first
+          assign loading_attr = 'eager'
+          assign fetch_prio = 'high'
         endif
-
-        assign alignment_class = 'hero__content--' | append: block.settings.text_alignment
       -%}
+      
       <li
-        class="hero__slide {% if forloop.first %}is-active{% endif %}"
+        class="hero__slide {% if is_first %}is-active{% endif %}"
         data-hero-slide
-        {% if slide_count > 1 %}
-          role="group"
-          aria-roledescription="slide"
-          aria-label="{{ forloop.index }} / {{ slide_count }}"
-          {% unless forloop.first %}aria-hidden="true"{% endunless %}
-        {% endif %}
         {{ block.shopify_attributes }}
-        style="
-          --overlay-color: {{ block.settings.overlay_color }};
-          --overlay-opacity: {{ block.settings.overlay_opacity | divided_by: 100.0 }};
-        "
+        {% if slide_count > 1 %}
+          role="tabpanel"
+          aria-roledescription="slide"
+          aria-label="Slide {{ forloop.index }} de {{ slide_count }}"
+          {% unless is_first %}aria-hidden="true" inert{% endunless %}
+        {% endif %}
       >
-        <!-- Imagem do Banner -->
+        <!-- 1. MÍDIA DO SLIDE -->
         <div class="hero__media">
           {%- if block.settings.image != blank -%}
-            {%- if block.settings.image_mobile != blank -%}
-              <picture>
-                <source
-                  media="(max-width: 749px)"
-                  srcset="
-                    {{ block.settings.image_mobile | image_url: width: 750 }} 750w,
-                    {{ block.settings.image_mobile | image_url: width: 1100 }} 1100w
-                  "
-                  sizes="100vw"
-                >
-                {{
-                  block.settings.image
-                  | image_url: width: 3000
-                  | image_tag:
-                    loading: slide_loading,
-                    fetchpriority: slide_priority,
-                    class: 'hero__image',
-                    widths: '900, 1200, 1600, 2000, 2600, 3000',
-                    sizes: '100vw',
-                    alt: block.settings.image.alt | default: block.settings.heading | escape
-                }}
-              </picture>
-            {%- else -%}
-              {{
-                block.settings.image
-                | image_url: width: 3000
-                | image_tag:
-                  loading: slide_loading,
-                  fetchpriority: slide_priority,
-                  class: 'hero__image',
-                  widths: '900, 1200, 1600, 2000, 2600, 3000',
-                  sizes: '100vw',
-                  alt: block.settings.image.alt | default: block.settings.heading | escape
+            <picture>
+              {%- if block.settings.image_mobile != blank -%}
+                <source media="(max-width: 749px)" srcset="{{ block.settings.image_mobile | image_url: width: 800 }} 800w">
+              {%- endif -%}
+              {{ block.settings.image | image_url: width: 3000 | image_tag: 
+                  loading: loading_attr, 
+                  fetchpriority: fetch_prio, 
+                  class: 'hero__img', 
+                  widths: '800, 1200, 1600, 2000, 2600, 3000', 
+                  sizes: '100vw', 
+                  alt: block.settings.image.alt | default: block.settings.heading | escape 
               }}
-            {%- endif -%}
+            </picture>
           {%- else -%}
-            <div class="hero__image hero__placeholder">
+            <div class="hero__placeholder">
               {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
             </div>
           {%- endif -%}
 
-          <!-- Camada de Escurecimento Configurável -->
-          <div class="hero__overlay"></div>
-          <!-- Gradiente de Proteção Inferior (Garante leitura) -->
-          <div class="hero__gradient-mask"></div>
+          <!-- Overlay (Escurecimento individual por slide) -->
+          <div class="hero__overlay" style="background-color: {{ block.settings.overlay_color }}; opacity: {{ block.settings.overlay_opacity | divided_by: 100.0 }};"></div>
         </div>
 
-        <!-- Conteúdo do Banner -->
-        <div class="hero__content page-width {{ alignment_class }}">
-          <div class="hero__text-container">
-
-            <!-- Eyebrow -->
+        <!-- 2. CONTEÚDO DO SLIDE -->
+        <div class="hero__content-wrapper page-width align-{{ block.settings.desktop_content_position }} align-mobile-{{ block.settings.mobile_content_position }}">
+          <div class="hero__content text-{{ block.settings.desktop_text_alignment }} text-mobile-{{ block.settings.mobile_text_alignment }}">
+            
             {%- if block.settings.eyebrow != blank -%}
-              <div class="hero__element hero__element--eyebrow">
-                <p class="eyebrow hero__eyebrow">{{ block.settings.eyebrow | escape }}</p>
-              </div>
+              <p class="hero__eyebrow animate-el">{{ block.settings.eyebrow | escape }}</p>
             {%- endif -%}
 
-            <!-- Título -->
             {%- if block.settings.heading != blank -%}
-              <div class="hero__element hero__element--heading">
-                {%- if forloop.first -%}
-                  <h1 class="hero__heading">{{ block.settings.heading | newline_to_br }}</h1>
-                {%- else -%}
-                  <p class="hero__heading" role="heading" aria-level="2">{{ block.settings.heading | newline_to_br }}</p>
-                {%- endif -%}
-              </div>
+              {%- if is_first -%}
+                <h1 class="hero__heading animate-el">{{ block.settings.heading | newline_to_br }}</h1>
+              {%- else -%}
+                <h2 class="hero__heading animate-el">{{ block.settings.heading | newline_to_br }}</h2>
+              {%- endif -%}
             {%- endif -%}
 
-            <!-- Subtítulo -->
-            {%- if block.settings.subheading != blank -%}
-              <div class="hero__element hero__element--subheading">
-                <p class="hero__subheading">{{ block.settings.subheading | escape }}</p>
-              </div>
-            {%- endif -%}
-
-            <!-- Descrição -->
             {%- if block.settings.text != blank -%}
-              <div class="hero__element hero__element--body">
-                <div class="hero__body rte">{{ block.settings.text }}</div>
-              </div>
+              <div class="hero__text animate-el rte">{{ block.settings.text }}</div>
             {%- endif -%}
 
-            <!-- Botão CTA -->
-            {%- if block.settings.button_label != blank -%}
-              <div class="hero__element hero__element--cta">
-                <a href="{{ block.settings.button_link | default: routes.all_products_collection_url }}" class="button hero__cta tap-target">
-                  <span>{{ block.settings.button_label | escape }}</span>
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                </a>
+            {%- if block.settings.button_label != blank or block.settings.button_label_2 != blank -%}
+              <div class="hero__buttons animate-el">
+                {%- if block.settings.button_label != blank -%}
+                  <a href="{{ block.settings.button_link }}" class="btn btn--primary">
+                    {{ block.settings.button_label | escape }}
+                  </a>
+                {%- endif -%}
+                {%- if block.settings.button_label_2 != blank -%}
+                  <a href="{{ block.settings.button_link_2 }}" class="btn btn--secondary">
+                    {{ block.settings.button_label_2 | escape }}
+                  </a>
+                {%- endif -%}
               </div>
             {%- endif -%}
 
@@ -153,345 +115,290 @@
     {%- endfor -%}
   </ul>
 
+  <!-- 3. CONTROLES (Setas e Bolinhas) -->
   {%- if slide_count > 1 -%}
-    <!-- SETAS LATERAIS (Desktop Apenas) -->
     {%- if section.settings.show_arrows -%}
-      <button type="button" class="hero__arrow hero__arrow--prev tap-target" data-hero-prev aria-label="Slide anterior">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      <button type="button" class="hero__arrow hero__arrow--prev" data-hero-prev aria-label="Slide anterior">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
       </button>
-      <button type="button" class="hero__arrow hero__arrow--next tap-target" data-hero-next aria-label="Próximo slide">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      <button type="button" class="hero__arrow hero__arrow--next" data-hero-next aria-label="Próximo slide">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </button>
     {%- endif -%}
 
-    <!-- INDICADOR NUMÉRICO -->
-    {%- if section.settings.show_indicator -%}
-      <div class="hero__indicator">
-        <button type="button" class="hero__nav tap-target" data-hero-prev aria-label="Anterior">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-        </button>
-        <p class="hero__counter" aria-live="polite">
-          <span class="hero__counter-current" data-hero-current>01</span>
-          <span class="hero__counter-divider">/</span>
-          <span class="hero__counter-total">{{ slide_count | prepend: '0' | slice: -2, 2 }}</span>
-        </p>
-        <button type="button" class="hero__nav tap-target" data-hero-next aria-label="Próximo">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        </button>
+    {%- if section.settings.show_dots -%}
+      <div class="hero__dots" role="tablist">
+        {%- for block in slides -%}
+          <button 
+            type="button" 
+            class="hero__dot {% if forloop.first %}is-active{% endif %}" 
+            data-hero-dot="{{ forloop.index0 }}" 
+            role="tab" 
+            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+            aria-label="Ir para o slide {{ forloop.index }}"
+          ></button>
+        {%- endfor -%}
       </div>
     {%- endif -%}
   {%- endif -%}
 </div>
 
 <style>
-  /* Variáveis de Animação */
-  :root {
-    --hero-ease-out: cubic-bezier(0.21, 0.85, 0.32, 1);
-    --hero-dur-reveal: 0.8s;
-  }
-
-  .hero {
-    margin-top: calc(-1 * var(--header-total, var(--header-height, 70px)));
+  /* ============================================================================
+     ESTRUTURA BASE E RESET
+     ============================================================================ */
+  .hero-slider {
     position: relative;
-    background-color: var(--color-background, #000000);
-    overflow: hidden;
     width: 100%;
+    overflow: hidden;
+    background-color: var(--color-background, #000);
+    /* Sobe a seção para ignorar o padding do cabeçalho caso seja transparente */
+    margin-top: calc(-1 * var(--header-height, 70px)); 
   }
 
-  .hero__slides {
+  .hero__track {
+    display: flex;
     list-style: none;
     margin: 0;
     padding: 0;
-    display: flex;
     width: 100%;
-    transition: transform 700ms cubic-bezier(0.25, 1, 0.5, 1);
+    transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
     will-change: transform;
   }
 
   .hero__slide {
-    flex: 0 0 100%;
-    min-width: 100%;
     position: relative;
+    flex: 0 0 100%;
+    width: 100%;
     display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    box-sizing: border-box;
+    visibility: hidden;
+  }
+  .hero__slide.is-active {
+    visibility: visible;
   }
 
-  /* ==========================================================
-     ALTURAS — por que o hero crescia ao rolar no celular
-     ==========================================================
-     Duas causas somadas, as duas resolvidas aqui e no bloco de
-     .hero__content logo abaixo.
-
-     1. Mistura de unidades. `vh` mede a tela COM a barra de endereço
-        recolhida (a tela grande) e `svh`, com ela visível (a tela
-        pequena). Cada altura do hero usava uma delas: as tres
-        opcoes do lojista mediam coisas diferentes, e a diferenca
-        entre elas e justamente a altura da barra do navegador.
-        Agora as tres usam `svh`, com `vh` so como queda para
-        navegador antigo. `dvh` fica de fora de proposito: ele
-        acompanha a barra em tempo real, ou seja, redimensiona o
-        hero durante o gesto — exatamente o defeito que estamos
-        corrigindo.
-
-     2. Recorte de tela dentro de um padding de layout. Ver o
-        comentario em .hero__content.
-
-     `height` e nao `min-height` no modo Tela Cheia: com min-height,
-     qualquer crescimento do conteudo (uma linha a mais no titulo ao
-     trocar de slide, o teclado abrindo) empurrava a caixa para
-     alem da tela. O conteudo interno ja rola se precisar. */
-  .hero--short .hero__slide { min-height: clamp(420px, 60vh, 600px); }
-  .hero--short .hero__slide { min-height: clamp(420px, 60svh, 600px); }
-
-  .hero--default .hero__slide { min-height: clamp(520px, 80vh, 850px); }
-  .hero--default .hero__slide { min-height: clamp(520px, 80svh, 850px); }
-
-  .hero--tall .hero__slide {
-    min-height: 100vh;
-    min-height: 100svh;
-    min-height: var(--vh-estavel, 100svh);
+  /* ============================================================================
+     ALTURAS (Desktop e Mobile independentes)
+     ============================================================================ */
+  /* Desktop */
+  @media screen and (min-width: 750px) {
+    .hero--adapt .hero__slide { min-height: 56.25vw; /* Proporção 16:9 */ }
+    .hero--450px .hero__slide { min-height: 450px; }
+    .hero--550px .hero__slide { min-height: 550px; }
+    .hero--650px .hero__slide { min-height: 650px; }
+    .hero--750px .hero__slide { min-height: 750px; }
+    .hero--100vh .hero__slide { min-height: 100vh; }
+  }
+  /* Mobile */
+  @media screen and (max-width: 749px) {
+    .hero-mobile--adapt .hero__slide { min-height: 133vw; /* Proporção 4:3 vertical */ }
+    .hero-mobile--400px .hero__slide { min-height: 400px; }
+    .hero-mobile--500px .hero__slide { min-height: 500px; }
+    .hero-mobile--600px .hero__slide { min-height: 600px; }
+    .hero-mobile--100vh .hero__slide { min-height: 100svh; } /* Usa svh moderno para mobile */
   }
 
-  @media screen and (min-width: 1001px) {
-    .hero__slide { justify-content: center; }
-  }
-
+  /* ============================================================================
+     IMAGENS E OVERLAY
+     ============================================================================ */
   .hero__media {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
+    z-index: 1;
     overflow: hidden;
   }
 
-  .hero__image {
+  .hero__img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     object-position: center;
-    display: block;
-    transform: scale(1.05); /* Escala inicial para a animação */
+    /* Zoom out suave ao entrar no slide */
+    transform: scale(1.05);
+    transition: transform 1.5s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .hero__slide.is-active .hero__img {
+    transform: scale(1);
   }
 
   .hero__placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--color-surface, #121212);
+    width: 100%;
+    height: 100%;
+    background-color: #f4f4f4;
+  }
+  .hero__placeholder svg {
+    width: 100%;
+    height: 100%;
+    fill: #ccc;
   }
 
-  /* Overlay Configurável via Painel */
   .hero__overlay {
     position: absolute;
     inset: 0;
-    background-color: var(--overlay-color, #000000);
-    opacity: var(--overlay-opacity, 0.3);
-    z-index: 1;
-    pointer-events: none;
-  }
-
-  /* Gradiente de Proteção (Garante que o texto embaixo leia bem sempre) */
-  .hero__gradient-mask {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 40%, transparent 80%);
-    z-index: 1;
-    pointer-events: none;
-  }
-
-  /* Conteúdo */
-  .hero__content {
-    position: relative;
     z-index: 2;
-    width: 100%;
-    display: flex;
-    box-sizing: border-box;
-    /* AQUI ESTAVA O CRESCIMENTO.
-
-       Este padding era `calc(--header-height + max(20px,
-       env(safe-area-inset-top)))`. No Safari do iPhone, com
-       viewport-fit=cover, os valores de env(safe-area-inset-*)
-       MUDAM enquanto a barra do navegador recolhe durante a
-       rolagem. Como .hero__content participa do layout do slide, o
-       padding maior empurrava a caixa e — quando o conteudo ja
-       preenchia o slide — o proprio slide ficava mais alto. No
-       meio do scroll. Sem nada ter mudado na pagina.
-
-       --sat e o mesmo recorte, mas CONGELADO em px pelo script do
-       theme.liquid logo depois do primeiro paint. Ele so muda
-       quando o aparelho gira. E --header-total ja soma o recorte a
-       altura da barra, entao a conta nao o aplica duas vezes. */
-    padding-top: calc(var(--header-total, var(--header-height, 70px)) + 20px);
-    padding-bottom: clamp(60px, 10vh, 120px);
+    pointer-events: none;
   }
 
-  @media screen and (min-width: 1001px) {
-    .hero__content {
-      padding-top: calc(var(--header-total, var(--header-height, 70px)) + 60px);
-      padding-bottom: 80px;
-    }
-  }
-
-  /* Alinhamentos Desktop */
-  .hero__content--left { justify-content: flex-start; text-align: left; }
-  .hero__content--center { justify-content: center; text-align: center; }
-  .hero__content--right { justify-content: flex-end; text-align: right; }
-
-  .hero__text-container {
+  /* ============================================================================
+     CONTEÚDO E ALINHAMENTOS
+     ============================================================================ */
+  .hero__content-wrapper {
     position: relative;
-    max-width: min(46rem, 100%);
-    width: 100%;
+    z-index: 3;
     display: flex;
-    flex-direction: column;
+    width: 100%;
+    /* Desconta a altura do header no top para o texto nunca ficar escondido */
+    padding-top: calc(var(--header-height, 70px) + 40px);
+    padding-bottom: clamp(60px, 8vh, 100px);
   }
 
-  @media screen and (min-width: 1001px) {
-    .hero__text-container { max-width: min(48rem, 55vw); }
+  /* Vertical Alignment - Desktop */
+  @media screen and (min-width: 750px) {
+    .align-top { align-items: flex-start; }
+    .align-middle { align-items: center; }
+    .align-bottom { align-items: flex-end; }
+  }
+  /* Vertical Alignment - Mobile */
+  @media screen and (max-width: 749px) {
+    .align-mobile-top { align-items: flex-start; }
+    .align-mobile-middle { align-items: center; }
+    .align-mobile-bottom { align-items: flex-end; }
   }
 
-  /* Elementos de Texto */
-  .hero__element {
-    position: relative;
-    display: block;
-    isolation: isolate;
-    max-width: 100%;
-  }
-  
-  .hero__element--eyebrow { margin-bottom: 12px; }
-  .hero__element--heading { margin-bottom: 16px; display: block; width: 100%; }
-  .hero__element--subheading { margin-bottom: 16px; }
-  .hero__element--body { margin-bottom: 32px; }
-
-  .hero__content--left .hero__element--cta { align-self: flex-start; }
-  .hero__content--center .hero__element--cta { align-self: center; }
-  .hero__content--right .hero__element--cta { align-self: flex-end; }
-
-  /* Animações Premium */
-  .js .hero__slide .hero__element { opacity: 0; }
-  /* RITMO DA ENTRADA — ligado aos tokens do tema.
-
-     Estava em 0.8s de duracao com degraus de 80ms e 100ms de atraso
-     base. Para o CTA (--hero-i: 4) a conta dava 420ms de atraso mais
-     800ms de animacao: o botao principal do hero nascia em opacity 0
-     (o `both` preenche para tras) e so ficava visivel por completo
-     1,22s depois da abertura. Ele continuava clicavel o tempo todo —
-     o que e pior, porque estava clicavel e invisivel.
-
-     Agora usa --dur-reveal (560ms) e --stagger (70ms), os mesmos que
-     governam a entrada de qualquer outra coisa no site. O CTA fecha
-     em ~900ms e a sequencia inteira passa a falar a mesma lingua do
-     resto do tema, em vez de ter um ritmo proprio so aqui.
-
-     Ganho de brinde: --dur-reveal e zerado automaticamente pelo
-     bloco global de prefers-reduced-motion em css-variables; o
-     --hero-dur-reveal, por ser local, nunca era. */
-  .js .hero__slide.is-active .hero__element {
-    animation: heroEntrada var(--dur-reveal) var(--hero-ease-out) both;
-    animation-delay: calc(var(--hero-i, 0) * var(--stagger) + 60ms);
-  }
-  .hero__element--eyebrow { --hero-i: 0; }
-  .hero__element--heading { --hero-i: 1; }
-  .hero__element--subheading { --hero-i: 2; }
-  .hero__element--body { --hero-i: 3; }
-  .hero__element--cta { --hero-i: 4; }
-
-  @keyframes heroEntrada {
-    from { opacity: 0; transform: translate3d(0, 20px, 0); }
-    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  .hero__content {
+    max-width: 700px;
+    width: 100%;
   }
 
-  .hero__slide.is-active .hero__image {
-    animation: heroFoto 1500ms cubic-bezier(0.25, 1, 0.5, 1) both;
+  /* Horizontal Alignment - Desktop */
+  @media screen and (min-width: 750px) {
+    .text-left { text-align: left; margin-right: auto; }
+    .text-center { text-align: center; margin-inline: auto; }
+    .text-right { text-align: right; margin-left: auto; }
+    .text-center .hero__buttons { justify-content: center; }
+    .text-right .hero__buttons { justify-content: flex-end; }
   }
-  @keyframes heroFoto {
-    from { transform: scale(1.06); }
-    to { transform: scale(1); }
-  }
-
-  /* Tipografia Ajustada e Escalonável */
-  .hero__heading {
-    font-size: clamp(2.5rem, 6vw + 1rem, 5.5rem);
-    line-height: 1.05;
-    letter-spacing: -0.02em;
-    margin: 0;
-    color: #ffffff;
-    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-    text-wrap: balance;
-    word-break: break-word;
+  /* Horizontal Alignment - Mobile */
+  @media screen and (max-width: 749px) {
+    .text-mobile-left { text-align: left; margin-right: auto; }
+    .text-mobile-center { text-align: center; margin-inline: auto; }
+    .text-mobile-right { text-align: right; margin-left: auto; }
+    .text-mobile-center .hero__buttons { justify-content: center; }
+    .text-mobile-right .hero__buttons { justify-content: flex-end; }
   }
 
-  .hero__subheading {
-    font-family: var(--font-ui-family, inherit);
-    font-size: clamp(0.85rem, 1vw, 1.1rem);
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #ffffff;
-    margin: 0;
-    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-  }
-
+  /* ============================================================================
+     TIPOGRAFIA (Fluida)
+     ============================================================================ */
   .hero__eyebrow {
-    margin: 0;
-    font-size: 0.85rem;
+    font-size: clamp(0.75rem, 1vw, 0.875rem);
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--color-accent, #C9A24D); /* Destaque na cor principal */
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    color: var(--color-accent, #ffffff);
+    margin: 0 0 16px;
   }
 
-  .hero__body {
-    font-size: clamp(1rem, 1vw + 0.5rem, 1.125rem);
-    line-height: 1.6;
+  .hero__heading {
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    line-height: 1.1;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+
+  .hero__text {
+    font-size: clamp(1rem, 1.2vw, 1.25rem);
+    line-height: 1.5;
     color: rgba(255, 255, 255, 0.9);
-    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+    margin: 0 0 32px;
+    text-wrap: pretty;
   }
-  .hero__content--center .hero__body { margin-left: auto; margin-right: auto; max-width: 48ch; }
-  .hero__body p { margin: 0; }
 
-  /* Botão CTA (Call to Action) */
-  .hero__cta {
-    position: relative;
-    z-index: 1;
-    min-width: 200px;
+  /* Adiciona sombra sutil apenas nos textos para garantir contraste */
+  .hero__eyebrow, .hero__heading, .hero__text {
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+
+  /* ============================================================================
+     BOTÕES
+     ============================================================================ */
+  .hero__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .btn {
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    padding: 16px 32px;
+    padding: 14px 32px;
     font-size: 1rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    border-radius: 4px; /* Leve arredondamento moderno */
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    /* Lista explicita em vez de `all`. Com `all`, o navegador observa
-       TODA propriedade animavel do elemento a cada mudanca de estado —
-       inclusive as que nunca mudam aqui — e qualquer propriedade de
-       layout que venha a ser adicionada no futuro passa a animar sem
-       ninguem ter pedido. */
-    transition:
-      transform var(--dur-fast) var(--hero-ease-out),
-      box-shadow var(--dur-normal) var(--hero-ease-out),
-      background-color var(--dur-fast) var(--hero-ease-out),
-      color var(--dur-fast) var(--hero-ease-out);
-  }
-  
-  .hero__cta:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
-    background-color: var(--color-button-primary-background-hover, #ffffff);
-    color: var(--color-button-primary-text-hover, #000000);
-  }
-  
-  .hero__cta:active { 
-    transform: translateY(0) scale(0.98); 
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    text-decoration: none;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    cursor: pointer;
   }
 
-  /* Setas Laterais (Visíveis apenas em telas grandes) */
+  /* Botão Primário (Fundo Sólido Branco) */
+  .btn--primary {
+    background-color: #ffffff;
+    color: #000000;
+    border: 1px solid #ffffff;
+  }
+  .btn--primary:hover {
+    background-color: transparent;
+    color: #ffffff;
+  }
+
+  /* Botão Secundário (Borda Branca) */
+  .btn--secondary {
+    background-color: transparent;
+    color: #ffffff;
+    border: 1px solid #ffffff;
+  }
+  .btn--secondary:hover {
+    background-color: #ffffff;
+    color: #000000;
+  }
+
+  @media screen and (max-width: 749px) {
+    .btn {
+      width: 100%; /* No mobile os botões ocupam 100% para facilitar o toque */
+    }
+  }
+
+  /* ============================================================================
+     ANIMAÇÕES DE ENTRADA (Stagger)
+     ============================================================================ */
+  .animate-el {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  .is-active .animate-el {
+    animation: fadeUpIn 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  }
+  /* Escalonamento das animações */
+  .hero__eyebrow.animate-el { animation-delay: 0.1s; }
+  .hero__heading.animate-el { animation-delay: 0.2s; }
+  .hero__text.animate-el { animation-delay: 0.3s; }
+  .hero__buttons.animate-el { animation-delay: 0.4s; }
+
+  @keyframes fadeUpIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ============================================================================
+     CONTROLES (Setas e Bolinhas) - CORRIGIDO
+     ============================================================================ */
+  /* Setas Laterais (Apenas Desktop) */
   .hero__arrow {
     position: absolute;
     top: 50%;
@@ -500,335 +407,205 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    height: 52px;
+    width: 48px;
+    height: 48px;
     background-color: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 50%;
+    color: #ffffff;
     cursor: pointer;
-    /* `all` aqui incluia o backdrop-filter na transicao: a cada hover
-       o navegador reprocessava o desfoque do que passa atras da seta,
-       quadro a quadro, durante 300ms. So cor, borda e transform
-       precisam se mover — o blur fica parado. */
-    transition:
-      background-color var(--dur-normal) var(--ease-out),
-      border-color var(--dur-normal) var(--ease-out),
-      transform var(--dur-normal) var(--ease-out);
+    transition: all 0.3s ease;
   }
-  
   .hero__arrow:hover {
-    background-color: rgba(255, 255, 255, 0.25);
-    border-color: rgba(255, 255, 255, 0.5);
-    transform: translateY(-50%) scale(1.08);
+    background-color: #ffffff;
+    color: #000000;
   }
-  .hero__arrow svg { width: 22px; height: 22px; }
   .hero__arrow--prev { left: 32px; }
   .hero__arrow--next { right: 32px; }
 
-  /* Indicador Numérico e Setas Pequenas */
-  .hero__indicator {
+  @media screen and (max-width: 749px) {
+    .hero__arrow { display: none; } /* Oculta setas no mobile para visual limpo */
+  }
+
+  /* Indicador (Bolinhas Horizontais - Padrão Clean) */
+  .hero__dots {
     position: absolute;
-    z-index: 3;
+    bottom: clamp(24px, 5vh, 40px); /* Sempre na base, responsivo */
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     align-items: center;
     gap: 8px;
-  }
-  
-  .hero__counter {
-    display: flex; align-items: center; gap: 4px;
-    font-family: var(--font-ui-family, inherit); 
-    font-size: 1rem; 
-    font-weight: 600;
-    letter-spacing: 0.1em; 
-    color: #ffffff; 
-    margin: 0;
-  }
-  .hero__counter-divider { opacity: 0.5; font-weight: 400; }
-  .hero__counter-total { color: rgba(255, 255, 255, 0.6); font-weight: 400; }
-  
-  .hero__nav {
-    display: inline-flex; align-items: center; justify-content: center;
-    background: none; border: none; color: rgba(255, 255, 255, 0.7);
-    cursor: pointer; padding: 8px; transition: color 0.2s ease, transform 0.2s ease;
-  }
-  .hero__nav:hover, .hero__nav:focus-visible { color: #ffffff; transform: scale(1.1); }
-
-  /* ==========================================================
-     RESPONSIVIDADE OTIMIZADA (Mobile)
-     ========================================================== */
-  @media screen and (max-width: 749px) {
-    /* Esconde as setas gigantes no mobile para limpar a tela e focar no conteúdo. 
-       O cliente pode usar o swipe ou as setas minúsculas do indicador. */
-    .hero__arrow { display: none; }
-
-    /* Ajustes críticos de espaçamento no mobile */
-    .hero__content { 
-      padding-bottom: 90px; /* Dá espaço seguro para o indicador não bater no texto */
-      padding-left: max(20px, var(--sal, 0px));
-      padding-right: max(20px, var(--sar, 0px));
-    }
-
-    .hero__heading { 
-      font-size: clamp(2.2rem, 9vw, 3.2rem); 
-      line-height: 1.1; 
-    }
-    
-    .hero__body { font-size: 0.95rem; }
-
-    /* Botão Full-Width no Mobile (Padrão App Premium) */
-    .hero__element--cta { width: 100%; margin-top: 8px; }
-    .hero__content--left .hero__element--cta, 
-    .hero__content--center .hero__element--cta, 
-    .hero__content--right .hero__element--cta { align-self: stretch; }
-    
-    .hero__cta { 
-      width: 100%; 
-      justify-content: center; 
-      padding: 18px; 
-      font-size: 0.95rem;
-    }
-
-    /* Indicador centralizado estilo "Pílula Glassmorphism" no mobile */
-    .hero__indicator {
-      bottom: max(24px, var(--sab, 0px)); 
-      left: 50%;
-      right: auto;
-      transform: translateX(-50%);
-      background-color: rgba(0, 0, 0, 0.5); 
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      padding: 6px 12px; 
-      border-radius: 100px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
+    z-index: 10;
   }
 
-  /* Desktop Indicador Alignment */
-  @media screen and (min-width: 750px) {
-    .hero__indicator { 
-      right: var(--page-gutter, 32px); 
-      bottom: clamp(40px, 8vh, 80px); 
-      flex-direction: column; 
-      gap: 8px; 
-    }
-    .hero__counter { flex-direction: column; gap: 8px; }
-    .hero__counter-divider { display: none; }
-    .hero__counter-total::before {
-      content: ''; display: block; width: 1px; height: 30px;
-      margin: 0 auto 8px; background-color: rgba(255, 255, 255, 0.25);
-    }
-    .hero__indicator [data-hero-prev] svg { transform: rotate(-90deg); }
-    .hero__indicator [data-hero-next] svg { transform: rotate(90deg); }
+  .hero__dot {
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: none;
+    border-radius: 99px; /* Circulo perfeito */
+    background-color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Ajuda no contraste em fundos brancos */
   }
 
-  /* Redução de Movimento */
-  /* ==========================================================
-     CELULAR DEITADO — a orientacao que o hero nao previa
-     ==========================================================
-     O titulo e dimensionado por LARGURA (6vw + 1rem). Deitado, um
-     celular tem ~844px de largura e ~390px de altura: a conta
-     devolve um titulo de ~66px dentro de uma tela de 390px de alto.
-     Somando ~140px de respiro vertical, o conteudo estoura a altura
-     e o slide cresce — a "tela cheia" vira uma tela e meia, e a
-     pessoa precisa rolar so para passar do hero.
-
-     O bloco de celular para em 749px de LARGURA, entao um aparelho
-     deitado nunca chega la: ele e tratado como desktop estreito.
-     Por isso a condicao aqui e por ALTURA, nao por largura.
-
-     O texto de apoio sai: com 390px de altura, ele e a primeira
-     coisa que sobra. */
-  @media (orientation: landscape) and (max-height: 540px) {
-    .hero__content {
-      padding-top: calc(var(--header-total, var(--header-height, 70px)) + 10px);
-      padding-bottom: clamp(24px, 6vh, 44px);
-    }
-    .hero__heading {
-      font-size: clamp(1.75rem, 4.2vw, 2.75rem);
-      line-height: 1.05;
-    }
-    .hero__element--eyebrow { margin-bottom: 6px; }
-    .hero__element--heading { margin-bottom: 10px; }
-    .hero__element--subheading { margin-bottom: 10px; }
-    .hero__element--body { display: none; }
-    /* Deitado sobra largura: o CTA volta ao tamanho do proprio rotulo
-       em vez de atravessar a tela. */
-    .hero__element--cta { width: auto; margin-top: 4px; }
-    .hero__cta { width: auto; padding: 12px 28px; }
+  .hero__dot:hover {
+    background-color: rgba(255, 255, 255, 0.8);
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .js .hero__slide .hero__element { opacity: 1; }
-    .js .hero__slide.is-active .hero__element, .hero__slide.is-active .hero__image { animation: none; }
-    .hero__slide { transition-duration: 0.01ms !important; }
+  /* Bolinha Ativa (Pílula Horizontal Elegante) */
+  .hero__dot.is-active {
+    width: 24px; /* Expande na horizontal */
+    background-color: #ffffff; /* Fica branco sólido */
   }
+
 </style>
 
 {%- if slide_count > 1 -%}
   <script>
-    (function () {
-      var root = document.querySelector('[data-hero-carousel][data-section-id="{{ section.id }}"]');
-      if (!root) return;
+    document.addEventListener("DOMContentLoaded", function() {
+      const hero = document.querySelector('[data-hero-carousel][data-section-id="{{ section.id }}"]');
+      if (!hero) return;
 
-      var sliderContainer = root.querySelector('.hero__slides');
-      var slides = Array.prototype.slice.call(root.querySelectorAll('[data-hero-slide]'));
-      var current = root.querySelector('[data-hero-current]');
-      var index = 0;
-      var autoPlayInterval;
+      const track = hero.querySelector('.hero__track');
+      const slides = hero.querySelectorAll('[data-hero-slide]');
+      const dots = hero.querySelectorAll('[data-hero-dot]');
+      const prevBtns = hero.querySelectorAll('[data-hero-prev]');
+      const nextBtns = hero.querySelectorAll('[data-hero-next]');
+      
+      let currentIndex = 0;
+      let autoplayTimer;
+      const isAutoplay = hero.getAttribute('data-autoplay') === 'true';
+      const autoplaySpeed = parseInt(hero.getAttribute('data-speed'), 10) || 5000;
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      /* ---------------------------------------------------------
-         AUTOPLAY — quando ele NAO deve rodar
+      function goToSlide(index) {
+        if (index < 0) index = slides.length - 1;
+        if (index >= slides.length) index = 0;
+        
+        currentIndex = index;
+        
+        // Move a trilha (Track)
+        track.style.transform = `translateX(-${currentIndex * 100}%)`;
 
-         Um carrossel que troca sozinho e conteudo em movimento que
-         a pessoa nao pediu. Tres situacoes em que ele para:
-
-         1. prefers-reduced-motion. Quem desligou animacoes no
-            sistema tambem desligou esta.
-         2. Aba em segundo plano. Rodar ali gasta bateria para
-            ninguem e faz a pessoa voltar num slide diferente do que
-            deixou.
-         3. Dedo, mouse ou teclado no hero. Ler um titulo enquanto
-            ele desliza para fora e o motivo de a WCAG 2.2.2 exigir
-            uma forma de pausar.
-      --------------------------------------------------------- */
-      var semMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      var isAutoplay = root.getAttribute('data-autoplay') === 'true' && !semMovimento;
-      var autoplaySpeed = parseInt(root.getAttribute('data-speed'), 10) || 5000;
-      var pausado = false;
-
-      function pad(n) { return (n < 10 ? '0' : '') + n; }
-
-      function show(next) {
-        index = (next + slides.length) % slides.length;
-        sliderContainer.style.transform = 'translateX(-' + (index * 100) + '%)';
-
-        slides.forEach(function (slide, i) {
-          var active = i === index;
-          if (active) {
-            slide.classList.add('is-active');
+        // Atualiza classes e acessibilidade dos Slides
+        slides.forEach((slide, i) => {
+          const isActive = i === currentIndex;
+          slide.classList.toggle('is-active', isActive);
+          if (isActive) {
             slide.removeAttribute('aria-hidden');
             slide.removeAttribute('inert');
           } else {
-            slide.classList.remove('is-active');
             slide.setAttribute('aria-hidden', 'true');
             slide.setAttribute('inert', '');
           }
         });
-        if (current) current.textContent = pad(index + 1);
+
+        // Atualiza Bolinhas (Dots)
+        dots.forEach((dot, i) => {
+          const isActive = i === currentIndex;
+          dot.classList.toggle('is-active', isActive);
+          dot.setAttribute('aria-selected', isActive);
+        });
+
         resetAutoplay();
       }
 
+      // Controles
+      prevBtns.forEach(btn => btn.addEventListener('click', () => goToSlide(currentIndex - 1)));
+      nextBtns.forEach(btn => btn.addEventListener('click', () => goToSlide(currentIndex + 1)));
+      dots.forEach((dot, i) => dot.addEventListener('click', () => goToSlide(i)));
+
+      // Autoplay
       function startAutoplay() {
-        if (!isAutoplay || pausado || document.hidden) return;
-        clearInterval(autoPlayInterval);
-        autoPlayInterval = setInterval(function() { show(index + 1); }, autoplaySpeed);
+        if (!isAutoplay || prefersReducedMotion) return;
+        autoplayTimer = setInterval(() => goToSlide(currentIndex + 1), autoplaySpeed);
       }
 
       function stopAutoplay() {
-        clearInterval(autoPlayInterval);
+        clearInterval(autoplayTimer);
       }
 
       function resetAutoplay() {
-        if (!isAutoplay) return;
         stopAutoplay();
         startAutoplay();
       }
 
-      function pausar() { pausado = true; stopAutoplay(); }
-      function retomar() { pausado = false; startAutoplay(); }
+      // Pausa no Hover/Toque
+      hero.addEventListener('mouseenter', stopAutoplay);
+      hero.addEventListener('mouseleave', startAutoplay);
+      hero.addEventListener('touchstart', stopAutoplay, { passive: true });
+      hero.addEventListener('touchend', startAutoplay, { passive: true });
 
-      document.addEventListener('visibilitychange', function () {
-        if (document.hidden) stopAutoplay();
-        else startAutoplay();
-      });
-
-      root.addEventListener('mouseenter', pausar);
-      root.addEventListener('mouseleave', retomar);
-      root.addEventListener('focusin', pausar);
-      root.addEventListener('focusout', function (event) {
-        if (!root.contains(event.relatedTarget)) retomar();
-      });
-
-      show(0);
-
-      var prevButtons = root.querySelectorAll('[data-hero-prev]');
-      var nextButtons = root.querySelectorAll('[data-hero-next]');
-
-      prevButtons.forEach(function(btn) {
-        btn.addEventListener('click', function(e) { e.preventDefault(); show(index - 1); });
-      });
-      nextButtons.forEach(function(btn) {
-        btn.addEventListener('click', function(e) { e.preventDefault(); show(index + 1); });
-      });
-
-      root.addEventListener('keydown', function (event) {
-        if (event.key === 'ArrowLeft') show(index - 1);
-        if (event.key === 'ArrowRight') show(index + 1);
-      });
-
-      // Swipe Suave no Mobile
-      var startX = 0, startY = 0;
-      root.addEventListener('touchstart', function (event) {
-        startX = event.changedTouches[0].clientX;
-        startY = event.changedTouches[0].clientY;
-        stopAutoplay();
+      // Swipe Mobile Básico
+      let touchStartX = 0;
+      hero.addEventListener('touchstart', e => touchStartX = e.changedTouches[0].screenX, { passive: true });
+      hero.addEventListener('touchend', e => {
+        let touchEndX = e.changedTouches[0].screenX;
+        if (touchStartX - touchEndX > 50) goToSlide(currentIndex + 1); // Swipe Esquerda
+        if (touchEndX - touchStartX > 50) goToSlide(currentIndex - 1); // Swipe Direita
       }, { passive: true });
 
-      root.addEventListener('touchend', function (event) {
-        var dx = event.changedTouches[0].clientX - startX;
-        var dy = event.changedTouches[0].clientY - startY;
-        // Permite o swipe apenas se o movimento horizontal for maior que o vertical
-        /* O gesto so conta como swipe se for claramente horizontal.
-           Sem a segunda condicao, rolar a pagina para baixo com o
-           dedo comecando no hero trocava o slide no caminho. */
-        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-          show(dx < 0 ? index + 1 : index - 1);
-        } else {
-          resetAutoplay();
-        }
-      }, { passive: true });
+      // Inicia
+      startAutoplay();
 
-      // Integração com Editor da Shopify
+      // Shopify Editor Integration
       if (Shopify.designMode) {
-        document.addEventListener('shopify:block:select', function(event) {
+        document.addEventListener('shopify:block:select', (event) => {
           if (event.detail.sectionId !== '{{ section.id }}') return;
           stopAutoplay();
-          var selectedSlide = slides.find(s => s.dataset.shopifyEditorBlock === JSON.stringify({id: event.detail.blockId}));
-          if (selectedSlide) {
-            show(slides.indexOf(selectedSlide));
-          }
+          const targetSlide = Array.from(slides).findIndex(s => s.dataset.shopifyEditorBlock === `{"id":"${event.detail.blockId}"}`);
+          if (targetSlide !== -1) goToSlide(targetSlide);
         });
-        document.addEventListener('shopify:block:deselect', function(event) {
+        document.addEventListener('shopify:block:deselect', (event) => {
           if (event.detail.sectionId !== '{{ section.id }}') return;
           resetAutoplay();
         });
       }
-    })();
+    });
   </script>
 {%- endif -%}
 
 {% schema %}
 {
-  "name": "Slider Premium",
+  "name": "Hero Slider Premium",
   "tag": "section",
+  "class": "section-hero",
   "settings": [
     {
       "type": "header",
-      "content": "Dimensões do Slider"
+      "content": "Altura da Seção"
     },
     {
       "type": "select",
-      "id": "height",
+      "id": "desktop_height",
+      "label": "Altura no Desktop",
       "options": [
-        { "value": "short", "label": "Pequeno" },
-        { "value": "default", "label": "Padrão" },
-        { "value": "tall", "label": "Tela Cheia (100vh)" }
+        { "value": "adapt", "label": "Adaptar à primeira imagem (16:9)" },
+        { "value": "450px", "label": "Pequeno (450px)" },
+        { "value": "550px", "label": "Médio (550px)" },
+        { "value": "650px", "label": "Grande (650px)" },
+        { "value": "750px", "label": "Muito Grande (750px)" },
+        { "value": "100vh", "label": "Tela Cheia (100vh)" }
       ],
-      "default": "default",
-      "label": "Altura do Banner"
+      "default": "650px"
+    },
+    {
+      "type": "select",
+      "id": "mobile_height",
+      "label": "Altura no Mobile",
+      "options": [
+        { "value": "adapt", "label": "Adaptar à imagem (4:3)" },
+        { "value": "400px", "label": "Pequeno (400px)" },
+        { "value": "500px", "label": "Médio (500px)" },
+        { "value": "600px", "label": "Grande (600px)" },
+        { "value": "100vh", "label": "Tela Cheia (100vh)" }
+      ],
+      "default": "500px"
     },
     {
       "type": "header",
@@ -837,7 +614,7 @@
     {
       "type": "checkbox",
       "id": "autoplay",
-      "label": "Ativar rotação automática",
+      "label": "Rotação Automática",
       "default": true
     },
     {
@@ -847,23 +624,23 @@
       "max": 10,
       "step": 1,
       "unit": "s",
-      "label": "Tempo de troca dos slides",
+      "label": "Tempo por slide",
       "default": 5
     },
     {
       "type": "header",
-      "content": "Interface"
+      "content": "Interface de Navegação"
     },
     {
       "type": "checkbox",
       "id": "show_arrows",
-      "label": "Mostrar setas (Apenas Desktop)",
+      "label": "Mostrar setas laterais (Apenas Desktop)",
       "default": true
     },
     {
       "type": "checkbox",
-      "id": "show_indicator",
-      "label": "Mostrar indicador numérico",
+      "id": "show_dots",
+      "label": "Mostrar bolinhas indicadoras (Dots)",
       "default": true
     }
   ],
@@ -880,12 +657,11 @@
         {
           "type": "image_picker",
           "id": "image_mobile",
-          "label": "Imagem Mobile (Opcional)",
-          "info": "Se vazio, usará a imagem desktop ajustada."
+          "label": "Imagem Mobile (Opcional)"
         },
         {
           "type": "header",
-          "content": "Aparência da Máscara (Overlay)"
+          "content": "Máscara Escura (Overlay)"
         },
         {
           "type": "color",
@@ -901,65 +677,109 @@
           "step": 5,
           "unit": "%",
           "label": "Opacidade da Máscara",
-          "default": 20,
-          "info": "Aumente para melhorar a leitura em fotos claras."
+          "default": 30
         },
         {
           "type": "header",
-          "content": "Conteúdo de Texto"
+          "content": "Posicionamento do Texto"
         },
         {
           "type": "select",
-          "id": "text_alignment",
-          "label": "Alinhamento do Texto",
+          "id": "desktop_content_position",
+          "label": "Posição Vertical (Desktop)",
+          "options": [
+            { "value": "top", "label": "Em cima" },
+            { "value": "middle", "label": "No meio" },
+            { "value": "bottom", "label": "Embaixo" }
+          ],
+          "default": "middle"
+        },
+        {
+          "type": "select",
+          "id": "desktop_text_alignment",
+          "label": "Alinhamento (Desktop)",
           "options": [
             { "value": "left", "label": "Esquerda" },
             { "value": "center", "label": "Centro" },
             { "value": "right", "label": "Direita" }
           ],
-          "default": "left"
+          "default": "center"
+        },
+        {
+          "type": "select",
+          "id": "mobile_content_position",
+          "label": "Posição Vertical (Mobile)",
+          "options": [
+            { "value": "top", "label": "Em cima" },
+            { "value": "middle", "label": "No meio" },
+            { "value": "bottom", "label": "Embaixo" }
+          ],
+          "default": "bottom"
+        },
+        {
+          "type": "select",
+          "id": "mobile_text_alignment",
+          "label": "Alinhamento (Mobile)",
+          "options": [
+            { "value": "left", "label": "Esquerda" },
+            { "value": "center", "label": "Centro" },
+            { "value": "right", "label": "Direita" }
+          ],
+          "default": "center"
+        },
+        {
+          "type": "header",
+          "content": "Textos"
         },
         {
           "type": "text",
           "id": "eyebrow",
-          "label": "Pequeno rótulo superior",
-          "default": "NOVIDADE"
+          "label": "Rótulo Superior",
+          "default": "NOVA COLEÇÃO"
         },
         {
           "type": "textarea",
           "id": "heading",
           "label": "Título Principal",
-          "default": "Coleção Exclusiva"
-        },
-        {
-          "type": "text",
-          "id": "subheading",
-          "label": "Subtítulo",
-          "default": "Descubra o novo padrão"
+          "default": "Apresentando a Nova Linha"
         },
         {
           "type": "richtext",
           "id": "text",
           "label": "Texto de Apoio",
-          "default": "<p>Detalhes que fazem a diferença na sua rotina.</p>"
+          "default": "<p>Combine design moderno com conforto absoluto no seu dia a dia.</p>"
+        },
+        {
+          "type": "header",
+          "content": "Botões"
         },
         {
           "type": "text",
           "id": "button_label",
-          "label": "Texto do Botão",
-          "default": "Ver Produtos"
+          "label": "Botão Primário",
+          "default": "Comprar Agora"
         },
         {
           "type": "url",
           "id": "button_link",
-          "label": "Link do Botão"
+          "label": "Link do Botão Primário"
+        },
+        {
+          "type": "text",
+          "id": "button_label_2",
+          "label": "Botão Secundário"
+        },
+        {
+          "type": "url",
+          "id": "button_link_2",
+          "label": "Link do Botão Secundário"
         }
       ]
     }
   ],
   "presets": [
     {
-      "name": "Slider Premium",
+      "name": "Hero Slider Premium",
       "blocks": [
         { "type": "slide" },
         { "type": "slide" }
