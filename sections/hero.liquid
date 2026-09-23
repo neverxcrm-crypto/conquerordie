@@ -97,6 +97,8 @@
 
           <!-- Camada de Escurecimento Configurável -->
           <div class="hero__overlay"></div>
+          <!-- Gradiente de Proteção Inferior (Garante leitura) -->
+          <div class="hero__gradient-mask"></div>
         </div>
 
         <!-- Conteúdo do Banner -->
@@ -138,9 +140,9 @@
             <!-- Botão CTA -->
             {%- if block.settings.button_label != blank -%}
               <div class="hero__element hero__element--cta">
-                <a href="{{ block.settings.button_link | default: routes.all_products_collection_url }}" class="button hero__cta">
+                <a href="{{ block.settings.button_link | default: routes.all_products_collection_url }}" class="button hero__cta tap-target">
                   <span>{{ block.settings.button_label | escape }}</span>
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                 </a>
               </div>
             {%- endif -%}
@@ -152,7 +154,7 @@
   </ul>
 
   {%- if slide_count > 1 -%}
-    <!-- SETAS LATERAIS -->
+    <!-- SETAS LATERAIS (Desktop Apenas) -->
     {%- if section.settings.show_arrows -%}
       <button type="button" class="hero__arrow hero__arrow--prev tap-target" data-hero-prev aria-label="Slide anterior">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
@@ -182,6 +184,12 @@
 </div>
 
 <style>
+  /* Variáveis de Animação */
+  :root {
+    --hero-ease-out: cubic-bezier(0.21, 0.85, 0.32, 1);
+    --hero-dur-reveal: 0.8s;
+  }
+
   .hero {
     margin-top: calc(-1 * var(--header-height, 70px));
     position: relative;
@@ -196,7 +204,7 @@
     padding: 0;
     display: flex;
     width: 100%;
-    transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 700ms cubic-bezier(0.25, 1, 0.5, 1);
     will-change: transform;
   }
 
@@ -210,10 +218,13 @@
     box-sizing: border-box;
   }
 
-  /* Alturas */
+  /* Alturas Modernas (suporte a svh para iOS) */
   .hero--short .hero__slide { min-height: clamp(420px, 60vh, 600px); }
   .hero--default .hero__slide { min-height: clamp(520px, 80vh, 850px); }
-  .hero--tall .hero__slide { min-height: 100vh; min-height: 100dvh; }
+  .hero--tall .hero__slide { 
+    min-height: 100vh; 
+    min-height: 100svh; /* Resolve o bug da barra de endereços no mobile */
+  }
 
   @media screen and (min-width: 1001px) {
     .hero__slide { justify-content: center; }
@@ -231,7 +242,9 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
     display: block;
+    transform: scale(1.05); /* Escala inicial para a animação */
   }
 
   .hero__placeholder {
@@ -251,6 +264,15 @@
     pointer-events: none;
   }
 
+  /* Gradiente de Proteção (Garante que o texto embaixo leia bem sempre) */
+  .hero__gradient-mask {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 40%, transparent 80%);
+    z-index: 1;
+    pointer-events: none;
+  }
+
   /* Conteúdo */
   .hero__content {
     position: relative;
@@ -259,29 +281,31 @@
     display: flex;
     box-sizing: border-box;
     padding-top: calc(var(--header-height, 70px) + max(20px, env(safe-area-inset-top, 0px)));
-    padding-bottom: clamp(80px, 12vh, 140px);
+    padding-bottom: clamp(60px, 10vh, 120px);
   }
 
   @media screen and (min-width: 1001px) {
     .hero__content {
-      padding-top: calc(var(--header-height, 70px) + 40px);
-      padding-bottom: 60px;
+      padding-top: calc(var(--header-height, 70px) + 60px);
+      padding-bottom: 80px;
     }
   }
 
-  /* Alinhamentos */
+  /* Alinhamentos Desktop */
   .hero__content--left { justify-content: flex-start; text-align: left; }
   .hero__content--center { justify-content: center; text-align: center; }
   .hero__content--right { justify-content: flex-end; text-align: right; }
 
   .hero__text-container {
     position: relative;
-    max-width: min(42rem, 100%);
+    max-width: min(46rem, 100%);
     width: 100%;
+    display: flex;
+    flex-direction: column;
   }
 
   @media screen and (min-width: 1001px) {
-    .hero__text-container { max-width: min(42rem, 52vw); }
+    .hero__text-container { max-width: min(48rem, 55vw); }
   }
 
   /* Elementos de Texto */
@@ -291,20 +315,21 @@
     isolation: isolate;
     max-width: 100%;
   }
-  .hero__element--eyebrow { margin-bottom: 14px; }
+  
+  .hero__element--eyebrow { margin-bottom: 12px; }
   .hero__element--heading { margin-bottom: 16px; display: block; width: 100%; }
   .hero__element--subheading { margin-bottom: 16px; }
-  .hero__element--body { margin-bottom: 28px; }
+  .hero__element--body { margin-bottom: 32px; }
 
-  .hero__content--left .hero__element--cta { margin-top: 8px; display: inline-flex; width: auto; align-items: center; }
-  .hero__content--center .hero__element--cta { margin-top: 8px; display: flex; width: auto; justify-content: center; }
-  .hero__content--right .hero__element--cta { margin-top: 8px; display: flex; width: auto; justify-content: flex-end; }
+  .hero__content--left .hero__element--cta { align-self: flex-start; }
+  .hero__content--center .hero__element--cta { align-self: center; }
+  .hero__content--right .hero__element--cta { align-self: flex-end; }
 
-  /* Animações */
+  /* Animações Premium */
   .js .hero__slide .hero__element { opacity: 0; }
   .js .hero__slide.is-active .hero__element {
-    animation: heroEntrada var(--dur-reveal, 560ms) var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
-    animation-delay: calc(var(--hero-i, 0) * 70ms);
+    animation: heroEntrada var(--hero-dur-reveal) var(--hero-ease-out) both;
+    animation-delay: calc(var(--hero-i, 0) * 80ms + 100ms);
   }
   .hero__element--eyebrow { --hero-i: 0; }
   .hero__element--heading { --hero-i: 1; }
@@ -313,81 +338,91 @@
   .hero__element--cta { --hero-i: 4; }
 
   @keyframes heroEntrada {
-    from { opacity: 0; transform: translate3d(0, 14px, 0); }
+    from { opacity: 0; transform: translate3d(0, 20px, 0); }
     to { opacity: 1; transform: translate3d(0, 0, 0); }
   }
 
   .hero__slide.is-active .hero__image {
-    animation: heroFoto 1200ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+    animation: heroFoto 1500ms cubic-bezier(0.25, 1, 0.5, 1) both;
   }
   @keyframes heroFoto {
-    from { transform: scale(1.04); }
+    from { transform: scale(1.06); }
     to { transform: scale(1); }
   }
 
-  /* Tipografia */
+  /* Tipografia Ajustada e Escalonável */
   .hero__heading {
-    font-size: clamp(2.4rem, 8.5vw, 6.8rem);
-    line-height: 0.98;
+    font-size: clamp(2.5rem, 6vw + 1rem, 5.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
     margin: 0;
-    color: var(--color-text-primary, #ffffff);
-    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    color: #ffffff;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
     text-wrap: balance;
-    overflow-wrap: break-word;
     word-break: break-word;
   }
 
   .hero__subheading {
     font-family: var(--font-ui-family, inherit);
-    font-size: clamp(0.875rem, 0.8rem + 0.4vw, 1.0625rem);
-    font-weight: var(--font-weight-medium, 500);
-    letter-spacing: var(--tracking-label, 0.05em);
+    font-size: clamp(0.85rem, 1vw, 1.1rem);
+    font-weight: 600;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--color-text-primary, #ffffff);
+    color: #ffffff;
     margin: 0;
-    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
   }
 
   .hero__eyebrow {
     margin: 0;
-    font-size: var(--f0);
-    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
-    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-accent, #C9A24D); /* Destaque na cor principal */
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   }
 
   .hero__body {
-    font-size: clamp(0.9375rem, 0.9rem + 0.25vw, 1.0625rem);
-    line-height: 1.55;
-    color: var(--color-text-secondary, rgba(255, 255, 255, 0.88));
-    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+    font-size: clamp(1rem, 1vw + 0.5rem, 1.125rem);
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
   }
-  .hero__content--center .hero__body { margin-left: auto; margin-right: auto; max-width: 42ch; }
-  .hero__body p { margin: 0 0 6px; }
+  .hero__content--center .hero__body { margin-left: auto; margin-right: auto; max-width: 48ch; }
+  .hero__body p { margin: 0; }
 
-  /* Botão CTA */
+  /* Botão CTA (Call to Action) */
   .hero__cta {
     position: relative;
     z-index: 1;
-    min-width: 180px;
+    min-width: 200px;
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-    transition:
-      transform var(--dur-fast) var(--ease-out),
-      background-color var(--dur-fast) var(--ease-out),
-      border-color var(--dur-fast) var(--ease-out),
-      color var(--dur-fast) var(--ease-out);
+    padding: 16px 32px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 4px; /* Leve arredondamento moderno */
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s var(--hero-ease-out);
   }
+  
   .hero__cta:hover {
-    transform: translateY(-1px);
-    background-color: var(--color-button-primary-background-hover);
-    border-color: var(--color-button-primary-background-hover);
-    color: var(--color-button-primary-text-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    background-color: var(--color-button-primary-background-hover, #ffffff);
+    color: var(--color-button-primary-text-hover, #000000);
   }
-  .hero__cta:active { transform: translateY(0); }
+  
+  .hero__cta:active { 
+    transform: translateY(0) scale(0.98); 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
 
-  /* Setas Laterais */
+  /* Setas Laterais (Visíveis apenas em telas grandes) */
   .hero__arrow {
     position: absolute;
     top: 50%;
@@ -396,41 +431,28 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
-    background-color: rgba(255, 255, 255, 0.15);
+    width: 52px;
+    height: 52px;
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 50%;
     cursor: pointer;
-    transition:
-      background-color var(--dur-fast) var(--ease-out),
-      transform var(--dur-fast) var(--ease-out),
-      border-color var(--dur-fast) var(--ease-out);
+    transition: all 0.3s ease;
   }
-  /* O blur ficou so onde ha mouse: no celular a seta esta por cima de
-     uma foto que escala e desliza, e cada frame do carrossel obrigaria
-     o navegador a refazer o desfoque do que passa atras dela. */
-  @media (hover: hover) {
-    .hero__arrow { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
-  }
+  
   .hero__arrow:hover {
-    background-color: rgba(255, 255, 255, 0.3);
-    border-color: rgba(255, 255, 255, 0.6);
-    transform: translateY(-50%) scale(1.05);
+    background-color: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-50%) scale(1.08);
   }
-  .hero__arrow svg { width: 24px; height: 24px; }
-  .hero__arrow--prev { left: 24px; }
-  .hero__arrow--next { right: 24px; }
+  .hero__arrow svg { width: 22px; height: 22px; }
+  .hero__arrow--prev { left: 32px; }
+  .hero__arrow--next { right: 32px; }
 
-  @media screen and (max-width: 749px) {
-    .hero__arrow { width: 40px; height: 40px; }
-    .hero__arrow svg { width: 20px; height: 20px; }
-    .hero__arrow--prev { left: 16px; }
-    .hero__arrow--next { right: 16px; }
-  }
-
-  /* Indicador */
+  /* Indicador Numérico e Setas Pequenas */
   .hero__indicator {
     position: absolute;
     z-index: 3;
@@ -438,70 +460,95 @@
     align-items: center;
     gap: 8px;
   }
+  
   .hero__counter {
     display: flex; align-items: center; gap: 4px;
-    font-family: var(--font-ui-family, inherit); font-size: var(--f1, 1.2rem); font-weight: 500;
-    letter-spacing: var(--tracking-label, 0.05em); color: #ffffff; margin: 0;
+    font-family: var(--font-ui-family, inherit); 
+    font-size: 1rem; 
+    font-weight: 600;
+    letter-spacing: 0.1em; 
+    color: #ffffff; 
+    margin: 0;
   }
-  .hero__counter-divider { opacity: 0.5; }
-  .hero__counter-total { color: rgba(255, 255, 255, 0.6); }
+  .hero__counter-divider { opacity: 0.5; font-weight: 400; }
+  .hero__counter-total { color: rgba(255, 255, 255, 0.6); font-weight: 400; }
+  
   .hero__nav {
     display: inline-flex; align-items: center; justify-content: center;
-    background: none; border: none; color: rgba(255, 255, 255, 0.8);
-    cursor: pointer; padding: 8px; opacity: 0.8; transition: opacity 200ms ease, color 200ms ease;
+    background: none; border: none; color: rgba(255, 255, 255, 0.7);
+    cursor: pointer; padding: 8px; transition: color 0.2s ease, transform 0.2s ease;
   }
-  .hero__nav:hover, .hero__nav:focus-visible { opacity: 1; color: #ffffff; }
+  .hero__nav:hover, .hero__nav:focus-visible { color: #ffffff; transform: scale(1.1); }
 
+  /* ==========================================================
+     RESPONSIVIDADE OTIMIZADA (Mobile)
+     ========================================================== */
+  @media screen and (max-width: 749px) {
+    /* Esconde as setas gigantes no mobile para limpar a tela e focar no conteúdo. 
+       O cliente pode usar o swipe ou as setas minúsculas do indicador. */
+    .hero__arrow { display: none; }
+
+    /* Ajustes críticos de espaçamento no mobile */
+    .hero__content { 
+      padding-bottom: 90px; /* Dá espaço seguro para o indicador não bater no texto */
+      padding-left: max(20px, env(safe-area-inset-left)); 
+      padding-right: max(20px, env(safe-area-inset-right));
+    }
+
+    .hero__heading { 
+      font-size: clamp(2.2rem, 9vw, 3.2rem); 
+      line-height: 1.1; 
+    }
+    
+    .hero__body { font-size: 0.95rem; }
+
+    /* Botão Full-Width no Mobile (Padrão App Premium) */
+    .hero__element--cta { width: 100%; margin-top: 8px; }
+    .hero__content--left .hero__element--cta, 
+    .hero__content--center .hero__element--cta, 
+    .hero__content--right .hero__element--cta { align-self: stretch; }
+    
+    .hero__cta { 
+      width: 100%; 
+      justify-content: center; 
+      padding: 18px; 
+      font-size: 0.95rem;
+    }
+
+    /* Indicador centralizado estilo "Pílula Glassmorphism" no mobile */
+    .hero__indicator {
+      bottom: max(24px, env(safe-area-inset-bottom, 24px)); 
+      left: 50%;
+      right: auto;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.5); 
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 6px 12px; 
+      border-radius: 100px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  /* Desktop Indicador Alignment */
   @media screen and (min-width: 750px) {
-    .hero__indicator { right: var(--page-gutter, 24px); bottom: clamp(40px, 8vh, 80px); flex-direction: column; gap: 6px; }
-    .hero__counter { flex-direction: column; gap: 6px; }
+    .hero__indicator { 
+      right: var(--page-gutter, 32px); 
+      bottom: clamp(40px, 8vh, 80px); 
+      flex-direction: column; 
+      gap: 8px; 
+    }
+    .hero__counter { flex-direction: column; gap: 8px; }
     .hero__counter-divider { display: none; }
     .hero__counter-total::before {
-      content: ''; display: block; width: 1px; height: 24px;
-      margin: 0 auto 6px; background-color: rgba(255, 255, 255, 0.25);
+      content: ''; display: block; width: 1px; height: 30px;
+      margin: 0 auto 8px; background-color: rgba(255, 255, 255, 0.25);
     }
-    .hero__indicator [data-hero-prev] svg { transform: rotate(90deg); }
+    .hero__indicator [data-hero-prev] svg { transform: rotate(-90deg); }
     .hero__indicator [data-hero-next] svg { transform: rotate(90deg); }
   }
 
-  @media screen and (max-width: 749px) {
-    .hero__element--cta { width: 100%; }
-    .hero__cta { width: 100%; justify-content: center; }
-    .hero__indicator {
-      bottom: max(16px, env(safe-area-inset-bottom, 16px)); right: var(--page-gutter, 16px);
-      left: auto; background-color: rgba(0, 0, 0, 0.55); padding: 4px 8px; border-radius: var(--radius-pill);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-    }
-  }
-
-  /* ==========================================================
-     CELULAR DEITADO — a orientacao que o hero nao previa
-     ==========================================================
-     O titulo e dimensionado por LARGURA (8.5vw). Deitado, um celular
-     tem 844px de largura e 390px de altura: a conta devolvia um
-     titulo de ~72px dentro de uma tela de 390px de alto, somado a
-     ~160px de padding vertical fixo. O slide crescia e a "tela
-     cheia" virava uma tela e meia de rolagem so para passar do hero.
-
-     Aqui a tipografia passa a considerar a ALTURA disponivel e o
-     respiro vertical encolhe. O texto de apoio sai — em 390px de
-     altura ele e a primeira coisa que sobra. */
-  @media (orientation: landscape) and (max-height: 540px) {
-    .hero__content {
-      padding-top: calc(var(--header-height) + max(12px, env(safe-area-inset-top, 0px)));
-      padding-bottom: clamp(28px, 7vh, 48px);
-    }
-    .hero__heading { font-size: clamp(1.75rem, 4.6vw, 3.25rem); }
-    .hero__element--eyebrow { margin-bottom: 8px; }
-    .hero__element--heading { margin-bottom: 10px; }
-    .hero__element--subheading { margin-bottom: 10px; }
-    .hero__body { display: none; }
-    /* Deitado ha largura de sobra: o CTA volta a ter a largura do
-       proprio rotulo em vez de atravessar a tela inteira. */
-    .hero__element--cta { width: auto; }
-    .hero__cta { width: auto; }
-  }
-
+  /* Redução de Movimento */
   @media (prefers-reduced-motion: reduce) {
     .js .hero__slide .hero__element { opacity: 1; }
     .js .hero__slide.is-active .hero__element, .hero__slide.is-active .hero__image { animation: none; }
@@ -521,7 +568,6 @@
       var index = 0;
       var autoPlayInterval;
 
-      // Lê as configurações do painel a partir dos atributos data
       var isAutoplay = root.getAttribute('data-autoplay') === 'true';
       var autoplaySpeed = parseInt(root.getAttribute('data-speed'), 10) || 5000;
 
@@ -575,6 +621,7 @@
         if (event.key === 'ArrowRight') show(index + 1);
       });
 
+      // Swipe Suave no Mobile
       var startX = 0, startY = 0;
       root.addEventListener('touchstart', function (event) {
         startX = event.changedTouches[0].clientX;
@@ -585,6 +632,7 @@
       root.addEventListener('touchend', function (event) {
         var dx = event.changedTouches[0].clientX - startX;
         var dy = event.changedTouches[0].clientY - startY;
+        // Permite o swipe apenas se o movimento horizontal for maior que o vertical
         if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
           show(dx < 0 ? index + 1 : index - 1);
         } else {
@@ -592,11 +640,11 @@
         }
       }, { passive: true });
 
-      // Integração Profissional com o Editor da Shopify
+      // Integração com Editor da Shopify
       if (Shopify.designMode) {
         document.addEventListener('shopify:block:select', function(event) {
           if (event.detail.sectionId !== '{{ section.id }}') return;
-          clearInterval(autoPlayInterval); // Pausa autoplay ao editar
+          clearInterval(autoPlayInterval);
           var selectedSlide = slides.find(s => s.dataset.shopifyEditorBlock === JSON.stringify({id: event.detail.blockId}));
           if (selectedSlide) {
             show(slides.indexOf(selectedSlide));
@@ -624,8 +672,8 @@
       "type": "select",
       "id": "height",
       "options": [
-        { "value": "short", "label": "Pequeno (Min. 420px)" },
-        { "value": "default", "label": "Padrão (Min. 520px)" },
+        { "value": "short", "label": "Pequeno" },
+        { "value": "default", "label": "Padrão" },
         { "value": "tall", "label": "Tela Cheia (100vh)" }
       ],
       "default": "default",
@@ -658,7 +706,7 @@
     {
       "type": "checkbox",
       "id": "show_arrows",
-      "label": "Mostrar setas laterais",
+      "label": "Mostrar setas (Apenas Desktop)",
       "default": true
     },
     {
@@ -702,7 +750,7 @@
           "step": 5,
           "unit": "%",
           "label": "Opacidade da Máscara",
-          "default": 30,
+          "default": 20,
           "info": "Aumente para melhorar a leitura em fotos claras."
         },
         {
@@ -730,19 +778,19 @@
           "type": "textarea",
           "id": "heading",
           "label": "Título Principal",
-          "default": "Seu Título Aqui"
+          "default": "Coleção Exclusiva"
         },
         {
           "type": "text",
           "id": "subheading",
           "label": "Subtítulo",
-          "default": "Coleção Exclusiva"
+          "default": "Descubra o novo padrão"
         },
         {
           "type": "richtext",
           "id": "text",
           "label": "Texto de Apoio",
-          "default": "<p>Conte um pouco mais sobre os produtos ou a campanha promocional.</p>"
+          "default": "<p>Detalhes que fazem a diferença na sua rotina.</p>"
         },
         {
           "type": "text",
