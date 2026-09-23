@@ -1,18 +1,16 @@
 {%- comment -%}
   ============================================================
-  HERO PREMIUM — Minimalista, Fluido e 100% Configurável
+  HERO — Premium Slider (Dots Horizontais & Autoplay)
   ============================================================
 {%- endcomment -%}
-
 {%- liquid
   assign slides = section.blocks
   assign slide_count = slides.size
   assign autoplay = section.settings.autoplay
   assign autoplay_speed = section.settings.autoplay_speed | times: 1000
 -%}
-
 <div
-  class="hero-slider hero--{{ section.settings.desktop_height }} hero-mobile--{{ section.settings.mobile_height }}"
+  class="hero scheme-dark hero--{{ section.settings.height }}"
   data-section-id="{{ section.id }}"
   data-header-overlay
   {% if slide_count > 1 %}
@@ -25,87 +23,127 @@
     tabindex="0"
   {% endif %}
 >
-  <ul class="hero__track" role="list">
+  <ul class="hero__slides" role="list">
     {%- for block in slides -%}
       {%- liquid
-        assign is_first = forloop.first
-        assign loading_attr = 'lazy'
-        assign fetch_prio = 'auto'
-        if is_first
-          assign loading_attr = 'eager'
-          assign fetch_prio = 'high'
+        if forloop.first
+          assign slide_loading = 'eager'
+          assign slide_priority = 'high'
+        else
+          assign slide_loading = 'lazy'
+          assign slide_priority = 'auto'
         endif
+
+        assign alignment_class = 'hero__content--' | append: block.settings.text_alignment
       -%}
-      
       <li
-        class="hero__slide {% if is_first %}is-active{% endif %}"
+        class="hero__slide {% if forloop.first %}is-active{% endif %}"
         data-hero-slide
-        {{ block.shopify_attributes }}
         {% if slide_count > 1 %}
-          role="tabpanel"
+          role="group"
           aria-roledescription="slide"
-          aria-label="Slide {{ forloop.index }} de {{ slide_count }}"
-          {% unless is_first %}aria-hidden="true" inert{% endunless %}
+          aria-label="{{ forloop.index }} / {{ slide_count }}"
+          {% unless forloop.first %}aria-hidden="true"{% endunless %}
         {% endif %}
+        {{ block.shopify_attributes }}
+        style="
+          --overlay-color: {{ block.settings.overlay_color }};
+          --overlay-opacity: {{ block.settings.overlay_opacity | divided_by: 100.0 }};
+        "
       >
-        <!-- 1. MÍDIA DO SLIDE -->
+        <!-- Imagem do Banner -->
         <div class="hero__media">
           {%- if block.settings.image != blank -%}
-            <picture>
-              {%- if block.settings.image_mobile != blank -%}
-                <source media="(max-width: 749px)" srcset="{{ block.settings.image_mobile | image_url: width: 800 }} 800w">
-              {%- endif -%}
-              {{ block.settings.image | image_url: width: 3000 | image_tag: 
-                  loading: loading_attr, 
-                  fetchpriority: fetch_prio, 
-                  class: 'hero__img', 
-                  widths: '800, 1200, 1600, 2000, 2600, 3000', 
-                  sizes: '100vw', 
-                  alt: block.settings.image.alt | default: block.settings.heading | escape 
+            {%- if block.settings.image_mobile != blank -%}
+              <picture>
+                <source
+                  media="(max-width: 749px)"
+                  srcset="
+                    {{ block.settings.image_mobile | image_url: width: 750 }} 750w,
+                    {{ block.settings.image_mobile | image_url: width: 1100 }} 1100w
+                  "
+                  sizes="100vw"
+                >
+                {{
+                  block.settings.image
+                  | image_url: width: 3000
+                  | image_tag:
+                    loading: slide_loading,
+                    fetchpriority: slide_priority,
+                    class: 'hero__image',
+                    widths: '900, 1200, 1600, 2000, 2600, 3000',
+                    sizes: '100vw',
+                    alt: block.settings.image.alt | default: block.settings.heading | escape
+                }}
+              </picture>
+            {%- else -%}
+              {{
+                block.settings.image
+                | image_url: width: 3000
+                | image_tag:
+                  loading: slide_loading,
+                  fetchpriority: slide_priority,
+                  class: 'hero__image',
+                  widths: '900, 1200, 1600, 2000, 2600, 3000',
+                  sizes: '100vw',
+                  alt: block.settings.image.alt | default: block.settings.heading | escape
               }}
-            </picture>
+            {%- endif -%}
           {%- else -%}
-            <div class="hero__placeholder">
+            <div class="hero__image hero__placeholder">
               {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
             </div>
           {%- endif -%}
 
-          <!-- Overlay (Escurecimento individual por slide) -->
-          <div class="hero__overlay" style="background-color: {{ block.settings.overlay_color }}; opacity: {{ block.settings.overlay_opacity | divided_by: 100.0 }};"></div>
+          <!-- Camada de Escurecimento Configurável -->
+          <div class="hero__overlay"></div>
+          <!-- Gradiente de Proteção Inferior (Garante leitura) -->
+          <div class="hero__gradient-mask"></div>
         </div>
 
-        <!-- 2. CONTEÚDO DO SLIDE -->
-        <div class="hero__content-wrapper page-width align-{{ block.settings.desktop_content_position }} align-mobile-{{ block.settings.mobile_content_position }}">
-          <div class="hero__content text-{{ block.settings.desktop_text_alignment }} text-mobile-{{ block.settings.mobile_text_alignment }}">
-            
+        <!-- Conteúdo do Banner -->
+        <div class="hero__content page-width {{ alignment_class }}">
+          <div class="hero__text-container">
+
+            <!-- Eyebrow -->
             {%- if block.settings.eyebrow != blank -%}
-              <p class="hero__eyebrow animate-el">{{ block.settings.eyebrow | escape }}</p>
+              <div class="hero__element hero__element--eyebrow">
+                <p class="eyebrow hero__eyebrow">{{ block.settings.eyebrow | escape }}</p>
+              </div>
             {%- endif -%}
 
+            <!-- Título -->
             {%- if block.settings.heading != blank -%}
-              {%- if is_first -%}
-                <h1 class="hero__heading animate-el">{{ block.settings.heading | newline_to_br }}</h1>
-              {%- else -%}
-                <h2 class="hero__heading animate-el">{{ block.settings.heading | newline_to_br }}</h2>
-              {%- endif -%}
+              <div class="hero__element hero__element--heading">
+                {%- if forloop.first -%}
+                  <h1 class="hero__heading">{{ block.settings.heading | newline_to_br }}</h1>
+                {%- else -%}
+                  <p class="hero__heading" role="heading" aria-level="2">{{ block.settings.heading | newline_to_br }}</p>
+                {%- endif -%}
+              </div>
             {%- endif -%}
 
+            <!-- Subtítulo -->
+            {%- if block.settings.subheading != blank -%}
+              <div class="hero__element hero__element--subheading">
+                <p class="hero__subheading">{{ block.settings.subheading | escape }}</p>
+              </div>
+            {%- endif -%}
+
+            <!-- Descrição -->
             {%- if block.settings.text != blank -%}
-              <div class="hero__text animate-el rte">{{ block.settings.text }}</div>
+              <div class="hero__element hero__element--body">
+                <div class="hero__body rte">{{ block.settings.text }}</div>
+              </div>
             {%- endif -%}
 
-            {%- if block.settings.button_label != blank or block.settings.button_label_2 != blank -%}
-              <div class="hero__buttons animate-el">
-                {%- if block.settings.button_label != blank -%}
-                  <a href="{{ block.settings.button_link }}" class="btn btn--primary">
-                    {{ block.settings.button_label | escape }}
-                  </a>
-                {%- endif -%}
-                {%- if block.settings.button_label_2 != blank -%}
-                  <a href="{{ block.settings.button_link_2 }}" class="btn btn--secondary">
-                    {{ block.settings.button_label_2 | escape }}
-                  </a>
-                {%- endif -%}
+            <!-- Botão CTA -->
+            {%- if block.settings.button_label != blank -%}
+              <div class="hero__element hero__element--cta">
+                <a href="{{ block.settings.button_link | default: routes.all_products_collection_url }}" class="button hero__cta tap-target">
+                  <span>{{ block.settings.button_label | escape }}</span>
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px;"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </a>
               </div>
             {%- endif -%}
 
@@ -115,27 +153,28 @@
     {%- endfor -%}
   </ul>
 
-  <!-- 3. CONTROLES (Setas e Bolinhas) -->
   {%- if slide_count > 1 -%}
+    <!-- SETAS LATERAIS (Desktop Apenas) -->
     {%- if section.settings.show_arrows -%}
-      <button type="button" class="hero__arrow hero__arrow--prev" data-hero-prev aria-label="Slide anterior">
-        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      <button type="button" class="hero__arrow hero__arrow--prev tap-target" data-hero-prev aria-label="Slide anterior">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
       </button>
-      <button type="button" class="hero__arrow hero__arrow--next" data-hero-next aria-label="Próximo slide">
-        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      <button type="button" class="hero__arrow hero__arrow--next tap-target" data-hero-next aria-label="Próximo slide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </button>
     {%- endif -%}
 
+    <!-- INDICADOR NUMÉRICO (Dots) -->
     {%- if section.settings.show_dots -%}
-      <div class="hero__dots" role="tablist">
+      <div class="hero__indicator" role="tablist">
         {%- for block in slides -%}
           <button 
             type="button" 
-            class="hero__dot {% if forloop.first %}is-active{% endif %}" 
+            class="hero__dot tap-target {% if forloop.first %}is-active{% endif %}" 
             data-hero-dot="{{ forloop.index0 }}" 
+            aria-label="Ir para o slide {{ forloop.index }}" 
             role="tab" 
             aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
-            aria-label="Ir para o slide {{ forloop.index }}"
           ></button>
         {%- endfor -%}
       </div>
@@ -144,261 +183,247 @@
 </div>
 
 <style>
-  /* ============================================================================
-     ESTRUTURA BASE E RESET
-     ============================================================================ */
-  .hero-slider {
-    position: relative;
-    width: 100%;
-    overflow: hidden;
-    background-color: var(--color-background, #000);
-    /* Sobe a seção para ignorar o padding do cabeçalho caso seja transparente */
-    margin-top: calc(-1 * var(--header-height, 70px)); 
+  /* Variáveis de Animação */
+  :root {
+    --hero-ease-out: cubic-bezier(0.21, 0.85, 0.32, 1);
+    --hero-dur-reveal: 0.8s;
   }
 
-  .hero__track {
-    display: flex;
+  .hero {
+    margin-top: calc(-1 * var(--header-height, 70px));
+    position: relative;
+    background-color: var(--color-background, #000000);
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .hero__slides {
     list-style: none;
     margin: 0;
     padding: 0;
+    display: flex;
     width: 100%;
-    transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: transform 700ms cubic-bezier(0.25, 1, 0.5, 1);
     will-change: transform;
   }
 
   .hero__slide {
-    position: relative;
     flex: 0 0 100%;
-    width: 100%;
+    min-width: 100%;
+    position: relative;
     display: flex;
-    visibility: hidden;
-  }
-  .hero__slide.is-active {
-    visibility: visible;
-  }
-
-  /* ============================================================================
-     ALTURAS (Desktop e Mobile independentes)
-     ============================================================================ */
-  /* Desktop */
-  @media screen and (min-width: 750px) {
-    .hero--adapt .hero__slide { min-height: 56.25vw; /* Proporção 16:9 */ }
-    .hero--450px .hero__slide { min-height: 450px; }
-    .hero--550px .hero__slide { min-height: 550px; }
-    .hero--650px .hero__slide { min-height: 650px; }
-    .hero--750px .hero__slide { min-height: 750px; }
-    .hero--100vh .hero__slide { min-height: 100vh; }
-  }
-  /* Mobile */
-  @media screen and (max-width: 749px) {
-    .hero-mobile--adapt .hero__slide { min-height: 133vw; /* Proporção 4:3 vertical */ }
-    .hero-mobile--400px .hero__slide { min-height: 400px; }
-    .hero-mobile--500px .hero__slide { min-height: 500px; }
-    .hero-mobile--600px .hero__slide { min-height: 600px; }
-    .hero-mobile--100vh .hero__slide { min-height: 100svh; } /* Usa svh moderno para mobile */
+    flex-direction: column;
+    justify-content: flex-end;
+    box-sizing: border-box;
   }
 
-  /* ============================================================================
-     IMAGENS E OVERLAY
-     ============================================================================ */
+  /* Alturas Modernas (suporte a svh para iOS) */
+  .hero--short .hero__slide { min-height: clamp(420px, 60vh, 600px); }
+  .hero--default .hero__slide { min-height: clamp(520px, 80vh, 850px); }
+  .hero--tall .hero__slide { 
+    min-height: 100vh; 
+    min-height: 100svh;
+  }
+
+  @media screen and (min-width: 1001px) {
+    .hero__slide { justify-content: center; }
+  }
+
   .hero__media {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    z-index: 1;
     overflow: hidden;
   }
 
-  .hero__img {
+  .hero__image {
     width: 100%;
     height: 100%;
     object-fit: cover;
     object-position: center;
-    /* Zoom out suave ao entrar no slide */
+    display: block;
     transform: scale(1.05);
-    transition: transform 1.5s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: transform 1500ms cubic-bezier(0.25, 1, 0.5, 1);
   }
-  .hero__slide.is-active .hero__img {
+  .hero__slide.is-active .hero__image {
     transform: scale(1);
   }
 
   .hero__placeholder {
-    width: 100%;
-    height: 100%;
-    background-color: #f4f4f4;
-  }
-  .hero__placeholder svg {
-    width: 100%;
-    height: 100%;
-    fill: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-surface, #121212);
   }
 
+  /* Overlay Configurável via Painel */
   .hero__overlay {
     position: absolute;
     inset: 0;
-    z-index: 2;
+    background-color: var(--overlay-color, #000000);
+    opacity: var(--overlay-opacity, 0.3);
+    z-index: 1;
     pointer-events: none;
   }
 
-  /* ============================================================================
-     CONTEÚDO E ALINHAMENTOS
-     ============================================================================ */
-  .hero__content-wrapper {
-    position: relative;
-    z-index: 3;
-    display: flex;
-    width: 100%;
-    /* Desconta a altura do header no top para o texto nunca ficar escondido */
-    padding-top: calc(var(--header-height, 70px) + 40px);
-    padding-bottom: clamp(60px, 8vh, 100px);
+  /* Gradiente de Proteção */
+  .hero__gradient-mask {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 40%, transparent 80%);
+    z-index: 1;
+    pointer-events: none;
   }
 
-  /* Vertical Alignment - Desktop */
-  @media screen and (min-width: 750px) {
-    .align-top { align-items: flex-start; }
-    .align-middle { align-items: center; }
-    .align-bottom { align-items: flex-end; }
-  }
-  /* Vertical Alignment - Mobile */
-  @media screen and (max-width: 749px) {
-    .align-mobile-top { align-items: flex-start; }
-    .align-mobile-middle { align-items: center; }
-    .align-mobile-bottom { align-items: flex-end; }
-  }
-
+  /* Conteúdo */
   .hero__content {
-    max-width: 700px;
+    position: relative;
+    z-index: 2;
     width: 100%;
+    display: flex;
+    box-sizing: border-box;
+    padding-top: calc(var(--header-height, 70px) + max(20px, env(safe-area-inset-top, 0px)));
+    padding-bottom: clamp(60px, 10vh, 120px);
   }
 
-  /* Horizontal Alignment - Desktop */
-  @media screen and (min-width: 750px) {
-    .text-left { text-align: left; margin-right: auto; }
-    .text-center { text-align: center; margin-inline: auto; }
-    .text-right { text-align: right; margin-left: auto; }
-    .text-center .hero__buttons { justify-content: center; }
-    .text-right .hero__buttons { justify-content: flex-end; }
-  }
-  /* Horizontal Alignment - Mobile */
-  @media screen and (max-width: 749px) {
-    .text-mobile-left { text-align: left; margin-right: auto; }
-    .text-mobile-center { text-align: center; margin-inline: auto; }
-    .text-mobile-right { text-align: right; margin-left: auto; }
-    .text-mobile-center .hero__buttons { justify-content: center; }
-    .text-mobile-right .hero__buttons { justify-content: flex-end; }
+  @media screen and (min-width: 1001px) {
+    .hero__content {
+      padding-top: calc(var(--header-height, 70px) + 60px);
+      padding-bottom: 80px;
+    }
   }
 
-  /* ============================================================================
-     TIPOGRAFIA (Fluida)
-     ============================================================================ */
+  /* Alinhamentos Desktop */
+  .hero__content--left { justify-content: flex-start; text-align: left; }
+  .hero__content--center { justify-content: center; text-align: center; }
+  .hero__content--right { justify-content: flex-end; text-align: right; }
+
+  .hero__text-container {
+    position: relative;
+    max-width: min(46rem, 100%);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  @media screen and (min-width: 1001px) {
+    .hero__text-container { max-width: min(48rem, 55vw); }
+  }
+
+  /* Elementos de Texto */
+  .hero__element {
+    position: relative;
+    display: block;
+    isolation: isolate;
+    max-width: 100%;
+  }
+  
+  .hero__element--eyebrow { margin-bottom: 12px; }
+  .hero__element--heading { margin-bottom: 16px; display: block; width: 100%; }
+  .hero__element--subheading { margin-bottom: 16px; }
+  .hero__element--body { margin-bottom: 32px; }
+
+  .hero__content--left .hero__element--cta { align-self: flex-start; }
+  .hero__content--center .hero__element--cta { align-self: center; }
+  .hero__content--right .hero__element--cta { align-self: flex-end; }
+
+  /* Animações Premium */
+  .js .hero__slide .hero__element { opacity: 0; }
+  .js .hero__slide.is-active .hero__element {
+    animation: heroEntrada var(--hero-dur-reveal) var(--hero-ease-out) both;
+    animation-delay: calc(var(--hero-i, 0) * 80ms + 100ms);
+  }
+  .hero__element--eyebrow { --hero-i: 0; }
+  .hero__element--heading { --hero-i: 1; }
+  .hero__element--subheading { --hero-i: 2; }
+  .hero__element--body { --hero-i: 3; }
+  .hero__element--cta { --hero-i: 4; }
+
+  @keyframes heroEntrada {
+    from { opacity: 0; transform: translate3d(0, 20px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+
+  /* Tipografia */
+  .hero__heading {
+    font-size: clamp(2.5rem, 6vw + 1rem, 5.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: #ffffff;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    text-wrap: balance;
+    word-break: break-word;
+  }
+
+  .hero__subheading {
+    font-family: var(--font-ui-family, inherit);
+    font-size: clamp(0.85rem, 1vw, 1.1rem);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #ffffff;
+    margin: 0;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  }
+
   .hero__eyebrow {
-    font-size: clamp(0.75rem, 1vw, 0.875rem);
+    margin: 0;
+    font-size: 0.85rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--color-accent, #ffffff);
-    margin: 0 0 16px;
+    color: var(--color-accent, #C9A24D);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   }
 
-  .hero__heading {
-    font-size: clamp(2.5rem, 6vw, 5rem);
-    line-height: 1.1;
-    font-weight: 700;
-    color: #ffffff;
-    margin: 0 0 20px;
-    text-wrap: balance;
-  }
-
-  .hero__text {
-    font-size: clamp(1rem, 1.2vw, 1.25rem);
-    line-height: 1.5;
+  .hero__body {
+    font-size: clamp(1rem, 1vw + 0.5rem, 1.125rem);
+    line-height: 1.6;
     color: rgba(255, 255, 255, 0.9);
-    margin: 0 0 32px;
-    text-wrap: pretty;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
   }
+  .hero__content--center .hero__body { margin-left: auto; margin-right: auto; max-width: 48ch; }
+  .hero__body p { margin: 0; }
 
-  /* Adiciona sombra sutil apenas nos textos para garantir contraste */
-  .hero__eyebrow, .hero__heading, .hero__text {
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  }
-
-  /* ============================================================================
-     BOTÕES
-     ============================================================================ */
-  .hero__buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
-
-  .btn {
+  /* ==========================================================
+     BOTÃO CTA (Animação Aprimorada + Seta)
+     ========================================================== */
+  .hero__cta {
+    position: relative;
+    z-index: 1;
+    min-width: 200px;
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    padding: 14px 32px;
+    padding: 16px 32px;
     font-size: 1rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    text-decoration: none;
     border-radius: 4px;
-    transition: all 0.3s ease;
-    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transition: 
+      transform 0.3s cubic-bezier(0.21, 0.85, 0.32, 1), 
+      box-shadow 0.3s ease, 
+      background-color 0.3s ease, 
+      color 0.3s ease;
+  }
+  
+  .hero__cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    background-color: var(--color-button-primary-background-hover, #ffffff);
+    color: var(--color-button-primary-text-hover, #000000);
+  }
+  
+  .hero__cta:active { 
+    transform: translateY(0) scale(0.98); 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
-  /* Botão Primário (Fundo Sólido Branco) */
-  .btn--primary {
-    background-color: #ffffff;
-    color: #000000;
-    border: 1px solid #ffffff;
-  }
-  .btn--primary:hover {
-    background-color: transparent;
-    color: #ffffff;
-  }
-
-  /* Botão Secundário (Borda Branca) */
-  .btn--secondary {
-    background-color: transparent;
-    color: #ffffff;
-    border: 1px solid #ffffff;
-  }
-  .btn--secondary:hover {
-    background-color: #ffffff;
-    color: #000000;
-  }
-
-  @media screen and (max-width: 749px) {
-    .btn {
-      width: 100%; /* No mobile os botões ocupam 100% para facilitar o toque */
-    }
-  }
-
-  /* ============================================================================
-     ANIMAÇÕES DE ENTRADA (Stagger)
-     ============================================================================ */
-  .animate-el {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  .is-active .animate-el {
-    animation: fadeUpIn 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-  }
-  /* Escalonamento das animações */
-  .hero__eyebrow.animate-el { animation-delay: 0.1s; }
-  .hero__heading.animate-el { animation-delay: 0.2s; }
-  .hero__text.animate-el { animation-delay: 0.3s; }
-  .hero__buttons.animate-el { animation-delay: 0.4s; }
-
-  @keyframes fadeUpIn {
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* ============================================================================
-     CONTROLES (Setas e Bolinhas) - CORRIGIDO
-     ============================================================================ */
-  /* Setas Laterais (Apenas Desktop) */
+  /* Setas Laterais Desktop */
   .hero__arrow {
     position: absolute;
     top: 50%;
@@ -407,205 +432,242 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 52px;
+    height: 52px;
     background-color: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 50%;
-    color: #ffffff;
     cursor: pointer;
     transition: all 0.3s ease;
   }
   .hero__arrow:hover {
-    background-color: #ffffff;
-    color: #000000;
+    background-color: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-50%) scale(1.08);
   }
+  .hero__arrow svg { width: 22px; height: 22px; }
   .hero__arrow--prev { left: 32px; }
   .hero__arrow--next { right: 32px; }
 
-  @media screen and (max-width: 749px) {
-    .hero__arrow { display: none; } /* Oculta setas no mobile para visual limpo */
-  }
-
-  /* Indicador (Bolinhas Horizontais - Padrão Clean) */
-  .hero__dots {
+  /* ==========================================================
+     INDICADOR (Bolinhas Horizontais no Rodapé)
+     ========================================================== */
+  .hero__indicator {
     position: absolute;
-    bottom: clamp(24px, 5vh, 40px); /* Sempre na base, responsivo */
-    left: 50%;
-    transform: translateX(-50%);
+    z-index: 3;
     display: flex;
     align-items: center;
     gap: 8px;
-    z-index: 10;
+    bottom: clamp(24px, 5vh, 40px);
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .hero__dot {
     width: 8px;
     height: 8px;
-    padding: 0;
-    border: none;
-    border-radius: 99px; /* Circulo perfeito */
+    border-radius: 99px;
     background-color: rgba(255, 255, 255, 0.4);
+    border: none;
+    padding: 0;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Ajuda no contraste em fundos brancos */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   }
 
   .hero__dot:hover {
     background-color: rgba(255, 255, 255, 0.8);
   }
 
-  /* Bolinha Ativa (Pílula Horizontal Elegante) */
   .hero__dot.is-active {
-    width: 24px; /* Expande na horizontal */
-    background-color: #ffffff; /* Fica branco sólido */
+    width: 24px;
+    background-color: #ffffff;
   }
 
+  /* ==========================================================
+     RESPONSIVIDADE OTIMIZADA (Mobile Original Restaurado)
+     ========================================================== */
+  @media screen and (max-width: 749px) {
+    .hero__arrow { display: none; }
+
+    .hero__content { 
+      padding-bottom: 90px;
+      padding-left: max(20px, env(safe-area-inset-left)); 
+      padding-right: max(20px, env(safe-area-inset-right));
+    }
+
+    .hero__heading { font-size: clamp(2.2rem, 9vw, 3.2rem); line-height: 1.1; }
+    .hero__body { font-size: 0.95rem; }
+
+    /* Botão 100% no mobile conforme versão elogiada */
+    .hero__element--cta { width: 100%; margin-top: 8px; }
+    .hero__content--left .hero__element--cta, 
+    .hero__content--center .hero__element--cta, 
+    .hero__content--right .hero__element--cta { align-self: stretch; }
+    
+    .hero__cta { 
+      width: 100%; 
+      justify-content: center; 
+      padding: 18px; 
+      font-size: 0.95rem;
+    }
+
+    /* Pílula flutuante protegendo as bolinhas no mobile */
+    .hero__indicator {
+      bottom: max(24px, env(safe-area-inset-bottom, 24px)); 
+      background-color: rgba(0, 0, 0, 0.4); 
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 8px 12px; 
+      border-radius: 100px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  /* Redução de Movimento */
+  @media (prefers-reduced-motion: reduce) {
+    .js .hero__slide .hero__element { opacity: 1; }
+    .js .hero__slide.is-active .hero__element, .hero__slide.is-active .hero__image { animation: none; }
+    .hero__slide { transition-duration: 0.01ms !important; }
+  }
 </style>
 
 {%- if slide_count > 1 -%}
   <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      const hero = document.querySelector('[data-hero-carousel][data-section-id="{{ section.id }}"]');
-      if (!hero) return;
+    (function () {
+      var root = document.querySelector('[data-hero-carousel][data-section-id="{{ section.id }}"]');
+      if (!root) return;
 
-      const track = hero.querySelector('.hero__track');
-      const slides = hero.querySelectorAll('[data-hero-slide]');
-      const dots = hero.querySelectorAll('[data-hero-dot]');
-      const prevBtns = hero.querySelectorAll('[data-hero-prev]');
-      const nextBtns = hero.querySelectorAll('[data-hero-next]');
-      
-      let currentIndex = 0;
-      let autoplayTimer;
-      const isAutoplay = hero.getAttribute('data-autoplay') === 'true';
-      const autoplaySpeed = parseInt(hero.getAttribute('data-speed'), 10) || 5000;
-      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var sliderContainer = root.querySelector('.hero__slides');
+      var slides = Array.prototype.slice.call(root.querySelectorAll('[data-hero-slide]'));
+      var dots = Array.prototype.slice.call(root.querySelectorAll('[data-hero-dot]'));
+      var index = 0;
+      var autoPlayInterval;
 
-      function goToSlide(index) {
-        if (index < 0) index = slides.length - 1;
-        if (index >= slides.length) index = 0;
-        
-        currentIndex = index;
-        
-        // Move a trilha (Track)
-        track.style.transform = `translateX(-${currentIndex * 100}%)`;
+      var isAutoplay = root.getAttribute('data-autoplay') === 'true';
+      var autoplaySpeed = parseInt(root.getAttribute('data-speed'), 10) || 5000;
 
-        // Atualiza classes e acessibilidade dos Slides
-        slides.forEach((slide, i) => {
-          const isActive = i === currentIndex;
-          slide.classList.toggle('is-active', isActive);
-          if (isActive) {
+      function show(next) {
+        index = (next + slides.length) % slides.length;
+        sliderContainer.style.transform = 'translateX(-' + (index * 100) + '%)';
+
+        slides.forEach(function (slide, i) {
+          var active = i === index;
+          if (active) {
+            slide.classList.add('is-active');
             slide.removeAttribute('aria-hidden');
             slide.removeAttribute('inert');
           } else {
+            slide.classList.remove('is-active');
             slide.setAttribute('aria-hidden', 'true');
             slide.setAttribute('inert', '');
           }
         });
 
-        // Atualiza Bolinhas (Dots)
-        dots.forEach((dot, i) => {
-          const isActive = i === currentIndex;
-          dot.classList.toggle('is-active', isActive);
-          dot.setAttribute('aria-selected', isActive);
+        // Atualiza as bolinhas (dots)
+        dots.forEach(function (dot, i) {
+          var active = i === index;
+          dot.classList.toggle('is-active', active);
+          dot.setAttribute('aria-selected', active ? 'true' : 'false');
         });
 
         resetAutoplay();
       }
 
-      // Controles
-      prevBtns.forEach(btn => btn.addEventListener('click', () => goToSlide(currentIndex - 1)));
-      nextBtns.forEach(btn => btn.addEventListener('click', () => goToSlide(currentIndex + 1)));
-      dots.forEach((dot, i) => dot.addEventListener('click', () => goToSlide(i)));
-
-      // Autoplay
       function startAutoplay() {
-        if (!isAutoplay || prefersReducedMotion) return;
-        autoplayTimer = setInterval(() => goToSlide(currentIndex + 1), autoplaySpeed);
-      }
-
-      function stopAutoplay() {
-        clearInterval(autoplayTimer);
+        if (!isAutoplay) return;
+        autoPlayInterval = setInterval(function() { show(index + 1); }, autoplaySpeed);
       }
 
       function resetAutoplay() {
-        stopAutoplay();
+        if (!isAutoplay) return;
+        clearInterval(autoPlayInterval);
         startAutoplay();
       }
 
-      // Pausa no Hover/Toque
-      hero.addEventListener('mouseenter', stopAutoplay);
-      hero.addEventListener('mouseleave', startAutoplay);
-      hero.addEventListener('touchstart', stopAutoplay, { passive: true });
-      hero.addEventListener('touchend', startAutoplay, { passive: true });
+      show(0);
 
-      // Swipe Mobile Básico
-      let touchStartX = 0;
-      hero.addEventListener('touchstart', e => touchStartX = e.changedTouches[0].screenX, { passive: true });
-      hero.addEventListener('touchend', e => {
-        let touchEndX = e.changedTouches[0].screenX;
-        if (touchStartX - touchEndX > 50) goToSlide(currentIndex + 1); // Swipe Esquerda
-        if (touchEndX - touchStartX > 50) goToSlide(currentIndex - 1); // Swipe Direita
+      var prevButtons = root.querySelectorAll('[data-hero-prev]');
+      var nextButtons = root.querySelectorAll('[data-hero-next]');
+
+      prevButtons.forEach(function(btn) {
+        btn.addEventListener('click', function(e) { e.preventDefault(); show(index - 1); });
+      });
+      nextButtons.forEach(function(btn) {
+        btn.addEventListener('click', function(e) { e.preventDefault(); show(index + 1); });
+      });
+
+      // Clique direto na bolinha
+      dots.forEach(function (dot) {
+        dot.addEventListener('click', function(e) {
+          e.preventDefault();
+          show(parseInt(this.getAttribute('data-hero-dot'), 10));
+        });
+      });
+
+      root.addEventListener('keydown', function (event) {
+        if (event.key === 'ArrowLeft') show(index - 1);
+        if (event.key === 'ArrowRight') show(index + 1);
+      });
+
+      // Swipe Suave no Mobile
+      var startX = 0, startY = 0;
+      root.addEventListener('touchstart', function (event) {
+        startX = event.changedTouches[0].clientX;
+        startY = event.changedTouches[0].clientY;
+        clearInterval(autoPlayInterval);
       }, { passive: true });
 
-      // Inicia
-      startAutoplay();
+      root.addEventListener('touchend', function (event) {
+        var dx = event.changedTouches[0].clientX - startX;
+        var dy = event.changedTouches[0].clientY - startY;
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+          show(dx < 0 ? index + 1 : index - 1);
+        } else {
+          resetAutoplay();
+        }
+      }, { passive: true });
 
-      // Shopify Editor Integration
       if (Shopify.designMode) {
-        document.addEventListener('shopify:block:select', (event) => {
+        document.addEventListener('shopify:block:select', function(event) {
           if (event.detail.sectionId !== '{{ section.id }}') return;
-          stopAutoplay();
-          const targetSlide = Array.from(slides).findIndex(s => s.dataset.shopifyEditorBlock === `{"id":"${event.detail.blockId}"}`);
-          if (targetSlide !== -1) goToSlide(targetSlide);
+          clearInterval(autoPlayInterval);
+          var selectedSlide = slides.find(s => s.dataset.shopifyEditorBlock === JSON.stringify({id: event.detail.blockId}));
+          if (selectedSlide) {
+            show(slides.indexOf(selectedSlide));
+          }
         });
-        document.addEventListener('shopify:block:deselect', (event) => {
+        document.addEventListener('shopify:block:deselect', function(event) {
           if (event.detail.sectionId !== '{{ section.id }}') return;
           resetAutoplay();
         });
       }
-    });
+    })();
   </script>
 {%- endif -%}
 
 {% schema %}
 {
-  "name": "Hero Slider Premium",
+  "name": "Slider Premium",
   "tag": "section",
-  "class": "section-hero",
   "settings": [
     {
       "type": "header",
-      "content": "Altura da Seção"
+      "content": "Dimensões do Slider"
     },
     {
       "type": "select",
-      "id": "desktop_height",
-      "label": "Altura no Desktop",
+      "id": "height",
       "options": [
-        { "value": "adapt", "label": "Adaptar à primeira imagem (16:9)" },
-        { "value": "450px", "label": "Pequeno (450px)" },
-        { "value": "550px", "label": "Médio (550px)" },
-        { "value": "650px", "label": "Grande (650px)" },
-        { "value": "750px", "label": "Muito Grande (750px)" },
-        { "value": "100vh", "label": "Tela Cheia (100vh)" }
+        { "value": "short", "label": "Pequeno" },
+        { "value": "default", "label": "Padrão" },
+        { "value": "tall", "label": "Tela Cheia (100vh)" }
       ],
-      "default": "650px"
-    },
-    {
-      "type": "select",
-      "id": "mobile_height",
-      "label": "Altura no Mobile",
-      "options": [
-        { "value": "adapt", "label": "Adaptar à imagem (4:3)" },
-        { "value": "400px", "label": "Pequeno (400px)" },
-        { "value": "500px", "label": "Médio (500px)" },
-        { "value": "600px", "label": "Grande (600px)" },
-        { "value": "100vh", "label": "Tela Cheia (100vh)" }
-      ],
-      "default": "500px"
+      "default": "default",
+      "label": "Altura do Banner"
     },
     {
       "type": "header",
@@ -614,7 +676,7 @@
     {
       "type": "checkbox",
       "id": "autoplay",
-      "label": "Rotação Automática",
+      "label": "Ativar rotação automática",
       "default": true
     },
     {
@@ -624,23 +686,23 @@
       "max": 10,
       "step": 1,
       "unit": "s",
-      "label": "Tempo por slide",
+      "label": "Tempo de troca dos slides",
       "default": 5
     },
     {
       "type": "header",
-      "content": "Interface de Navegação"
+      "content": "Interface"
     },
     {
       "type": "checkbox",
       "id": "show_arrows",
-      "label": "Mostrar setas laterais (Apenas Desktop)",
+      "label": "Mostrar setas (Apenas Desktop)",
       "default": true
     },
     {
       "type": "checkbox",
       "id": "show_dots",
-      "label": "Mostrar bolinhas indicadoras (Dots)",
+      "label": "Mostrar indicador (Bolinhas)",
       "default": true
     }
   ],
@@ -657,11 +719,12 @@
         {
           "type": "image_picker",
           "id": "image_mobile",
-          "label": "Imagem Mobile (Opcional)"
+          "label": "Imagem Mobile (Opcional)",
+          "info": "Se vazio, usará a imagem desktop ajustada."
         },
         {
           "type": "header",
-          "content": "Máscara Escura (Overlay)"
+          "content": "Aparência da Máscara (Overlay)"
         },
         {
           "type": "color",
@@ -677,109 +740,65 @@
           "step": 5,
           "unit": "%",
           "label": "Opacidade da Máscara",
-          "default": 30
+          "default": 20,
+          "info": "Aumente para melhorar a leitura em fotos claras."
         },
         {
           "type": "header",
-          "content": "Posicionamento do Texto"
+          "content": "Conteúdo de Texto"
         },
         {
           "type": "select",
-          "id": "desktop_content_position",
-          "label": "Posição Vertical (Desktop)",
-          "options": [
-            { "value": "top", "label": "Em cima" },
-            { "value": "middle", "label": "No meio" },
-            { "value": "bottom", "label": "Embaixo" }
-          ],
-          "default": "middle"
-        },
-        {
-          "type": "select",
-          "id": "desktop_text_alignment",
-          "label": "Alinhamento (Desktop)",
+          "id": "text_alignment",
+          "label": "Alinhamento do Texto",
           "options": [
             { "value": "left", "label": "Esquerda" },
             { "value": "center", "label": "Centro" },
             { "value": "right", "label": "Direita" }
           ],
-          "default": "center"
-        },
-        {
-          "type": "select",
-          "id": "mobile_content_position",
-          "label": "Posição Vertical (Mobile)",
-          "options": [
-            { "value": "top", "label": "Em cima" },
-            { "value": "middle", "label": "No meio" },
-            { "value": "bottom", "label": "Embaixo" }
-          ],
-          "default": "bottom"
-        },
-        {
-          "type": "select",
-          "id": "mobile_text_alignment",
-          "label": "Alinhamento (Mobile)",
-          "options": [
-            { "value": "left", "label": "Esquerda" },
-            { "value": "center", "label": "Centro" },
-            { "value": "right", "label": "Direita" }
-          ],
-          "default": "center"
-        },
-        {
-          "type": "header",
-          "content": "Textos"
+          "default": "left"
         },
         {
           "type": "text",
           "id": "eyebrow",
-          "label": "Rótulo Superior",
-          "default": "NOVA COLEÇÃO"
+          "label": "Pequeno rótulo superior",
+          "default": "NOVIDADE"
         },
         {
           "type": "textarea",
           "id": "heading",
           "label": "Título Principal",
-          "default": "Apresentando a Nova Linha"
+          "default": "Coleção Exclusiva"
+        },
+        {
+          "type": "text",
+          "id": "subheading",
+          "label": "Subtítulo",
+          "default": "Descubra o novo padrão"
         },
         {
           "type": "richtext",
           "id": "text",
           "label": "Texto de Apoio",
-          "default": "<p>Combine design moderno com conforto absoluto no seu dia a dia.</p>"
-        },
-        {
-          "type": "header",
-          "content": "Botões"
+          "default": "<p>Detalhes que fazem a diferença na sua rotina.</p>"
         },
         {
           "type": "text",
           "id": "button_label",
-          "label": "Botão Primário",
-          "default": "Comprar Agora"
+          "label": "Texto do Botão",
+          "default": "Ver Produtos"
         },
         {
           "type": "url",
           "id": "button_link",
-          "label": "Link do Botão Primário"
-        },
-        {
-          "type": "text",
-          "id": "button_label_2",
-          "label": "Botão Secundário"
-        },
-        {
-          "type": "url",
-          "id": "button_link_2",
-          "label": "Link do Botão Secundário"
+          "label": "Link do Botão"
         }
       ]
     }
   ],
   "presets": [
     {
-      "name": "Hero Slider Premium",
+      "name": "Slider Premium",
       "blocks": [
         { "type": "slide" },
         { "type": "slide" }
