@@ -20,11 +20,11 @@
             "overlay_color": "#000000",
             "overlay_opacity": 30,
             "text_alignment": "left",
-            "eyebrow": "",
-            "heading": "",
-            "subheading": "",
-            "text": "",
-            "button_label": "",
+            "eyebrow": "new colletiction",
+            "heading": "Oversized",
+            "subheading": "A nova coleção da Conquer or Die está chegando",
+            "text": "<p>Camisetas oversize</p>",
+            "button_label": "Ver coleção",
             "button_link": ""
           }
         },
