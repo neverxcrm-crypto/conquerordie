@@ -1,45 +1,23 @@
 {%- comment -%}
   ============================================================
-  COLLECTION BANNER — abertura editorial da coleção
+  COLLECTION BANNER — Abertura Premium (Tipografia Original)
   ============================================================
-
-  O QUE FAZ:
-  O topo da página de coleção: breadcrumb, rótulo, título, descrição
-  curta e contagem de peças. Duas composições, escolhidas pelo
-  material disponível:
-
-  COM IMAGEM  a foto ocupa a largura toda, o texto fica sobre ela com
-              um véu de contraste — mesma linguagem da Home.
-  SEM IMAGEM  cabeçalho tipográfico, no ritmo das outras páginas
-              internas (.page-header, em base.css).
-
-  Não é a Home encolhida: aqui a foto é um cabeçalho (altura curta),
-  não um hero de tela cheia. A página é um catálogo, e o produto
-  precisa começar acima da dobra.
-
-  ONDE É USADA:
-  templates/collection.json, acima de main-collection.
-
-  O RÓTULO ("COLLECTION 002"):
-  vem do setting `eyebrow` da section. Fica a cargo do lojista porque
-  é editorial — numeração de drop, temporada, o que fizer sentido.
-
-  OBSERVAÇÕES:
-  - A imagem é o LCP quando existe: carrega eager, com fetchpriority
-    high e sizes 100vw.
-  - O véu é um degradê pintado de uma vez, não um blur: contraste de
-    texto sem custo por frame.
 {%- endcomment -%}
+
 {%- liquid
   assign tem_imagem = false
   if section.settings.show_image and collection.image
     assign tem_imagem = true
   endif
+
+  assign align_class = 'col-hero--align-' | append: section.settings.text_alignment
 -%}
+
 <div
-  class="col-hero {% if tem_imagem %}col-hero--foto scheme-dark{% endif %}"
+  class="col-hero {% if tem_imagem %}col-hero--foto scheme-dark{% endif %} {{ align_class }}"
   data-section-id="{{ section.id }}"
   {% if tem_imagem %}data-header-overlay{% endif %}
+  style="--overlay-opacity: {{ section.settings.overlay_opacity | divided_by: 100.0 }};"
 >
   {%- if tem_imagem -%}
     <div class="col-hero__media">
@@ -54,32 +32,34 @@
           class: 'col-hero__image',
           alt: collection.image.alt | default: collection.title | escape
       }}
+      <div class="col-hero__overlay"></div>
     </div>
   {%- endif -%}
 
   <div class="col-hero__inner page-width">
-    <nav class="breadcrumb col-hero__breadcrumb" aria-label="{{ 'general.breadcrumb.label' | t }}">
-      <ol class="breadcrumb__list" role="list">
-        <li class="breadcrumb__item"><a href="{{ routes.root_url }}">{{ 'general.breadcrumb.home' | t }}</a></li>
-        <li class="breadcrumb__item"><a href="{{ routes.collections_url }}">{{ 'general.breadcrumb.collections' | t }}</a></li>
-        <li class="breadcrumb__item" aria-current="page">{{ collection.title | escape }}</li>
+    <!-- BREADCRUMB -->
+    <nav class="col-hero__breadcrumb animate-el" aria-label="{{ 'general.breadcrumb.label' | t }}">
+      <ol class="col-hero__breadcrumb-list" role="list">
+        <li class="col-hero__breadcrumb-item"><a href="{{ routes.root_url }}">{{ 'general.breadcrumb.home' | t | default: 'Início' }}</a></li>
+        <li class="col-hero__breadcrumb-item"><a href="{{ routes.collections_url }}">{{ 'general.breadcrumb.collections' | t | default: 'Coleções' }}</a></li>
+        <li class="col-hero__breadcrumb-item" aria-current="page">{{ collection.title | escape }}</li>
       </ol>
     </nav>
 
     <div class="col-hero__texto">
       {%- if section.settings.eyebrow != blank -%}
-        <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+        <p class="col-hero__eyebrow animate-el">{{ section.settings.eyebrow | escape }}</p>
       {%- endif -%}
 
-      <h1 class="col-hero__titulo">{{ collection.title }}</h1>
+      <h1 class="col-hero__titulo animate-el">{{ collection.title }}</h1>
 
       {%- if section.settings.show_description and collection.description != blank -%}
-        <div class="col-hero__descricao rte">{{ collection.description }}</div>
+        <div class="col-hero__descricao rte animate-el">{{ collection.description }}</div>
       {%- endif -%}
 
       {%- if collection.all_products_count > 0 -%}
-        <p class="col-hero__meta">
-          {{ 'products.facets.product_count_simple' | t: count: collection.all_products_count }}
+        <p class="col-hero__meta animate-el">
+          {{ 'products.facets.product_count_simple' | t: count: collection.all_products_count | default: collection.all_products_count | append: ' Produtos' }}
         </p>
       {%- endif -%}
     </div>
@@ -87,23 +67,159 @@
 </div>
 
 <style>
-  #shopify-section-{{ section.id }} .col-hero {
+  /* ==========================================================
+     ESTRUTURA BASE E ALINHAMENTO
+     ========================================================== */
+  .col-hero {
     position: relative;
     background-color: var(--color-background);
+    width: 100%;
+    z-index: 1; 
   }
-  #shopify-section-{{ section.id }} .col-hero__inner {
+
+  .col-hero__inner {
     position: relative;
     z-index: 2;
     padding-top: var(--space-md);
     padding-bottom: clamp(24px, 3.5vw, 48px);
+    display: flex;
+    flex-direction: column;
   }
-  #shopify-section-{{ section.id }} .col-hero__breadcrumb { margin-bottom: var(--space-md); }
-  #shopify-section-{{ section.id }} .col-hero__texto {
-    display: grid;
+
+  .col-hero--align-center .col-hero__inner { align-items: center; text-align: center; }
+  .col-hero--align-left .col-hero__inner { align-items: flex-start; text-align: left; }
+
+  /* ==========================================================
+     COM FOTO (CABEÇALHO)
+     ========================================================== */
+  .col-hero--foto {
+    display: flex;
+    align-items: flex-end;
+    min-height: clamp(320px, 42vh, 520px);
+    margin-top: calc(-1 * var(--header-total, var(--header-height, 70px)));
+    overflow: hidden;
+  }
+
+  .col-hero--foto .col-hero__inner {
+    padding-top: calc(var(--header-total, var(--header-height, 70px)) + var(--space-md));
+    padding-bottom: clamp(28px, 4vw, 56px);
+    width: 100%;
+  }
+
+  .col-hero__media {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .col-hero__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 35%;
+    display: block;
+    transform: scale(1.02);
+    animation: colImgZoom 1.5s cubic-bezier(0.21, 0.85, 0.32, 1) forwards;
+  }
+
+  @keyframes colImgZoom {
+    from { transform: scale(1.05); }
+    to { transform: scale(1); }
+  }
+
+  /* Véu Escuro Configurável via Shopify */
+  .col-hero__overlay {
+    position: absolute;
+    inset: 0;
+    background-color: #000000;
+    opacity: var(--overlay-opacity, 0.4);
+    pointer-events: none;
+  }
+
+  /* Degradê natural da marca */
+  .col-hero--foto .col-hero__media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--photo-veil-bottom, linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, transparent 100%));
+    pointer-events: none;
+  }
+
+  /* ==========================================================
+     BREADCRUMB E TIPOGRAFIA ORIGINAL
+     ========================================================== */
+  .col-hero__breadcrumb {
+    margin-bottom: var(--space-md);
+  }
+  
+  .col-hero__breadcrumb-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: var(--f1, 0.75rem);
+    font-family: var(--font-ui-family, inherit);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .col-hero__breadcrumb-item {
+    display: inline-flex;
+    align-items: center;
+    color: var(--color-text-secondary);
+    transition: color 0.2s ease;
+  }
+
+  .col-hero--foto .col-hero__breadcrumb-item { 
+    color: rgba(255, 255, 255, 0.7); 
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5); 
+  }
+
+  .col-hero__breadcrumb-item a {
+    color: inherit;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+  
+  .col-hero__breadcrumb-item a:hover {
+    opacity: 1;
+    color: var(--color-text-primary);
+  }
+  .col-hero--foto .col-hero__breadcrumb-item a:hover { color: #ffffff; }
+
+  .col-hero__breadcrumb-item:not(:last-child)::after {
+    content: '/';
+    margin-left: 8px;
+    opacity: 0.5;
+  }
+
+  .col-hero__breadcrumb-item[aria-current="page"] {
+    color: var(--color-text-primary);
+  }
+  .col-hero--foto .col-hero__breadcrumb-item[aria-current="page"] { color: #ffffff; }
+
+  /* Elementos de Texto com as Fontes Originais */
+  .col-hero__texto {
+    display: flex;
+    flex-direction: column;
     gap: var(--space-2xs);
     max-width: 44rem;
   }
-  #shopify-section-{{ section.id }} .col-hero__titulo {
+
+  .col-hero__eyebrow {
+    font-family: var(--font-ui-family);
+    font-size: var(--f1);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .col-hero__titulo {
     font-family: var(--font-display-family);
     font-size: var(--f8);
     font-weight: var(--font-weight-bold);
@@ -111,15 +227,18 @@
     letter-spacing: var(--tracking-display);
     text-transform: uppercase;
     margin: 0;
+    color: var(--color-text-primary);
   }
-  #shopify-section-{{ section.id }} .col-hero__descricao {
+
+  .col-hero__descricao {
     font-size: var(--f3);
     line-height: var(--leading-body);
     color: var(--color-text-secondary);
     max-width: 52ch;
   }
-  #shopify-section-{{ section.id }} .col-hero__descricao > p { margin: 0; }
-  #shopify-section-{{ section.id }} .col-hero__meta {
+  .col-hero__descricao > p { margin: 0; }
+
+  .col-hero__meta {
     font-family: var(--font-ui-family);
     font-size: var(--f0);
     font-weight: var(--font-weight-medium);
@@ -130,50 +249,43 @@
     margin: var(--space-2xs) 0 0;
   }
 
-  /* ==========================================================
-     COM FOTO — cabeçalho, não hero
-     ==========================================================
-     Altura curta de propósito: 42vh no desktop deixa a primeira
-     fileira de produtos aparecer na abertura. Um hero de tela
-     cheia aqui empurraria o catálogo para baixo da dobra — bonito
-     e ruim de vender. */
-  #shopify-section-{{ section.id }} .col-hero--foto {
-    display: flex;
-    align-items: flex-end;
-    min-height: clamp(320px, 42vh, 520px);
-    /* Sobe para debaixo da header transparente (ver nav.liquid) */
-    margin-top: calc(-1 * var(--header-total, var(--header-height)));
-    overflow: hidden;
-  }
-  #shopify-section-{{ section.id }} .col-hero--foto .col-hero__inner {
-    padding-top: calc(var(--header-total, var(--header-height)) + var(--space-md));
-    padding-bottom: clamp(28px, 4vw, 56px);
-  }
-  #shopify-section-{{ section.id }} .col-hero__media {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-  }
-  #shopify-section-{{ section.id }} .col-hero__image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center 35%;
-    display: block;
-  }
-  /* Véu: escuro embaixo, onde o texto encosta; transparente no alto,
-     onde está a foto. */
-  #shopify-section-{{ section.id }} .col-hero__media::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--photo-veil-bottom);
-    pointer-events: none;
+  /* Aplica contraste automático se houver foto */
+  .col-hero--foto .col-hero__eyebrow,
+  .col-hero--foto .col-hero__titulo,
+  .col-hero--foto .col-hero__descricao,
+  .col-hero--foto .col-hero__meta {
+    color: #ffffff;
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
   }
 
+  /* ==========================================================
+     ANIMAÇÕES DE ENTRADA (Stagger)
+     ========================================================== */
+  .animate-el {
+    opacity: 0;
+    transform: translateY(15px);
+    animation: colFadeUp 0.6s cubic-bezier(0.21, 0.85, 0.32, 1) forwards;
+  }
+
+  .col-hero__breadcrumb.animate-el { animation-delay: 0s; }
+  .col-hero__eyebrow.animate-el { animation-delay: 0.1s; }
+  .col-hero__titulo.animate-el { animation-delay: 0.2s; }
+  .col-hero__descricao.animate-el { animation-delay: 0.3s; }
+  .col-hero__meta.animate-el { animation-delay: 0.4s; }
+
+  @keyframes colFadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-el { animation: none; opacity: 1; transform: none; }
+    .col-hero__image { animation: none; transform: none; }
+  }
+
+  /* Ajustes Mobile */
   @media screen and (max-width: 1000px) {
-    #shopify-section-{{ section.id }} .col-hero--foto { min-height: 300px; }
-    #shopify-section-{{ section.id }} .col-hero__descricao { font-size: var(--f2); }
+    .col-hero--foto { min-height: 300px; }
+    .col-hero__descricao { font-size: var(--f2); }
   }
 </style>
 
@@ -190,10 +302,24 @@
       "info": "Aparece acima do título. Ex.: COLLECTION 002, DROP 003, INVERNO."
     },
     {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Alinhamento do Texto",
+      "options": [
+        { "value": "left", "label": "Esquerda" },
+        { "value": "center", "label": "Centro" }
+      ],
+      "default": "left"
+    },
+    {
       "type": "checkbox",
       "id": "show_description",
       "default": true,
       "label": "t:sections.collection_banner.settings.show_description.label"
+    },
+    {
+      "type": "header",
+      "content": "Imagem de Fundo"
     },
     {
       "type": "checkbox",
@@ -201,6 +327,17 @@
       "default": true,
       "label": "t:sections.collection_banner.settings.show_image.label",
       "info": "Usa a imagem da coleção como fundo do cabeçalho."
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Escurecimento da Imagem",
+      "default": 30,
+      "info": "Aumente para facilitar a leitura do texto caso a foto seja clara."
     }
   ]
 }
