@@ -249,6 +249,8 @@
     "campaign": {
       "type": "campaign",
       "settings": {
+        "image": "shopify://shop_images/df180b23-f5fc-4732-88a5-4f8afca3df0e.png",
+        "image_mobile": "shopify://shop_images/Captura_de_tela_2026-09-23_130159.png",
         "eyebrow": "Drop 003 — Coming soon",
         "heading": "The Ascension",
         "text": "O próximo capítulo está chegando.",
