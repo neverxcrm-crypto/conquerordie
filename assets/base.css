@@ -314,6 +314,35 @@ textarea.field__input::placeholder {
   color: var(--color-text-muted);
 }
 
+/* ==========================================================
+   ZOOM AUTOMATICO DO iOS — a correcao que faltava
+   ==========================================================
+   O Safari do iPhone da zoom na pagina inteira quando o campo que
+   recebe foco tem fonte menor que 16px. Os campos do tema usam
+   --f2, que e fluido e vale 15px no celular: ou seja, TODO campo
+   da loja (busca, filtro de preco, e-mail do rodape, contato,
+   quantidade) empurrava a pagina para perto ao ser tocado, e ela
+   nao voltava sozinha depois — a pessoa continuava navegando numa
+   coleção com zoom.
+
+   max() em vez de um 16px seco para o campo nunca ficar MENOR que
+   o tipo do tema caso a escala cresca. E fica dentro de
+   (pointer: coarse) porque e um comportamento de toque: no desktop
+   nada muda, nem por um pixel. */
+@media (pointer: coarse) {
+  .field__input,
+  .select__select,
+  textarea.field__input,
+  input[type='search'],
+  input[type='text'],
+  input[type='email'],
+  input[type='tel'],
+  input[type='number'],
+  input[type='password'] {
+    font-size: max(16px, var(--f2));
+  }
+}
+
 .field__input,
 .select__select,
 textarea.field__input {
@@ -594,11 +623,21 @@ textarea.field__input[disabled] {
   padding: 0;
 }
 
+/* Abaixo do desktop a grade deixa de seguir o ajuste do lojista e
+   passa a seguir a LARGURA DO CARD. Os dois degraus foram escolhidos
+   pelo ponto em que a foto de produto deixa de se sustentar, nao por
+   nome de aparelho: abaixo de ~700px tres colunas dariam um card de
+   menos de 200px, entao o corte e ali.
+
+   Antes existia um degrau so (duas colunas de 320px ate 1000px), e
+   era o que fazia um iPad de 834px exibir a mesma grade de um
+   iPhone SE — com cards de 380px de largura numa vitrine de moda. */
 @media screen and (max-width: 1000px) {
-  .product-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
+  .product-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media screen and (max-width: 700px) {
+  .product-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ==========================================================
@@ -1752,26 +1791,16 @@ body {
   min-height: 44px;
 }
 
-@media screen and (max-width: 1000px) {
-  :root {
-    --page-gutter: 18px;
-  }
+/* Daqui sairam o gap fixo da grade e o --page-gutter: 18px. Os dois
+   competiam com as curvas fluidas declaradas acima — o gap chegou a
+   ter CINCO declaracoes concorrentes e o gutter, tres — e quem vencia
+   dependia da ordem no arquivo, nao do desenho. Ficou so a curva
+   fluida: 16px/12px a 320px, 32px/32px no desktop, sem degrau.
 
-  .product-grid {
-    gap: 24px 12px;
-  }
-}
-
-@media screen and (max-width: 560px) {
-  .page-width {
-    padding-right: 16px;
-    padding-left: 16px;
-  }
-
-  .product-grid {
-    gap: 22px 10px;
-  }
-
+   O corte abaixo e o mesmo "celular pequeno" que o collection-panel
+   ja usava (600px). Antes eram 560 E 600, dois cortes a 40px de
+   distancia fazendo o mesmo trabalho. */
+@media screen and (max-width: 600px) {
   .card-product__info {
     padding-top: 10px;
   }

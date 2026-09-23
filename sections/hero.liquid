@@ -373,7 +373,11 @@
     justify-content: center;
     align-items: center;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-    transition: all var(--dur-fast) var(--ease-out);
+    transition:
+      transform var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
   }
   .hero__cta:hover {
     transform: translateY(-1px);
@@ -399,9 +403,16 @@
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 50%;
     cursor: pointer;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    transition: background-color 0.2s, transform 0.2s, border-color 0.2s;
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      transform var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out);
+  }
+  /* O blur ficou so onde ha mouse: no celular a seta esta por cima de
+     uma foto que escala e desliza, e cada frame do carrossel obrigaria
+     o navegador a refazer o desfoque do que passa atras dela. */
+  @media (hover: hover) {
+    .hero__arrow { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
   }
   .hero__arrow:hover {
     background-color: rgba(255, 255, 255, 0.3);
@@ -458,10 +469,37 @@
     .hero__cta { width: 100%; justify-content: center; }
     .hero__indicator {
       bottom: max(16px, env(safe-area-inset-bottom, 16px)); right: var(--page-gutter, 16px);
-      left: auto; background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px); padding: 4px 8px; border-radius: 30px;
+      left: auto; background-color: rgba(0, 0, 0, 0.55); padding: 4px 8px; border-radius: var(--radius-pill);
       border: 1px solid rgba(255, 255, 255, 0.15);
     }
+  }
+
+  /* ==========================================================
+     CELULAR DEITADO — a orientacao que o hero nao previa
+     ==========================================================
+     O titulo e dimensionado por LARGURA (8.5vw). Deitado, um celular
+     tem 844px de largura e 390px de altura: a conta devolvia um
+     titulo de ~72px dentro de uma tela de 390px de alto, somado a
+     ~160px de padding vertical fixo. O slide crescia e a "tela
+     cheia" virava uma tela e meia de rolagem so para passar do hero.
+
+     Aqui a tipografia passa a considerar a ALTURA disponivel e o
+     respiro vertical encolhe. O texto de apoio sai — em 390px de
+     altura ele e a primeira coisa que sobra. */
+  @media (orientation: landscape) and (max-height: 540px) {
+    .hero__content {
+      padding-top: calc(var(--header-height) + max(12px, env(safe-area-inset-top, 0px)));
+      padding-bottom: clamp(28px, 7vh, 48px);
+    }
+    .hero__heading { font-size: clamp(1.75rem, 4.6vw, 3.25rem); }
+    .hero__element--eyebrow { margin-bottom: 8px; }
+    .hero__element--heading { margin-bottom: 10px; }
+    .hero__element--subheading { margin-bottom: 10px; }
+    .hero__body { display: none; }
+    /* Deitado ha largura de sobra: o CTA volta a ter a largura do
+       proprio rotulo em vez de atravessar a tela inteira. */
+    .hero__element--cta { width: auto; }
+    .hero__cta { width: auto; }
   }
 
   @media (prefers-reduced-motion: reduce) {

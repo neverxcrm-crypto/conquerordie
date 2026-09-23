@@ -412,7 +412,20 @@
        ========================================================== */
     --space-section: clamp(56px, 7vw, 120px);
     --space-block: clamp(24px, 3vw, 48px);
-    --page-gutter: clamp(20px, 4vw, 48px);
+
+    /* Gutter — UMA curva contínua de 320px até ultrawide.
+       Antes eram três valores brigando: o clamp daqui, um
+       --page-gutter: 18px fixo abaixo de 1000px e um padding de
+       16px escrito à mão dentro de .page-width abaixo de 560px.
+       Como as sections leem var(--page-gutter) e o container usava
+       o valor escrito à mão, tudo que se alinhava pela variável
+       saía 2px fora do container justamente nas telas pequenas.
+
+       A curva foi escolhida para NÃO mexer no desktop: acima de
+       1000px ela devolve exatamente os mesmos 40→48px de antes.
+       Quem muda é o meio da tabela — o tablet saía com 18px de
+       respiro, o mesmo de um celular, e agora acompanha a largura. */
+    --page-gutter: clamp(16px, 4vw, 48px);
 
     /* Escala de espaçamento — passo de 4px, os mesmos degraus em
        todo o tema. Existe para uma section nova não inventar
@@ -503,8 +516,15 @@
     /* Altura da header — o <main> reserva exatamente este espaço,
        porque a header é fixed e sai do fluxo. O valor NÃO muda no
        estado comprimido de propósito: se o espaçador encolhesse
-       junto, a página daria um salto de 12px no meio do scroll. */
-     --header-height: 72px;
+       junto, a página daria um salto de 12px no meio do scroll.
+
+       Os valores acompanham a altura REAL renderizada: a fileira
+       interna tem 44px (o alvo de toque dos ícones) mais 12px de
+       padding em cima e embaixo no desktop, 8px no celular. Estava
+       reservando 72/64 para uma barra de 68/60 — quatro pixels de
+       faixa morta abaixo da header fixa, que também empurravam
+       toda âncora de scroll-margin-top quatro pixels a mais. */
+     --header-height: 68px;
 
     /* Layout */
     --page-width: {{ settings.page_width }}px;
@@ -531,7 +551,7 @@
   }
 
   @media screen and (max-width: 1000px) {
-    :root { --header-height: 64px; }
+    :root { --header-height: 60px; }
   }
 
   body {

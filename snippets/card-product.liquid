@@ -80,8 +80,15 @@
       endif
   endcase
 -%}
+{%- comment -%}
+  Os dois ultimos degraus acompanham os degraus REAIS da grade em
+  base.css: tres colunas entre 701px e 1000px, duas abaixo disso.
+  Sem o degrau de 33vw o navegador continuava pedindo a foto de meia
+  tela no tablet — 50% mais pixels do que a coluna comporta, em
+  cada card da coleção.
+{%- endcomment -%}
 {%- capture card_sizes -%}
-(min-width: {{ largura_pagina }}px) {{ coluna_px }}px, (min-width: 1000px) {{ coluna_vw }}vw, 50vw
+(min-width: {{ largura_pagina }}px) {{ coluna_px }}px, (min-width: 1001px) {{ coluna_vw }}vw, (min-width: 701px) 33vw, 50vw
 {%- endcapture -%}
 <div class="card-product{% unless card_product.available %} card-product--sold-out{% endunless %}">
   <div class="card-product__media-wrap">

@@ -1,0 +1,40 @@
+# ============================================================
+# .shopifyignore — o que o `shopify theme dev` NAO deve enviar
+# ============================================================
+#
+# POR QUE ESTE ARQUIVO EXISTE:
+# O `shopify theme dev` vigia esta pasta e envia para a loja todo
+# arquivo novo que aparece. Ferramentas de linha de comando que
+# editam "no lugar" (sed -i, perl -i, e varios editores) nao
+# reescrevem o arquivo original: elas criam um temporario NA MESMA
+# PASTA, escrevem nele e depois renomeiam por cima do original.
+#
+# Esse temporario nasce com nome aleatorio e sem extensao — por
+# exemplo sections/sedRjd66c. O vigia enxerga o arquivo novo antes
+# do rename acontecer e tenta envia-lo; a Shopify recusa, porque
+# tudo dentro de sections/ precisa terminar em .liquid, e o erro
+# aparece no terminal:
+#
+#   sections/sedRjd66c
+#   É necessário ter uma extensão de arquivo .liquid
+#
+# O arquivo some sozinho um instante depois (o rename conclui), o
+# que torna o erro confuso: quando alguem vai procurar, nao ha
+# nada na pasta. Ele nunca chega a subir para tema nenhum.
+#
+# Ignorando o padrao, o vigia deixa de olhar para esses arquivos e
+# o erro para de acontecer.
+
+sections/sed*
+snippets/sed*
+assets/sed*
+layout/sed*
+templates/sed*
+locales/sed*
+config/sed*
+
+# Sobras de editor e de sistema operacional
+*.swp
+*.swo
+*~
+.DS_Store
