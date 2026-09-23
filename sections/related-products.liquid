@@ -1,63 +1,346 @@
 {%- comment -%}
   ============================================================
-  RELATED PRODUCTS — produtos relacionados (recomendações)
+  RELATED PRODUCTS — recomendações do próprio Shopify
   ============================================================
 
   O QUE FAZ:
-  Exibe produtos relacionados usando a API de recomendações do Shopify.
-  Um web component (<product-recommendations>) busca via fetch os
-  produtos sugeridos e injeta o grid no DOM (lazy, sem lib externa).
+  Mostra produtos recomendados no fim da página de produto. O HTML é
+  pedido ao Shopify só quando a pessoa chega perto da seção, pela
+  Product Recommendations API.
+
+  DE ONDE VÊM OS PRODUTOS:
+  Do motor de recomendação do próprio Shopify — nada é inventado aqui.
+  O setting `intent` escolhe QUAL pergunta é feita a ele:
+
+  - related       "quem viu isto também viu" / similaridade automática.
+  - complementary "o que combina com isto" — são os produtos que o
+                  lojista liga manualmente no app Search & Discovery.
+                  É o que faz um "complete o look" honesto: a peça
+                  sugerida foi escolhida por gente, não adivinhada.
+
+  Sem nada configurado no Search & Discovery, `complementary` volta
+  vazio — e aí a seção some sozinha em vez de mostrar um buraco.
 
   ONDE É USADA:
-  Template product (abaixo da página do produto).
-
-  PRINCIPAIS PARTES:
-  - data-url monta a requisição com section_id, product_id e limit
-  - customElements 'product-recommendations': faz o fetch e injeta o HTML
-  - render 'card-product': card de cada produto recomendado
-  - Settings: enable, heading, products_to_show
-
-  OBSERVAÇÕES:
-  Só renderiza se enable estiver marcado. O grid só aparece quando
-  recommendations.performed e há produtos retornados.
+  templates/product.json.
 {%- endcomment -%}
+
+{%- liquid
+  assign colunas = section.settings.columns_desktop | default: 4
+  assign quantidade = section.settings.products_to_show | default: 4
+  assign intencao = section.settings.intent | default: 'related'
+-%}
+
 {%- if section.settings.enable -%}
   <product-recommendations
-    class="related-products page-width"
-    data-url="{{ routes.product_recommendations_url }}?section_id={{ section.id }}&product_id={{ product.id }}&limit={{ section.settings.products_to_show }}"
+    class="relacionados page-width"
+    data-url="{{ routes.product_recommendations_url }}?section_id={{ section.id }}&product_id={{ product.id }}&limit={{ quantidade }}&intent={{ intencao }}"
+    data-quantidade="{{ quantidade }}"
+    {% if request.design_mode %}data-editor="1"{% endif %}
+    style="--grid-columns: {{ colunas }};"
   >
-    {%- if recommendations.performed and recommendations.products_count > 0 -%}
-      <h2 class="related-products__title" data-reveal>{{ section.settings.heading | escape }}</h2>
-      <ul class="product-grid" role="list">
-        {%- for product in recommendations.products -%}
-          <li data-reveal>{% render 'card-product', card_product: product %}</li>
+    {%- if recommendations.performed -%}
+      {%- comment -%}
+        Este ramo só roda na resposta da API de recomendações. Na
+        primeira pintura da página `performed` é falso, e o que
+        aparece é o esqueleto do outro ramo.
+      {%- endcomment -%}
+      {%- if recommendations.products_count > 0 -%}
+        <div class="relacionados__topo">
+          {%- if section.settings.eyebrow != blank -%}
+            <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+          {%- endif -%}
+          {%- if section.settings.heading != blank -%}
+            <h2 class="relacionados__titulo">{{ section.settings.heading | escape }}</h2>
+          {%- endif -%}
+        </div>
+
+        <ul class="product-grid relacionados__grade" role="list">
+          {%- comment -%}
+            A variável do laço NÃO pode se chamar `product`: dentro da
+            section esse nome é o produto da página, e reusá-lo aqui
+            faz qualquer coisa escrita depois do laço passar a falar
+            do último recomendado. Custa nada evitar e é o tipo de
+            bug que só aparece quando alguém edita a section meses
+            depois.
+          {%- endcomment -%}
+          {%- for recomendado in recommendations.products -%}
+            <li class="relacionados__item" data-reveal style="--item-index: {{ forloop.index }};">
+              {% render 'card-product', card_product: recomendado, columns: colunas %}
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+    {%- else -%}
+      {%- comment -%}
+        ESQUELETO — reserva a altura antes de o conteúdo chegar.
+
+        Sem ele, a seção nasce com altura zero e cresce de uma vez
+        quando o fetch termina: tudo que está abaixo salta para
+        baixo. É Cumulative Layout Shift, conta como erro no Core
+        Web Vitals do Google e, na prática, é a pessoa perdendo o
+        lugar onde estava lendo.
+
+        O esqueleto tem exatamente a mesma grade e a mesma proporção
+        de imagem dos cards reais, então a troca acontece sem
+        nenhum movimento.
+      {%- endcomment -%}
+      <div class="relacionados__topo" aria-hidden="true">
+        {%- if section.settings.eyebrow != blank -%}
+          <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+        {%- endif -%}
+        {%- if section.settings.heading != blank -%}
+          <h2 class="relacionados__titulo">{{ section.settings.heading | escape }}</h2>
+        {%- endif -%}
+      </div>
+      <ul class="product-grid relacionados__grade" role="list" aria-hidden="true">
+        {%- for i in (1..quantidade) -%}
+          <li class="relacionados__item relacionados__item--esqueleto">
+            <div class="skeleton skeleton--media"></div>
+            <div class="card-product__info">
+              <div class="skeleton relacionados__esqueleto-titulo"></div>
+              <div class="skeleton relacionados__esqueleto-preco"></div>
+            </div>
+          </li>
         {%- endfor -%}
       </ul>
     {%- endif -%}
   </product-recommendations>
 
+  <style>
+    /* ==========================================================
+       RELACIONADOS
+       ==========================================================
+       O espaçamento vertical vem de --space-section, o mesmo token
+       que separa todas as outras seções editoriais do tema. Antes
+       havia um clamp próprio aqui E a classe do schema no wrapper:
+       o padding era aplicado DUAS vezes, uma no <div> que o Shopify
+       gera e outra no <section> interno, e a faixa abaixo dos
+       produtos ficava com o dobro da altura de qualquer outra. */
+    .section-related-products {
+      padding-block: var(--space-section);
+      background-color: var(--color-background);
+    }
+
+    /* ==========================================================
+       O CUSTOM ELEMENT PRECISA SER BLOCO
+       ==========================================================
+       <product-recommendations> é uma tag desconhecida para o CSS, e
+       tag desconhecida nasce `display: inline`. Num elemento inline,
+       `width` não se aplica — então a classe .page-width, que é toda
+       feita de width + max-width + padding, simplesmente não fazia
+       efeito nele.
+
+       A consequência aparecia no celular: o <ul> do trilho deixava de
+       medir contra a coluna de conteúdo e passava a medir contra a
+       largura cheia da section; somada à sangria negativa das bordas,
+       a grade ficava 32px mais larga que a tela e a PÁGINA INTEIRA
+       ganhava rolagem horizontal.
+
+       Uma linha, e a .page-width volta a valer. */
+    product-recommendations { display: block; }
+
+    .relacionados__topo {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2xs);
+      margin-bottom: var(--space-lg);
+    }
+
+    /* Mesma escala e entrelinha do título de "coleção em destaque".
+       O anterior usava --font-heading-family (que é um alias para a
+       fonte de interface), um clamp próprio, peso 700 cru e um
+       letter-spacing inventado: quatro decisões que não conversavam
+       com nenhum outro título da loja. */
+    .relacionados__titulo {
+      font-size: clamp(var(--f5), 4vw, var(--f7));
+      line-height: var(--leading-display);
+      margin: 0;
+    }
+
+    /* A grade é a .product-grid compartilhada (assets/base.css), que
+       já resolve colunas e os degraus de 1000px e 700px. Esta section
+       tinha a própria cópia dela — duas grades de produto no mesmo
+       tema divergem na primeira vez que alguém ajusta só uma. */
+    .relacionados__grade { margin: 0; padding: 0; }
+
+    /* Entrada em cascata — escopada em .js.
+
+       O `opacity: 0` estava solto: sem JavaScript, ou se o revelar
+       falhasse, a seção ficava permanentemente invisível. Com
+       produto dentro. É a mesma convenção que base.css já usa para
+       [data-reveal]: o estado inicial só existe quando há JS para
+       desfazê-lo. */
+    .js .relacionados__item[data-reveal] {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    .js .relacionados__item[data-reveal].is-revealed {
+      opacity: 1;
+      transform: none;
+      transition:
+        opacity var(--dur-emphasis) var(--ease-out),
+        transform var(--dur-emphasis) var(--ease-out);
+      /* O degrau é curto de propósito: numa fileira de quatro, um
+         atraso longo vira espera. */
+      transition-delay: calc(var(--item-index, 1) * var(--stagger, 70ms) / 2);
+    }
+
+    /* ==========================================================
+       O ESQUELETO MEDE EXATAMENTE O QUE O CARD VAI MEDIR
+       ==========================================================
+       Ele reaproveita a própria .card-product__info, em vez de imitar
+       o espaçamento dela: assim o respiro acima do texto é o MESMO
+       valor, em qualquer largura de tela, e continua sendo o mesmo se
+       alguém ajustar o card depois.
+
+       As duas linhas são calculadas com os tokens de tipografia que o
+       card usa de verdade — corpo --f2, entrelinha de interface no
+       título e de corpo no preço. Medido: 480,3px de esqueleto contra
+       485,6px de card real antes disso; a diferença de 5,3px era um
+       salto pequeno, mas salto. */
+    .relacionados__item--esqueleto { display: block; }
+    /* <div> e não <span>, de propósito: padding e aspect-ratio não
+       afetam a altura de um elemento inline. Com <span>, o esqueleto
+       da foto desabava para a altura de uma linha de texto e o
+       respiro de .card-product__info sumia — 17px de diferença que
+       reapareciam como salto quando o card real chegava. */
+    .relacionados__esqueleto-titulo {
+      width: 70%;
+      height: calc(var(--f2) * var(--leading-ui));
+      margin-bottom: var(--space-3xs);
+    }
+    .relacionados__esqueleto-preco {
+      width: 40%;
+      height: calc(var(--f2) * var(--leading-body));
+    }
+
+    /* Só aparece no editor de temas, para o lojista entender por que
+       a seção está vazia em vez de achar que quebrou. */
+    .relacionados__vazio {
+      margin: 0;
+      padding: var(--space-md);
+      border: 1px dashed var(--color-border-strong);
+      border-radius: var(--radius-sm);
+      font-size: var(--f1);
+      color: var(--color-text-muted);
+      text-align: center;
+    }
+
+    @media screen and (max-width: 749px) {
+      /* No celular a grade vira trilho horizontal: quatro produtos
+         empilhados empurrariam o rodapé para longe demais, e um
+         trilho deixa claro que há mais coisa ao lado.
+
+         A largura mostra dois cards inteiros e o começo do terceiro
+         — a "espiada" é o que faz a pessoa entender que dá para
+         arrastar, sem precisar de seta nenhuma. A conta desconta o
+         gap real da grade em vez de um número solto. */
+      .relacionados__grade {
+        grid-template-columns: none;
+        grid-auto-flow: column;
+        grid-auto-columns: calc(44% - var(--space-sm));
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        /* Sangria até a borda da tela: o trilho encosta nos cantos,
+           como catálogo. --sal é o recorte lateral CONGELADO (ver
+           layout/theme.liquid); com env() ao vivo esta margem mudava
+           durante a rolagem e o trilho tremia. */
+        padding-inline: max(var(--page-gutter, 16px), var(--sal, 0px));
+        margin-inline: calc(-1 * max(var(--page-gutter, 16px), var(--sal, 0px)));
+        scroll-padding-left: max(var(--page-gutter, 16px), var(--sal, 0px));
+      }
+      .relacionados__grade::-webkit-scrollbar { display: none; }
+      .relacionados__item { scroll-snap-align: start; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .js .relacionados__item[data-reveal] { opacity: 1; transform: none; }
+      .js .relacionados__item[data-reveal].is-revealed { transition: none; transition-delay: 0s; }
+    }
+  </style>
+
   <script>
     if (!customElements.get('product-recommendations')) {
       customElements.define('product-recommendations', class extends HTMLElement {
+        /* connectedCallback, e não o constructor.
+
+           O construtor de um custom element roda enquanto o parser
+           ainda está montando a tag: nesse instante os atributos
+           podem não existir e o elemento não está no documento. Ler
+           data-url ou observar o elemento ali é apostar no tempo do
+           parser. connectedCallback roda com o elemento já no DOM e
+           com os atributos lidos — é onde este trabalho pertence. */
         connectedCallback() {
-          var el = this;
-          if (el.querySelector('.product-grid')) return;
-          fetch(el.dataset.url)
-            .then(function (r) { return r.text(); })
-            .then(function (text) {
-              var html = document.createElement('div');
-              html.innerHTML = text;
-              var recos = html.querySelector('product-recommendations');
-              if (recos && recos.innerHTML.trim().length) {
-                el.innerHTML = recos.innerHTML;
-                /* Este HTML chegou DEPOIS da varredura do revelar.js.
-                   Sem avisar, os [data-reveal] recem-inseridos ficariam
-                   em opacity 0 para sempre — ninguem os observaria.
-                   O gancho existe justamente para este caso. */
-                if (window.CODRevelar) window.CODRevelar(el);
+          if (this.__iniciado) return;
+          this.__iniciado = true;
+
+          var self = this;
+          var observador = new IntersectionObserver(function (entradas) {
+            if (!entradas[0].isIntersecting) return;
+            observador.disconnect();
+            self.buscar();
+          }, { rootMargin: '0px 0px 400px 0px' });
+          observador.observe(this);
+        }
+
+        buscar() {
+          var url = this.dataset.url;
+          if (!url) return;
+          var self = this;
+
+          fetch(url)
+            .then(function (resposta) {
+              if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+              return resposta.text();
+            })
+            .then(function (texto) {
+              var caixa = document.createElement('div');
+              caixa.innerHTML = texto;
+              var novo = caixa.querySelector('product-recommendations');
+              var temProdutos = novo && novo.querySelector('.relacionados__item:not(.relacionados__item--esqueleto)');
+
+              if (!temProdutos) { self.semResultado(); return; }
+
+              self.innerHTML = novo.innerHTML;
+
+              /* O conteúdo chegou depois da primeira pintura, então o
+                 revelador precisa ser avisado do que entrou. Sem ele
+                 (arquivo não carregou, erro anterior), os produtos
+                 aparecem sem animação — nunca invisíveis. */
+              if (typeof window.CODRevelar === 'function') {
+                window.CODRevelar(self);
+              } else {
+                self.querySelectorAll('[data-reveal]').forEach(function (el) {
+                  el.classList.add('is-revealed');
+                });
               }
             })
-            .catch(function (e) { console.error(e); });
+            .catch(function () {
+              /* Recomendação é conteúdo de apoio: se a chamada falhar,
+                 a página de produto continua perfeitamente utilizável.
+                 Some em silêncio em vez de deixar um esqueleto
+                 pulsando para sempre — um carregamento que nunca
+                 termina passa a impressão de site quebrado. */
+              self.semResultado();
+            });
+        }
+
+        semResultado() {
+          /* No editor de temas a seção CONTINUA visível: o lojista
+             precisa conseguir selecioná-la para configurar, mesmo
+             que a loja ainda não tenha recomendações ligadas. */
+          if (this.dataset.editor) {
+            this.innerHTML =
+              '<p class="relacionados__vazio">Nenhuma recomendação disponível para este produto ainda. ' +
+              'Para "complete o look", ligue produtos complementares no app Search &amp; Discovery.</p>';
+            return;
+          }
+          var hospedeiro = this.closest('.shopify-section') || this;
+          hospedeiro.hidden = true;
         }
       });
     }
@@ -77,6 +360,23 @@
       "label": "t:sections.related_products.settings.enable.label"
     },
     {
+      "type": "select",
+      "id": "intent",
+      "label": "O que recomendar",
+      "options": [
+        { "value": "related", "label": "Produtos parecidos" },
+        { "value": "complementary", "label": "Complete o look (produtos que combinam)" }
+      ],
+      "default": "related",
+      "info": "\"Complete o look\" usa os produtos complementares que você liga no app Search & Discovery da Shopify. Sem nada ligado lá, a seção não aparece."
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Chapéu",
+      "info": "Texto curto acima do título. Opcional."
+    },
+    {
       "type": "text",
       "id": "heading",
       "default": "Você também pode gostar",
@@ -86,11 +386,22 @@
       "type": "range",
       "id": "products_to_show",
       "min": 2,
-      "max": 10,
+      "max": 12,
       "step": 1,
       "default": 4,
       "label": "t:sections.related_products.settings.products_to_show.label"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 2,
+      "max": 5,
+      "step": 1,
+      "default": 4,
+      "unit": "col",
+      "label": "Colunas no computador"
     }
-  ]
+  ],
+  "presets": [{ "name": "t:sections.related_products.name" }]
 }
 {% endschema %}
