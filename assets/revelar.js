@@ -52,6 +52,12 @@
     document.addEventListener('shopify:section:load', function (event) {
       revealAll(event.target.querySelectorAll('[data-reveal]'));
     });
+    /* Mesmo sem animar, o gancho precisa existir: quem injeta HTML
+       chama CODRevelar sem saber em que modo a pagina esta, e um
+       no-op aqui evita um `typeof` espalhado por cada chamador. */
+    window.CODRevelar = function (scope) {
+      revealAll((scope || document).querySelectorAll('[data-reveal]'));
+    };
     return;
   }
 
@@ -123,4 +129,25 @@
   document.addEventListener('shopify:section:load', function (event) {
     observe(event.target);
   });
+
+  /* ---------------------------------------------------------
+     CODRevelar(scope) — para conteudo que chega DEPOIS
+
+     O observer so varre a pagina na abertura e no
+     shopify:section:load (editor de temas). Conteudo trazido por
+     fetch em tempo de execucao — as recomendacoes da PDP, por
+     exemplo — nunca passava por ele: marcar aquele HTML com
+     [data-reveal] deixaria os produtos em opacity 0 PARA SEMPRE,
+     porque ninguem os observaria.
+
+     Quem injeta HTML chama window.CODRevelar(elemento) e os
+     [data-reveal] de dentro entram na fila normalmente.
+
+     Sem `abertura`: conteudo que chega depois nunca e "o que ja
+     estava na tela", entao nao existe o caso de pular a animacao
+     para proteger o LCP — o LCP ja foi medido ha muito tempo.
+  --------------------------------------------------------- */
+  window.CODRevelar = function (scope) {
+    observe(scope && scope.querySelectorAll ? scope : document, false);
+  };
 })();

@@ -564,7 +564,69 @@
   @media (prefers-reduced-motion: reduce) {
     #shopify-section-{{ section.id }} .filtros[open] .filtros__painel { animation: none; }
   }
+  /* ==========================================================
+     APLICANDO FILTRO / ORDENACAO — a espera que nao existia
+     ==========================================================
+     Filtrar e ordenar recarregam a pagina (form GET). Entre o
+     clique e o primeiro byte da pagina nova podem passar varios
+     centos de ms em que NADA na tela muda: a pessoa nao sabe se o
+     toque pegou e clica de novo, refazendo a navegacao.
+
+     A grade recua para 55% e para de aceitar cliques. Nao e um
+     spinner cobrindo a tela — e a propria grade dizendo "estes
+     resultados ja sao os antigos". opacity apenas: nenhum reflow,
+     e a lista fica exatamente onde esta ate a troca. */
+  #shopify-section-{{ section.id }} .product-grid {
+    transition: opacity var(--dur-normal) var(--ease-out);
+  }
+  #shopify-section-{{ section.id }}.is-carregando .product-grid {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #shopify-section-{{ section.id }} .product-grid { transition: none; }
+  }
 </style>
+
+<script>
+  (function () {
+    var secao = document.getElementById('shopify-section-{{ section.id }}');
+    if (!secao) return;
+
+    function marcarOcupado(form) {
+      secao.classList.add('is-carregando');
+      /* O botao "Aplicar" ganha o mesmo anel giratorio que qualquer
+         outro botao do tema usa em [aria-busy] — um estado so, ja
+         definido em base.css, nao um indicador novo. */
+      var botao = form.querySelector('button[type="submit"]');
+      if (botao) botao.setAttribute('aria-busy', 'true');
+    }
+
+    secao.querySelectorAll('form[method="get"]').forEach(function (form) {
+      form.addEventListener('submit', function () { marcarOcupado(form); });
+    });
+
+    /* O <select> de ordenacao dispara submit() por JS, e submit()
+       chamado por script NAO emite o evento 'submit'. Sem este
+       change o caminho mais usado no desktop ficaria justamente sem
+       feedback nenhum. */
+    secao.querySelectorAll('select[name="sort_by"]').forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        if (sel.form) marcarOcupado(sel.form);
+      });
+    });
+
+    /* Voltar pelo historico devolve a pagina do cache (bfcache) com
+       o DOM exatamente como ficou — ou seja, apagada e sem cliques.
+       pageshow e o unico evento que dispara nesse retorno. */
+    window.addEventListener('pageshow', function () {
+      secao.classList.remove('is-carregando');
+      secao.querySelectorAll('[aria-busy="true"]').forEach(function (el) {
+        el.removeAttribute('aria-busy');
+      });
+    });
+  })();
+</script>
 
 
 {% schema %}

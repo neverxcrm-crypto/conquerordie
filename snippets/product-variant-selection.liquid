@@ -140,19 +140,38 @@
       if (idInput) { idInput.value = variant.id; idInput.removeAttribute('disabled'); }
       setButton(!variant.available, variant.available ? ADD : SOLD_OUT);
 
-      // Replace the whole price block with the store-formatted HTML for this variant.
+      /* Replace the whole price block with the store-formatted HTML.
+
+         A troca era instantanea: o valor antigo virava o novo no
+         mesmo quadro, sem nada dizendo que ALGO MUDOU. Quem troca de
+         tamanho e ve um preco diferente precisa perceber a mudanca —
+         e quem troca e ve o MESMO preco precisa perceber que a
+         interface respondeu ao toque.
+
+         A classe entra num no RECEM-CRIADO, entao a animacao dispara
+         sozinha na insercao e nunca precisa ser removida: cada troca
+         fabrica um elemento novo. Sem timers, sem estado preso. */
       if (priceContainer && variant.price_html) {
         var existing = priceContainer.querySelector('.price');
         if (existing) {
           var tmp = document.createElement('div');
           tmp.innerHTML = variant.price_html;
           var fresh = tmp.querySelector('.price');
-          if (fresh) { existing.replaceWith(fresh); }
+          if (fresh) {
+            if (!menosMovimento) fresh.classList.add('price--trocou');
+            existing.replaceWith(fresh);
+          }
         }
       }
 
       // O mesmo preço vai para a barra fixa do celular.
-      if (barraPreco && variant.price_html) { barraPreco.innerHTML = variant.price_html; }
+      if (barraPreco && variant.price_html) {
+        barraPreco.innerHTML = variant.price_html;
+        if (!menosMovimento) {
+          var precoBarra = barraPreco.querySelector('.price');
+          if (precoBarra) precoBarra.classList.add('price--trocou');
+        }
+      }
 
       /* Estoque: quem tem 2 peças é a VARIANTE, não o produto. O
          texto de cada uma já vem pronto do servidor (com plural

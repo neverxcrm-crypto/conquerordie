@@ -1591,6 +1591,34 @@ a.pagination__item:hover { color: var(--color-text-primary); border-color: var(-
 .price--pdp { font-size: var(--f5); }
 .price--pdp .price__compare { font-size: var(--f3); }
 
+/* --------------------------------------------------------------------------
+   PREÇO QUE ACABOU DE MUDAR — trocar de variante precisa ser perceptível
+   --------------------------------------------------------------------------
+   A troca de tamanho/cor substituía o bloco de preço no mesmo quadro. Quem
+   trocava e via OUTRO valor não registrava a mudança; quem trocava e via o
+   MESMO valor não tinha como saber se o toque funcionou.
+
+   São 4px de subida e um fade curto — o suficiente para o olho registrar
+   "isto foi recalculado" sem virar um efeito. Dura o --dur-normal do tema,
+   a mesma velocidade de qualquer outra troca de estado.
+
+   É `animation` e não `transition` de propósito: o elemento é criado do zero
+   a cada troca, então não existe estado anterior para transicionar a partir
+   dele. A animação dispara sozinha na inserção do nó.
+
+   transform + opacity apenas: o preço vive dentro da coluna de compra, e
+   animar altura ali empurraria o botão de comprar no meio do gesto. */
+@keyframes priceTrocou {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+.price--trocou {
+  animation: priceTrocou var(--dur-normal) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .price--trocou { animation: none; }
+}
+
 /* Rich text content (RTE) shared styles */
 .rte a { color: var(--color-accent-readable); }
 .rte img { max-width: 100%; height: auto; border-radius: var(--media-radius); }

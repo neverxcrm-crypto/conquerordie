@@ -27,10 +27,10 @@
     data-url="{{ routes.product_recommendations_url }}?section_id={{ section.id }}&product_id={{ product.id }}&limit={{ section.settings.products_to_show }}"
   >
     {%- if recommendations.performed and recommendations.products_count > 0 -%}
-      <h2 class="related-products__title">{{ section.settings.heading | escape }}</h2>
+      <h2 class="related-products__title" data-reveal>{{ section.settings.heading | escape }}</h2>
       <ul class="product-grid" role="list">
         {%- for product in recommendations.products -%}
-          <li>{% render 'card-product', card_product: product %}</li>
+          <li data-reveal>{% render 'card-product', card_product: product %}</li>
         {%- endfor -%}
       </ul>
     {%- endif -%}
@@ -48,7 +48,14 @@
               var html = document.createElement('div');
               html.innerHTML = text;
               var recos = html.querySelector('product-recommendations');
-              if (recos && recos.innerHTML.trim().length) { el.innerHTML = recos.innerHTML; }
+              if (recos && recos.innerHTML.trim().length) {
+                el.innerHTML = recos.innerHTML;
+                /* Este HTML chegou DEPOIS da varredura do revelar.js.
+                   Sem avisar, os [data-reveal] recem-inseridos ficariam
+                   em opacity 0 para sempre — ninguem os observaria.
+                   O gancho existe justamente para este caso. */
+                if (window.CODRevelar) window.CODRevelar(el);
+              }
             })
             .catch(function (e) { console.error(e); });
         }
@@ -72,7 +79,7 @@
     {
       "type": "text",
       "id": "heading",
-      "default": "You may also like",
+      "default": "Você também pode gostar",
       "label": "t:sections.related_products.settings.heading.label"
     },
     {

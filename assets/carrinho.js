@@ -56,10 +56,35 @@
   --------------------------------------------------------- */
   function updateHeaderCount(count) {
     document.querySelectorAll('[data-cart-count]').forEach(function (el) {
+      var anterior = parseInt(el.textContent, 10) || 0;
       el.textContent = count;
       el.hidden = count === 0;
+
+      /* O numero SOBE: e a confirmacao de que o produto entrou.
+         Antes a troca era so textContent — o badge mudava de digito
+         sem que nada chamasse o olho, e num carrinho em drawer a
+         pessoa nao tinha certeza de que a acao valeu.
+
+         A classe e removida no fim da propria animacao (animationend),
+         nao por timer: se o CSS nao animar (reduced-motion zera os
+         tokens), o evento nao dispara e a classe some no
+         requestAnimationFrame seguinte — sem sobrar estado presa.
+
+         So no aumento. Remover item nao merece festa. */
+      if (count > anterior) {
+        el.classList.remove('is-bump');
+        // Reflow forcado: sem ele, remover e re-adicionar a classe no
+        // mesmo frame nao reinicia a animacao (o navegador nao ve
+        // mudanca). Duas adicoes seguidas ficariam sem feedback.
+        void el.offsetWidth;
+        el.classList.add('is-bump');
+      }
     });
   }
+
+  document.addEventListener('animationend', function (event) {
+    if (event.animationName === 'cartCountBump') event.target.classList.remove('is-bump');
+  });
 
   /* ---------------------------------------------------------
      Abrir / fechar

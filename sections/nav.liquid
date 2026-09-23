@@ -363,6 +363,46 @@
     font-variant-numeric: tabular-nums;
     color: var(--color-text-on-accent); background-color: var(--color-accent);
     border-radius: var(--radius-pill);
+    /* transform-origin no centro para o "pulo" nao deslocar o badge
+       do canto do icone enquanto cresce. */
+    transform-origin: center center;
+  }
+
+  /* O badge reage quando o numero SOBE — a confirmacao de que o
+     produto entrou no carrinho. Um passo curto: cresce 35% e assenta.
+     So transform e opacity, entao roda no compositor e nao toca no
+     layout do header. Sem loop: dispara uma vez por adicao. */
+  @keyframes cartCountBump {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.35); }
+    100% { transform: scale(1); }
+  }
+  .header__cart-count.is-bump {
+    animation: cartCountBump var(--dur-emphasis) var(--ease-out);
+  }
+  /* O icone acompanha de leve — o badge sozinho, tao pequeno, passa
+     despercebido em tela grande. Metade da amplitude: quem conduz o
+     gesto e o numero. */
+  @keyframes cartIconNudge {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.12); }
+    100% { transform: scale(1); }
+  }
+  .header__cart:has(.is-bump) svg {
+    animation: cartIconNudge var(--dur-emphasis) var(--ease-out);
+  }
+
+  /* As duas regras ficam SEPARADAS de proposito — e a mesma razao
+     documentada na pilha do topo em base.css: um seletor invalido
+     invalida a LISTA inteira em que esta. Num navegador sem :has()
+     (anterior a Chrome 105 / Safari 15.4), junta-las faria o
+     `animation: none` do badge cair junto, e quem pediu menos
+     movimento veria justamente a animacao que pediu para nao ver. */
+  @media (prefers-reduced-motion: reduce) {
+    .header__cart-count.is-bump { animation: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .header__cart:has(.is-bump) svg { animation: none; }
   }
 
   /* --- MENU HAMBURGUER ANIMADO --- */
@@ -468,6 +508,66 @@
     color: var(--color-text-primary); text-decoration: none; border-bottom: 1px solid var(--color-border);
   }
   .header__mobile-link[aria-current='page'] { color: var(--color-accent); }
+
+  /* ==========================================================
+     ENTRADA DOS ITENS — o painel chega, depois o conteudo
+     ==========================================================
+     Antes o painel deslizava com a lista inteira pronta dentro dele:
+     tecnicamente correto, mas o olho le como uma placa entrando, nao
+     como um menu abrindo.
+
+     Agora os itens sobem 8px logo atras do painel, em degraus de
+     --stagger/2 (35ms). O teto e o 7o item: com a fileira inteira
+     escalonada, o ultimo link de um menu grande chegaria tarde
+     demais e a navegacao pareceria lenta.
+
+     O atraso base (120ms) existe para a lista comecar a aparecer
+     quando o painel ja percorreu parte do caminho — entrar junto
+     desde o quadro zero mistura os dois movimentos.
+
+     IMPORTANTE: so opacity e transform mudam. Nenhum item fica com
+     pointer-events desligado, entao TODOS sao tocaveis desde o
+     primeiro quadro, mesmo os que ainda estao aparecendo. A
+     animacao nunca segura a navegacao. */
+  .header__mobile-item {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .header__mobile-nav.is-open .header__mobile-item {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity var(--dur-normal) var(--ease-out),
+      transform var(--dur-normal) var(--ease-out);
+    transition-delay: calc(120ms + var(--item-i, 0) * (var(--stagger) / 2));
+  }
+  .header__mobile-item:nth-child(1) { --item-i: 0; }
+  .header__mobile-item:nth-child(2) { --item-i: 1; }
+  .header__mobile-item:nth-child(3) { --item-i: 2; }
+  .header__mobile-item:nth-child(4) { --item-i: 3; }
+  .header__mobile-item:nth-child(5) { --item-i: 4; }
+  .header__mobile-item:nth-child(6) { --item-i: 5; }
+  .header__mobile-item:nth-child(n + 7) { --item-i: 6; }
+
+  /* O rodape (conta) fecha a sequencia, depois da lista. */
+  .header__mobile-footer { opacity: 0; transition: opacity var(--dur-normal) var(--ease-out); }
+  .header__mobile-nav.is-open .header__mobile-footer {
+    opacity: 1;
+    transition-delay: calc(120ms + 3 * (var(--stagger) / 2));
+  }
+
+  /* Quem pediu menos movimento recebe o painel com o conteudo ja
+     posto: a gaveta ainda desliza (e a informacao de ONDE ela vem),
+     mas nada escalona. */
+  @media (prefers-reduced-motion: reduce) {
+    .header__mobile-item,
+    .header__mobile-footer { opacity: 1; transform: none; }
+    .header__mobile-nav.is-open .header__mobile-item,
+    .header__mobile-nav.is-open .header__mobile-footer {
+      transition: none;
+      transition-delay: 0s;
+    }
+  }
 
   .header__mobile-footer {
     padding: var(--space-sm) var(--space-md);

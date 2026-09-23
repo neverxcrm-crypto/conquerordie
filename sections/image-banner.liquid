@@ -46,11 +46,11 @@
       {%- for block in section.blocks -%}
         {%- case block.type -%}
           {%- when 'heading' -%}
-            <h2 class="image-banner__heading" {{ block.shopify_attributes }}>{{ block.settings.heading | escape }}</h2>
+            <h2 class="image-banner__heading" data-reveal {{ block.shopify_attributes }}>{{ block.settings.heading | escape }}</h2>
           {%- when 'text' -%}
-            <div class="image-banner__text rte" {{ block.shopify_attributes }}>{{ block.settings.text }}</div>
+            <div class="image-banner__text rte" data-reveal {{ block.shopify_attributes }}>{{ block.settings.text }}</div>
           {%- when 'button' -%}
-            <div class="image-banner__buttons" {{ block.shopify_attributes }}>
+            <div class="image-banner__buttons" data-reveal {{ block.shopify_attributes }}>
               {%- if block.settings.button_label != blank -%}
                 <a href="{{ block.settings.button_link | default: '#' }}" class="button">{{ block.settings.button_label | escape }}</a>
               {%- endif -%}
@@ -128,7 +128,7 @@
       "name": "t:sections.image_banner.blocks.heading.name",
       "limit": 1,
       "settings": [
-        { "type": "text", "id": "heading", "default": "Image banner heading", "label": "t:sections.image_banner.blocks.heading.settings.heading.label" }
+        { "type": "text", "id": "heading", "default": "Título do banner", "label": "t:sections.image_banner.blocks.heading.settings.heading.label" }
       ]
     },
     {
@@ -136,7 +136,7 @@
       "name": "t:sections.image_banner.blocks.text.name",
       "limit": 1,
       "settings": [
-        { "type": "richtext", "id": "text", "default": "<p>Discover the latest collection.</p>", "label": "t:sections.image_banner.blocks.text.settings.text.label" }
+        { "type": "richtext", "id": "text", "default": "<p>Conheça a nova coleção.</p>", "label": "t:sections.image_banner.blocks.text.settings.text.label" }
       ]
     },
     {
@@ -144,7 +144,7 @@
       "name": "t:sections.image_banner.blocks.button.name",
       "limit": 1,
       "settings": [
-        { "type": "text", "id": "button_label", "default": "Shop now", "label": "t:sections.image_banner.blocks.button.settings.button_label.label" },
+        { "type": "text", "id": "button_label", "default": "Comprar agora", "label": "t:sections.image_banner.blocks.button.settings.button_label.label" },
         { "type": "url", "id": "button_link", "label": "t:sections.image_banner.blocks.button.settings.button_link.label" },
         { "type": "text", "id": "button_label_2", "label": "t:sections.image_banner.blocks.button.settings.button_label_2.label" },
         { "type": "url", "id": "button_link_2", "label": "t:sections.image_banner.blocks.button.settings.button_link_2.label" }

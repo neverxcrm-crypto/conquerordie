@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "apple-hig": {
+      "source": "jhy0285/monofield",
+      "sourceType": "github",
+      "skillPath": "skills/apple-hig/SKILL.md",
+      "computedHash": "c4609dc93733285e19f21ba70558ea29f0b89736202d136ecb17de6ad92a4447"
+    }
+  }
+}

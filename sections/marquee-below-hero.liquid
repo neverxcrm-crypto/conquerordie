@@ -147,6 +147,36 @@
     animation-play-state: paused !important;
   }
 
+  /* ==========================================================
+     MENOS MOVIMENTO — a faixa PARA
+     ==========================================================
+     Esta era a unica animação infinita do tema sem saída: ela roda
+     para sempre, atravessa a tela inteira e usa !important, então
+     nem os tokens zerados em css-variables (que desligam o resto do
+     site de uma vez) a alcançavam.
+
+     Texto deslizando sem parar é justamente o padrão que causa
+     desconforto em quem tem sensibilidade vestibular — é por isso
+     que a pessoa liga "reduzir movimento" no sistema.
+
+     A faixa não é escondida: o conteúdo continua ali, legível e
+     parado. Perde-se o movimento, não a informação. O
+     `!important` é necessário para vencer o `!important` da regra
+     original — não por preferência de estilo.
+
+     justify-content: center porque, parada no ponto zero, a
+     trilha nasceria alinhada à esquerda com um vazio à direita. */
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-hero__track {
+      animation: none !important;
+      will-change: auto !important;
+      justify-content: center !important;
+      min-width: 0 !important;
+      width: 100% !important;
+      flex-wrap: wrap !important;
+    }
+  }
+
   .marquee-hero__group {
     display: flex !important;
     align-items: center !important;
