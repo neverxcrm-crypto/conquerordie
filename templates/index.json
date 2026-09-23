@@ -12,6 +12,21 @@
     "hero": {
       "type": "hero",
       "blocks": {
+        "slide_hBexyT": {
+          "type": "slide",
+          "settings": {
+            "image": "shopify://shop_images/ChatGPT_Image_23_de_set._de_2026_16_24_28.png",
+            "overlay_color": "#000000",
+            "overlay_opacity": 20,
+            "text_alignment": "left",
+            "eyebrow": "",
+            "heading": "",
+            "subheading": "",
+            "text": "",
+            "button_label": "",
+            "button_link": ""
+          }
+        },
         "slide_CAaQyc": {
           "type": "slide",
           "settings": {
@@ -25,6 +40,20 @@
             "subheading": "A nova coleção da Conquer or Die está chegando",
             "text": "<p>Camisetas oversized modelo 21.1</p>",
             "button_label": "Ver coleção",
+            "button_link": ""
+          }
+        },
+        "slide_EYH86T": {
+          "type": "slide",
+          "settings": {
+            "overlay_color": "#000000",
+            "overlay_opacity": 20,
+            "text_alignment": "left",
+            "eyebrow": "NOVIDADE",
+            "heading": "Coleção Exclusiva",
+            "subheading": "Descubra o novo padrão",
+            "text": "<p>Detalhes que fazem a diferença na sua rotina.</p>",
+            "button_label": "Ver Produtos",
             "button_link": ""
           }
         },
@@ -46,7 +75,9 @@
         }
       },
       "block_order": [
+        "slide_hBexyT",
         "slide_CAaQyc",
+        "slide_EYH86T",
         "slide_1"
       ],
       "settings": {
@@ -209,13 +240,6 @@
             "alt": ""
           }
         },
-        "post_B78U8x": {
-          "type": "post",
-          "settings": {
-            "link": "",
-            "alt": ""
-          }
-        },
         "post_r8qXiN": {
           "type": "post",
           "settings": {
@@ -229,23 +253,14 @@
             "link": "",
             "alt": ""
           }
-        },
-        "post_C7Wm8w": {
-          "type": "post",
-          "settings": {
-            "link": "",
-            "alt": ""
-          }
         }
       },
       "block_order": [
         "post_FXpwGt",
         "post_re9hpb",
         "post_nwgCU7",
-        "post_B78U8x",
         "post_r8qXiN",
-        "post_xQPCw4",
-        "post_C7Wm8w"
+        "post_xQPCw4"
       ],
       "settings": {
         "eyebrow": "Comunidade",
@@ -253,8 +268,8 @@
         "arroba": "conquerordie_clothing",
         "perfil_url": "https://www.instagram.com/conquerordie_clothing/",
         "cta_label": "",
-        "colunas": 4,
         "video": "shopify://files/videos/SaveClip.App_AQPUC8O1ee4n1aWJTHaPXVvwgH9oprDT1DLuY22Ir2HRl_rQhzBMWT899edFTbD5maS5shn1R9vLL9uAuRzksgi5nMiMxyGjEvkiRyU.mp4",
+        "show_audio_button": true,
         "video_url": "",
         "video_descricao": "",
         "reels_lado": "esquerda"
