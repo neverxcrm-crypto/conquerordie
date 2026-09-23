@@ -1,20 +1,41 @@
 {%- comment -%}
   ============================================================
-  HERO — Slider com Autoplay (5s), Deslize Lateral e Setas
+  HERO — Premium Slider (Totalmente Configurável & Autoplay)
   ============================================================
 {%- endcomment -%}
 {%- liquid
   assign slides = section.blocks
   assign slide_count = slides.size
+  assign autoplay = section.settings.autoplay
+  assign autoplay_speed = section.settings.autoplay_speed | times: 1000
 -%}
 <div
   class="hero scheme-dark hero--{{ section.settings.height }}"
   data-section-id="{{ section.id }}"
   data-header-overlay
-  {% if slide_count > 1 %}data-hero-carousel role="region" aria-roledescription="carousel" aria-label="{{ shop.name | escape }}" tabindex="0"{% endif %}
+  {% if slide_count > 1 %}
+    data-hero-carousel
+    data-autoplay="{{ autoplay }}"
+    data-speed="{{ autoplay_speed }}"
+    role="region"
+    aria-roledescription="carousel"
+    aria-label="{{ shop.name | escape }}"
+    tabindex="0"
+  {% endif %}
 >
   <ul class="hero__slides" role="list">
     {%- for block in slides -%}
+      {%- liquid
+        if forloop.first
+          assign slide_loading = 'eager'
+          assign slide_priority = 'high'
+        else
+          assign slide_loading = 'lazy'
+          assign slide_priority = 'auto'
+        endif
+
+        assign alignment_class = 'hero__content--' | append: block.settings.text_alignment
+      -%}
       <li
         class="hero__slide {% if forloop.first %}is-active{% endif %}"
         data-hero-slide
@@ -25,17 +46,11 @@
           {% unless forloop.first %}aria-hidden="true"{% endunless %}
         {% endif %}
         {{ block.shopify_attributes }}
+        style="
+          --overlay-color: {{ block.settings.overlay_color }};
+          --overlay-opacity: {{ block.settings.overlay_opacity | divided_by: 100.0 }};
+        "
       >
-        {%- liquid
-          if forloop.first
-            assign slide_loading = 'eager'
-            assign slide_priority = 'high'
-          else
-            assign slide_loading = 'lazy'
-            assign slide_priority = 'auto'
-          endif
-        -%}
-
         <!-- Imagem do Banner -->
         <div class="hero__media">
           {%- if block.settings.image != blank -%}
@@ -79,10 +94,13 @@
               {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
             </div>
           {%- endif -%}
+
+          <!-- Camada de Escurecimento Configurável -->
+          <div class="hero__overlay"></div>
         </div>
 
         <!-- Conteúdo do Banner -->
-        <div class="hero__content page-width">
+        <div class="hero__content page-width {{ alignment_class }}">
           <div class="hero__text-container">
 
             <!-- Eyebrow -->
@@ -134,28 +152,32 @@
   </ul>
 
   {%- if slide_count > 1 -%}
-    <!-- SETAS LATERAIS (NOVAS) -->
-    <button type="button" class="hero__arrow hero__arrow--prev tap-target" data-hero-prev aria-label="Slide anterior">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-    </button>
-    <button type="button" class="hero__arrow hero__arrow--next tap-target" data-hero-next aria-label="Próximo slide">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-    </button>
+    <!-- SETAS LATERAIS -->
+    {%- if section.settings.show_arrows -%}
+      <button type="button" class="hero__arrow hero__arrow--prev tap-target" data-hero-prev aria-label="Slide anterior">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+      <button type="button" class="hero__arrow hero__arrow--next tap-target" data-hero-next aria-label="Próximo slide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
+    {%- endif -%}
 
-    <!-- INDICADOR NUMÉRICO E SETAS PEQUENAS -->
-    <div class="hero__indicator">
-      <button type="button" class="hero__nav tap-target" data-hero-prev aria-label="Anterior">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-      </button>
-      <p class="hero__counter" aria-live="polite">
-        <span class="hero__counter-current" data-hero-current>01</span>
-        <span class="hero__counter-divider">/</span>
-        <span class="hero__counter-total">{{ slide_count | prepend: '0' | slice: -2, 2 }}</span>
-      </p>
-      <button type="button" class="hero__nav tap-target" data-hero-next aria-label="Próximo">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-      </button>
-    </div>
+    <!-- INDICADOR NUMÉRICO -->
+    {%- if section.settings.show_indicator -%}
+      <div class="hero__indicator">
+        <button type="button" class="hero__nav tap-target" data-hero-prev aria-label="Anterior">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </button>
+        <p class="hero__counter" aria-live="polite">
+          <span class="hero__counter-current" data-hero-current>01</span>
+          <span class="hero__counter-divider">/</span>
+          <span class="hero__counter-total">{{ slide_count | prepend: '0' | slice: -2, 2 }}</span>
+        </p>
+        <button type="button" class="hero__nav tap-target" data-hero-next aria-label="Próximo">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+      </div>
+    {%- endif -%}
   {%- endif -%}
 </div>
 
@@ -172,7 +194,7 @@
     list-style: none;
     margin: 0;
     padding: 0;
-    display: flex; /* Mantém o comportamento de carrossel deslizando */
+    display: flex;
     width: 100%;
     transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
     will-change: transform;
@@ -188,7 +210,7 @@
     box-sizing: border-box;
   }
 
-  /* Alturas Dinâmicas Responsivas */
+  /* Alturas */
   .hero--short .hero__slide { min-height: clamp(420px, 60vh, 600px); }
   .hero--default .hero__slide { min-height: clamp(520px, 80vh, 850px); }
   .hero--tall .hero__slide { min-height: 100vh; min-height: 100dvh; }
@@ -197,7 +219,6 @@
     .hero__slide { justify-content: center; }
   }
 
-  /* Mídia */
   .hero__media {
     position: absolute;
     inset: 0;
@@ -220,13 +241,13 @@
     background-color: var(--color-surface, #121212);
   }
 
-  .hero__media::after {
-    content: '';
+  /* Overlay Configurável via Painel */
+  .hero__overlay {
     position: absolute;
     inset: 0;
-    background:
-      var(--photo-veil-bottom, linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 40%, transparent 80%)),
-      var(--photo-veil-side, linear-gradient(to right, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.25) 50%, transparent 100%));
+    background-color: var(--overlay-color, #000000);
+    opacity: var(--overlay-opacity, 0.3);
+    z-index: 1;
     pointer-events: none;
   }
 
@@ -235,6 +256,7 @@
     position: relative;
     z-index: 2;
     width: 100%;
+    display: flex;
     box-sizing: border-box;
     padding-top: calc(var(--header-height, 70px) + max(20px, env(safe-area-inset-top, 0px)));
     padding-bottom: clamp(80px, 12vh, 140px);
@@ -246,6 +268,11 @@
       padding-bottom: 60px;
     }
   }
+
+  /* Alinhamentos */
+  .hero__content--left { justify-content: flex-start; text-align: left; }
+  .hero__content--center { justify-content: center; text-align: center; }
+  .hero__content--right { justify-content: flex-end; text-align: right; }
 
   .hero__text-container {
     position: relative;
@@ -268,9 +295,12 @@
   .hero__element--heading { margin-bottom: 16px; display: block; width: 100%; }
   .hero__element--subheading { margin-bottom: 16px; }
   .hero__element--body { margin-bottom: 28px; }
-  .hero__element--cta { margin-top: 8px; display: inline-flex; width: auto; align-items: center; }
 
-  /* Animações (Somente ativo) */
+  .hero__content--left .hero__element--cta { margin-top: 8px; display: inline-flex; width: auto; align-items: center; }
+  .hero__content--center .hero__element--cta { margin-top: 8px; display: flex; width: auto; justify-content: center; }
+  .hero__content--right .hero__element--cta { margin-top: 8px; display: flex; width: auto; justify-content: flex-end; }
+
+  /* Animações */
   .js .hero__slide .hero__element { opacity: 0; }
   .js .hero__slide.is-active .hero__element {
     animation: heroEntrada var(--dur-reveal, 560ms) var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
@@ -297,12 +327,11 @@
 
   /* Tipografia */
   .hero__heading {
-    max-width: 12ch;
     font-size: clamp(2.4rem, 8.5vw, 6.8rem);
     line-height: 0.98;
     margin: 0;
     color: var(--color-text-primary, #ffffff);
-    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
     text-wrap: balance;
     overflow-wrap: break-word;
     word-break: break-word;
@@ -316,22 +345,23 @@
     text-transform: uppercase;
     color: var(--color-text-primary, #ffffff);
     margin: 0;
-    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
   }
 
   .hero__eyebrow {
     margin: 0;
     font-size: var(--f0);
-    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+    color: #ffffff;
   }
 
   .hero__body {
     font-size: clamp(0.9375rem, 0.9rem + 0.25vw, 1.0625rem);
     line-height: 1.55;
     color: var(--color-text-secondary, rgba(255, 255, 255, 0.88));
-    max-width: 42ch;
-    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
   }
+  .hero__content--center .hero__body { margin-left: auto; margin-right: auto; max-width: 42ch; }
   .hero__body p { margin: 0 0 6px; }
 
   /* Botão CTA */
@@ -345,7 +375,6 @@
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
     transition: all var(--dur-fast) var(--ease-out);
   }
-
   .hero__cta:hover {
     transform: translateY(-1px);
     background-color: var(--color-button-primary-background-hover);
@@ -354,9 +383,7 @@
   }
   .hero__cta:active { transform: translateY(0); }
 
-  /* ========================================================
-     ESTILOS DAS SETAS LATERAIS
-     ======================================================== */
+  /* Setas Laterais */
   .hero__arrow {
     position: absolute;
     top: 50%;
@@ -376,38 +403,23 @@
     -webkit-backdrop-filter: blur(4px);
     transition: background-color 0.2s, transform 0.2s, border-color 0.2s;
   }
-
   .hero__arrow:hover {
     background-color: rgba(255, 255, 255, 0.3);
     border-color: rgba(255, 255, 255, 0.6);
     transform: translateY(-50%) scale(1.05);
   }
-
-  .hero__arrow svg {
-    width: 24px;
-    height: 24px;
-  }
-
+  .hero__arrow svg { width: 24px; height: 24px; }
   .hero__arrow--prev { left: 24px; }
   .hero__arrow--next { right: 24px; }
 
-  /* Ajuste das setas laterais para mobile */
   @media screen and (max-width: 749px) {
-    .hero__arrow {
-      width: 40px;
-      height: 40px;
-      /* Se quiser esconder as setas no mobile (pois podem dar swipe com o dedo), ative a linha abaixo: */
-      /* display: none; */
-    }
+    .hero__arrow { width: 40px; height: 40px; }
     .hero__arrow svg { width: 20px; height: 20px; }
     .hero__arrow--prev { left: 16px; }
     .hero__arrow--next { right: 16px; }
   }
 
-
-  /* ========================================================
-     INDICADOR (Números e setinhas auxiliares)
-     ======================================================== */
+  /* Indicador */
   .hero__indicator {
     position: absolute;
     z-index: 3;
@@ -415,77 +427,46 @@
     align-items: center;
     gap: 8px;
   }
-
   .hero__counter {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-family: var(--font-ui-family, inherit);
-    font-size: var(--f1, 1.2rem);
-    font-weight: var(--font-weight-medium, 500);
-    letter-spacing: var(--tracking-label, 0.05em);
-    color: var(--color-text-primary, #ffffff);
-    margin: 0;
+    display: flex; align-items: center; gap: 4px;
+    font-family: var(--font-ui-family, inherit); font-size: var(--f1, 1.2rem); font-weight: 500;
+    letter-spacing: var(--tracking-label, 0.05em); color: #ffffff; margin: 0;
   }
-
   .hero__counter-divider { opacity: 0.5; }
-  .hero__counter-total { color: var(--color-text-muted, rgba(255, 255, 255, 0.6)); }
-
+  .hero__counter-total { color: rgba(255, 255, 255, 0.6); }
   .hero__nav {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: none;
-    border: none;
-    color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
-    cursor: pointer;
-    padding: 8px;
-    opacity: 0.8;
-    transition: opacity 200ms ease, color 200ms ease;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: none; color: rgba(255, 255, 255, 0.8);
+    cursor: pointer; padding: 8px; opacity: 0.8; transition: opacity 200ms ease, color 200ms ease;
   }
   .hero__nav:hover, .hero__nav:focus-visible { opacity: 1; color: #ffffff; }
 
-  /* Desktop Indicador */
   @media screen and (min-width: 750px) {
-    .hero__indicator {
-      right: var(--page-gutter, 24px);
-      bottom: clamp(40px, 8vh, 80px);
-      flex-direction: column;
-      gap: 6px;
-    }
+    .hero__indicator { right: var(--page-gutter, 24px); bottom: clamp(40px, 8vh, 80px); flex-direction: column; gap: 6px; }
     .hero__counter { flex-direction: column; gap: 6px; }
     .hero__counter-divider { display: none; }
     .hero__counter-total::before {
       content: ''; display: block; width: 1px; height: 24px;
-      margin: 0 auto 6px; background-color: var(--color-border-strong, rgba(255, 255, 255, 0.25));
+      margin: 0 auto 6px; background-color: rgba(255, 255, 255, 0.25);
     }
-    /* Gira as setinhas menores no desktop */
     .hero__indicator [data-hero-prev] svg { transform: rotate(90deg); }
     .hero__indicator [data-hero-next] svg { transform: rotate(90deg); }
   }
 
-  /* Mobile Indicador */
   @media screen and (max-width: 749px) {
     .hero__element--cta { width: 100%; }
     .hero__cta { width: 100%; justify-content: center; }
-
     .hero__indicator {
-      bottom: max(16px, env(safe-area-inset-bottom, 16px));
-      right: var(--page-gutter, 16px);
-      left: auto;
-      background-color: rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      padding: 4px 8px;
-      border-radius: 30px;
+      bottom: max(16px, env(safe-area-inset-bottom, 16px)); right: var(--page-gutter, 16px);
+      left: auto; background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px); padding: 4px 8px; border-radius: 30px;
       border: 1px solid rgba(255, 255, 255, 0.15);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .js .hero__slide .hero__element { opacity: 1; }
-    .js .hero__slide.is-active .hero__element,
-    .hero__slide.is-active .hero__image { animation: none; }
+    .js .hero__slide.is-active .hero__element, .hero__slide.is-active .hero__image { animation: none; }
     .hero__slide { transition-duration: 0.01ms !important; }
   }
 </style>
@@ -502,14 +483,14 @@
       var index = 0;
       var autoPlayInterval;
 
-      // Velocidade 5000 = 5 segundos
-      var AUTOPLAY_SPEED = 5000;
+      // Lê as configurações do painel a partir dos atributos data
+      var isAutoplay = root.getAttribute('data-autoplay') === 'true';
+      var autoplaySpeed = parseInt(root.getAttribute('data-speed'), 10) || 5000;
 
       function pad(n) { return (n < 10 ? '0' : '') + n; }
 
       function show(next) {
         index = (next + slides.length) % slides.length;
-
         sliderContainer.style.transform = 'translateX(-' + (index * 100) + '%)';
 
         slides.forEach(function (slide, i) {
@@ -525,24 +506,22 @@
           }
         });
         if (current) current.textContent = pad(index + 1);
-
         resetAutoplay();
       }
 
       function startAutoplay() {
-        autoPlayInterval = setInterval(function() {
-          show(index + 1);
-        }, AUTOPLAY_SPEED);
+        if (!isAutoplay) return;
+        autoPlayInterval = setInterval(function() { show(index + 1); }, autoplaySpeed);
       }
 
       function resetAutoplay() {
+        if (!isAutoplay) return;
         clearInterval(autoPlayInterval);
         startAutoplay();
       }
 
       show(0);
 
-      // Usando querySelectorAll para pegar TODAS as setas (laterais e indicador numérico)
       var prevButtons = root.querySelectorAll('[data-hero-prev]');
       var nextButtons = root.querySelectorAll('[data-hero-next]');
 
@@ -554,8 +533,8 @@
       });
 
       root.addEventListener('keydown', function (event) {
-        if (event.key === 'ArrowLeft') { show(index - 1); }
-        if (event.key === 'ArrowRight') { show(index + 1); }
+        if (event.key === 'ArrowLeft') show(index - 1);
+        if (event.key === 'ArrowRight') show(index + 1);
       });
 
       var startX = 0, startY = 0;
@@ -574,47 +553,180 @@
           resetAutoplay();
         }
       }, { passive: true });
+
+      // Integração Profissional com o Editor da Shopify
+      if (Shopify.designMode) {
+        document.addEventListener('shopify:block:select', function(event) {
+          if (event.detail.sectionId !== '{{ section.id }}') return;
+          clearInterval(autoPlayInterval); // Pausa autoplay ao editar
+          var selectedSlide = slides.find(s => s.dataset.shopifyEditorBlock === JSON.stringify({id: event.detail.blockId}));
+          if (selectedSlide) {
+            show(slides.indexOf(selectedSlide));
+          }
+        });
+        document.addEventListener('shopify:block:deselect', function(event) {
+          if (event.detail.sectionId !== '{{ section.id }}') return;
+          resetAutoplay();
+        });
+      }
     })();
   </script>
 {%- endif -%}
 
 {% schema %}
 {
-  "name": "t:sections.hero.name",
+  "name": "Slider Premium",
   "tag": "section",
   "settings": [
+    {
+      "type": "header",
+      "content": "Dimensões do Slider"
+    },
     {
       "type": "select",
       "id": "height",
       "options": [
-        { "value": "short", "label": "t:sections.hero.settings.height.options__1.label" },
-        { "value": "default", "label": "t:sections.hero.settings.height.options__2.label" },
-        { "value": "tall", "label": "t:sections.hero.settings.height.options__3.label" }
+        { "value": "short", "label": "Pequeno (Min. 420px)" },
+        { "value": "default", "label": "Padrão (Min. 520px)" },
+        { "value": "tall", "label": "Tela Cheia (100vh)" }
       ],
       "default": "default",
-      "label": "t:sections.hero.settings.height.label"
+      "label": "Altura do Banner"
+    },
+    {
+      "type": "header",
+      "content": "Configurações de Transição"
+    },
+    {
+      "type": "checkbox",
+      "id": "autoplay",
+      "label": "Ativar rotação automática",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "autoplay_speed",
+      "min": 3,
+      "max": 10,
+      "step": 1,
+      "unit": "s",
+      "label": "Tempo de troca dos slides",
+      "default": 5
+    },
+    {
+      "type": "header",
+      "content": "Interface"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_arrows",
+      "label": "Mostrar setas laterais",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_indicator",
+      "label": "Mostrar indicador numérico",
+      "default": true
     }
   ],
   "blocks": [
     {
       "type": "slide",
-      "name": "t:sections.hero.blocks.slide.name",
+      "name": "Slide",
       "settings": [
-        { "type": "image_picker", "id": "image", "label": "t:sections.hero.blocks.slide.settings.image.label" },
-        { "type": "image_picker", "id": "image_mobile", "label": "t:sections.hero.blocks.slide.settings.image_mobile.label", "info": "t:sections.hero.blocks.slide.settings.image_mobile.info" },
-        { "type": "text", "id": "eyebrow", "label": "t:sections.hero.blocks.slide.settings.eyebrow.label" },
-        { "type": "textarea", "id": "heading", "label": "t:sections.hero.blocks.slide.settings.heading.label", "info": "t:sections.hero.blocks.slide.settings.heading.info" },
-        { "type": "text", "id": "subheading", "label": "t:sections.hero.blocks.slide.settings.subheading.label" },
-        { "type": "richtext", "id": "text", "label": "t:sections.hero.blocks.slide.settings.text.label" },
-        { "type": "text", "id": "button_label", "label": "t:sections.hero.blocks.slide.settings.button_label.label" },
-        { "type": "url", "id": "button_link", "label": "t:sections.hero.blocks.slide.settings.button_link.label" }
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Imagem Desktop"
+        },
+        {
+          "type": "image_picker",
+          "id": "image_mobile",
+          "label": "Imagem Mobile (Opcional)",
+          "info": "Se vazio, usará a imagem desktop ajustada."
+        },
+        {
+          "type": "header",
+          "content": "Aparência da Máscara (Overlay)"
+        },
+        {
+          "type": "color",
+          "id": "overlay_color",
+          "label": "Cor do Escurecimento",
+          "default": "#000000"
+        },
+        {
+          "type": "range",
+          "id": "overlay_opacity",
+          "min": 0,
+          "max": 100,
+          "step": 5,
+          "unit": "%",
+          "label": "Opacidade da Máscara",
+          "default": 30,
+          "info": "Aumente para melhorar a leitura em fotos claras."
+        },
+        {
+          "type": "header",
+          "content": "Conteúdo de Texto"
+        },
+        {
+          "type": "select",
+          "id": "text_alignment",
+          "label": "Alinhamento do Texto",
+          "options": [
+            { "value": "left", "label": "Esquerda" },
+            { "value": "center", "label": "Centro" },
+            { "value": "right", "label": "Direita" }
+          ],
+          "default": "left"
+        },
+        {
+          "type": "text",
+          "id": "eyebrow",
+          "label": "Pequeno rótulo superior",
+          "default": "NOVIDADE"
+        },
+        {
+          "type": "textarea",
+          "id": "heading",
+          "label": "Título Principal",
+          "default": "Seu Título Aqui"
+        },
+        {
+          "type": "text",
+          "id": "subheading",
+          "label": "Subtítulo",
+          "default": "Coleção Exclusiva"
+        },
+        {
+          "type": "richtext",
+          "id": "text",
+          "label": "Texto de Apoio",
+          "default": "<p>Conte um pouco mais sobre os produtos ou a campanha promocional.</p>"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "Texto do Botão",
+          "default": "Ver Produtos"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "Link do Botão"
+        }
       ]
     }
   ],
   "presets": [
     {
-      "name": "t:sections.hero.name",
-      "blocks": [{ "type": "slide" }]
+      "name": "Slider Premium",
+      "blocks": [
+        { "type": "slide" },
+        { "type": "slide" }
+      ]
     }
   ]
 }
