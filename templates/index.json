@@ -40,7 +40,7 @@
             "overlay_color": "#000000",
             "overlay_opacity": 30,
             "desktop_content_position": "middle",
-            "desktop_text_alignment": "center",
+            "desktop_text_alignment": "left",
             "mobile_content_position": "bottom",
             "mobile_text_alignment": "center",
             "eyebrow": "Streetwear dark",
