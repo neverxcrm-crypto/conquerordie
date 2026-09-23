@@ -26,7 +26,17 @@
   data-share-url="{{ shop.url }}{{ share_link }}"
   data-share-copied="{{ 'products.product.share_copied' | t | escape }}"
 >
-  <button type="button" class="share-button__button button button--secondary">
+  {%- comment -%}
+    Sem as classes .button/.button--secondary de proposito.
+
+    Compartilhar e uma acao TERCIARIA: ela vinha desenhada com a
+    mesma moldura do "Compre ja", entao a pagina de produto exibia
+    tres blocos de peso parecido em sequencia — adicionar, comprar e
+    compartilhar — e o olho nao tinha como saber qual e a decisao.
+    Aqui ele vira um controle de texto; o estilo mora na PDP
+    (snippets/product-media-gallery).
+  {%- endcomment -%}
+  <button type="button" class="share-button__button">
     {{ 'products.product.share' | t }}
   </button>
   <span class="share-button__message" role="status" aria-live="polite" hidden></span>

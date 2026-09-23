@@ -263,6 +263,9 @@
       "next": "Next announcement",
       "pause": "Pause announcements",
       "play": "Resume announcements"
+    },
+    "testimonials": {
+      "rating": "{{ rating }} out of {{ max }} stars"
     }
   },
   "customer": {

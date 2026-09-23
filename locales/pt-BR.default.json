@@ -263,6 +263,9 @@
       "next": "Próximo aviso",
       "pause": "Pausar avisos",
       "play": "Retomar avisos"
+    },
+    "testimonials": {
+      "rating": "{{ rating }} de {{ max }} estrelas"
     }
   },
   "customer": {

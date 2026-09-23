@@ -1,0 +1,340 @@
+{%- comment -%}
+  ============================================================
+  PRODUCT TESTIMONIALS — prova social na página de produto
+  ============================================================
+
+  O QUE FAZ:
+  Exibe depoimentos de clientes como um bloco editorial na PDP.
+  Cada depoimento é um bloco do editor de temas: o lojista escreve
+  o texto, o nome, a origem e a nota.
+
+  ============================================================
+  ATENÇÃO — O CONTEÚDO PADRÃO É PLACEHOLDER, NÃO DEPOIMENTO
+  ============================================================
+  Os blocos que nascem com o preset NÃO são depoimentos: são
+  instruções dizendo que o campo precisa ser preenchido. Isso é
+  deliberado e não deve ser "melhorado" trocando por frases que
+  pareçam reais.
+
+  Depoimento inventado exibido como se fosse de um cliente é
+  publicidade enganosa (CDC art. 37), infringe a política de uso
+  da Shopify e, nos EUA, é multável pela FTC desde 2024. Numa loja
+  que fatura, o custo disso não é teórico.
+
+  A seção só deve ir ao ar com depoimentos REAIS — de pedidos,
+  e-mails, mensagens ou de um app de avaliações. Enquanto não
+  houver, o caminho certo é não publicar a seção (basta removê-la
+  do template), não preenchê-la com texto inventado.
+
+  ONDE É USADA:
+  templates/product.json. Tem preset, então também pode ser
+  adicionada em outras páginas pelo editor.
+
+  PRINCIPAIS PARTES:
+  - Cabeçalho editorial: eyebrow + título.
+  - Blocos 'depoimento': texto, autor, origem e nota (0 = sem nota).
+  - Desktop: grade. Celular: trilho horizontal com scroll-snap, o
+    mesmo gesto que a galeria da PDP já usa.
+
+  OBSERVAÇÕES:
+  A nota nunca é comunicada só pela cor das estrelas — o texto
+  equivalente vai junto para leitor de tela (WCAG 1.4.1).
+{%- endcomment -%}
+
+{%- liquid
+  assign depoimentos = section.blocks | where: 'type', 'depoimento'
+  assign total = depoimentos.size
+-%}
+
+{%- if total > 0 -%}
+  <div
+    class="depo section-space {% if section.settings.scheme == 'dark' %}scheme-dark{% endif %}"
+    data-section-id="{{ section.id }}"
+  >
+    <div class="page-width">
+      {%- if section.settings.eyebrow != blank or section.settings.heading != blank -%}
+        <div class="depo__header" data-reveal>
+          {%- if section.settings.eyebrow != blank -%}
+            <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+          {%- endif -%}
+          {%- if section.settings.heading != blank -%}
+            <h2 class="depo__heading">{{ section.settings.heading | escape }}</h2>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+
+      {%- comment -%}
+        data-reveal-group: os cards não são irmãos diretos do
+        elemento que o revelar.js numera, então o grupo diz a ele
+        quem entra em cascata. Ver assets/revelar.js.
+      {%- endcomment -%}
+      <ul class="depo__lista" role="list" data-reveal-group>
+        {%- for block in depoimentos -%}
+          {%- liquid
+            assign nota = block.settings.nota | plus: 0
+            assign autor = block.settings.autor | strip
+          -%}
+          <li class="depo__item" data-reveal {{ block.shopify_attributes }}>
+            <figure class="depo__card">
+              {%- if nota > 0 -%}
+                {%- comment -%}
+                  As estrelas são decorativas (aria-hidden) e o texto
+                  ao lado diz a nota por extenso. Cor e forma nunca
+                  carregam a informação sozinhas.
+                {%- endcomment -%}
+                <div class="depo__nota">
+                  <span class="depo__estrelas" aria-hidden="true">
+                    {%- for i in (1..5) -%}
+                      <svg class="depo__estrela {% if i > nota %}depo__estrela--vazia{% endif %}" viewBox="0 0 24 24" focusable="false">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    {%- endfor -%}
+                  </span>
+                  <span class="visually-hidden">
+                    {{- 'sections.testimonials.rating' | t: rating: nota, max: 5 -}}
+                  </span>
+                </div>
+              {%- endif -%}
+
+              {%- if block.settings.texto != blank -%}
+                <blockquote class="depo__texto">{{ block.settings.texto }}</blockquote>
+              {%- endif -%}
+
+              {%- if autor != blank or block.settings.origem != blank -%}
+                <figcaption class="depo__autoria">
+                  {%- if autor != blank -%}
+                    <cite class="depo__autor">{{ autor | escape }}</cite>
+                  {%- endif -%}
+                  {%- if block.settings.origem != blank -%}
+                    <span class="depo__origem">{{ block.settings.origem | escape }}</span>
+                  {%- endif -%}
+                </figcaption>
+              {%- endif -%}
+            </figure>
+          </li>
+        {%- endfor -%}
+      </ul>
+    </div>
+  </div>
+
+  <style>
+    /* ==========================================================
+       CABEÇALHO
+       ========================================================== */
+    #shopify-section-{{ section.id }} .depo__header {
+      display: grid;
+      gap: var(--space-2xs);
+      margin-bottom: var(--space-block);
+    }
+    #shopify-section-{{ section.id }} .depo__heading {
+      font-family: var(--font-display-family);
+      font-size: var(--f6);
+      font-weight: var(--font-weight-bold);
+      line-height: var(--leading-heading);
+      letter-spacing: var(--tracking-display);
+      margin: 0;
+    }
+
+    /* ==========================================================
+       LISTA
+       ==========================================================
+       Desktop: grade automática. minmax garante que um depoimento
+       longo não esmague os vizinhos, e auto-fit faz a contagem de
+       colunas seguir a largura disponível em vez de um número fixo —
+       com dois, três ou seis depoimentos a fileira continua certa
+       sem o lojista configurar nada. */
+    #shopify-section-{{ section.id }} .depo__lista {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--space-md);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    /* ==========================================================
+       CARD — editorial, não "caixinha de review"
+       ==========================================================
+       Sem fundo sólido e sem sombra: o que separa um depoimento do
+       outro é um fio de 1px e o espaço. Card com sombra e cantos
+       redondos é a assinatura visual de template genérico, e a
+       marca é editorial. */
+    #shopify-section-{{ section.id }} .depo__card {
+      display: grid;
+      gap: var(--space-xs);
+      align-content: start;
+      height: 100%;
+      margin: 0;
+      padding-top: var(--space-sm);
+      border-top: 1px solid var(--color-border);
+    }
+
+    /* ---- Nota ---- */
+    #shopify-section-{{ section.id }} .depo__estrelas {
+      display: inline-flex;
+      gap: 3px;
+    }
+    #shopify-section-{{ section.id }} .depo__estrela {
+      width: 13px;
+      height: 13px;
+      fill: var(--color-accent);
+    }
+    #shopify-section-{{ section.id }} .depo__estrela--vazia {
+      fill: var(--color-border-strong);
+    }
+
+    /* ---- Texto ----
+       Serif de display: é a mesma família dos títulos editoriais do
+       tema. Depoimento é voz de gente, não rótulo de interface. */
+    #shopify-section-{{ section.id }} .depo__texto {
+      font-family: var(--font-display-family);
+      font-size: var(--f3);
+      font-weight: var(--font-weight-regular);
+      line-height: var(--leading-body);
+      color: var(--color-text-primary);
+      margin: 0;
+      text-wrap: pretty;
+    }
+
+    /* ---- Autoria ---- */
+    #shopify-section-{{ section.id }} .depo__autoria {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 4px var(--space-2xs);
+      font-family: var(--font-ui-family);
+      font-size: var(--f0);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+    }
+    #shopify-section-{{ section.id }} .depo__autor {
+      font-style: normal;
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-primary);
+    }
+    #shopify-section-{{ section.id }} .depo__origem {
+      color: var(--color-text-muted);
+    }
+    #shopify-section-{{ section.id }} .depo__origem::before {
+      content: '·';
+      margin-right: var(--space-2xs);
+    }
+
+    /* ==========================================================
+       CELULAR — trilho que desliza, não pilha
+       ==========================================================
+       Empilhados, três depoimentos viram três telas de rolagem
+       entre o produto e o resto da página. Em trilho, a pessoa
+       percorre se quiser e segue adiante se não quiser.
+
+       É o mesmo gesto (arrastar na horizontal com encaixe) que a
+       galeria da PDP já usa logo acima — dois padrões diferentes
+       na mesma página seriam uma inconsistência.
+
+       A sangria faz o primeiro card encostar na margem do texto e
+       o último respirar na borda: assim fica evidente que há mais
+       conteúdo à direita, sem precisar de seta nenhuma. */
+    @media screen and (max-width: 700px) {
+      #shopify-section-{{ section.id }} .depo__lista {
+        grid-template-columns: none;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(240px, 78%);
+        gap: var(--space-sm);
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        margin-inline: calc(var(--page-gutter) * -1);
+        padding-inline: var(--page-gutter);
+      }
+      #shopify-section-{{ section.id }} .depo__lista::-webkit-scrollbar {
+        display: none;
+      }
+      #shopify-section-{{ section.id }} .depo__item {
+        scroll-snap-align: start;
+      }
+      #shopify-section-{{ section.id }} .depo__texto {
+        font-size: var(--f2);
+      }
+    }
+  </style>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Depoimentos",
+  "tag": "section",
+  "class": "section-depoimentos",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Publique apenas depoimentos reais de clientes. Texto inventado apresentado como avaliação é propaganda enganosa (CDC art. 37) e infringe a política de uso da Shopify."
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Rótulo",
+      "default": "Quem já comprou"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Título",
+      "default": "Depoimentos"
+    },
+    {
+      "type": "select",
+      "id": "scheme",
+      "label": "Esquema de cor",
+      "options": [
+        { "value": "auto", "label": "Herdar da página" },
+        { "value": "dark", "label": "Escuro" }
+      ],
+      "default": "auto"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "depoimento",
+      "name": "Depoimento",
+      "settings": [
+        {
+          "type": "textarea",
+          "id": "texto",
+          "label": "Depoimento",
+          "default": "Substitua por um depoimento real de cliente."
+        },
+        {
+          "type": "text",
+          "id": "autor",
+          "label": "Nome de quem escreveu",
+          "default": "Nome do cliente"
+        },
+        {
+          "type": "text",
+          "id": "origem",
+          "label": "Cidade, estado ou produto comprado",
+          "info": "Opcional. Ex.: São Paulo, SP"
+        },
+        {
+          "type": "range",
+          "id": "nota",
+          "label": "Nota",
+          "min": 0,
+          "max": 5,
+          "step": 1,
+          "default": 0,
+          "info": "0 esconde as estrelas."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Depoimentos",
+      "blocks": [{ "type": "depoimento" }, { "type": "depoimento" }, { "type": "depoimento" }]
+    }
+  ]
+}
+{% endschema %}

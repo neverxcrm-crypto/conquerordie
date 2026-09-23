@@ -103,10 +103,21 @@
     "related": {
       "type": "related-products",
       "settings": {}
+    },
+    "depoimentos": {
+      "type": "product-testimonials",
+      "settings": {
+        "eyebrow": "Quem já comprou",
+        "heading": "Depoimentos",
+        "scheme": "auto"
+      },
+      "blocks": {},
+      "block_order": []
     }
   },
   "order": [
     "main",
+    "depoimentos",
     "related"
   ]
 }

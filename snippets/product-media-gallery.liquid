@@ -413,8 +413,127 @@
     border-color: var(--color-button-secondary-border-hover);
   }
 
-  .pdp__trust { margin-top: var(--space-2xs); }
-  .product__share { margin-top: var(--space-2xs); }
+  /* ==========================================================
+     HIERARQUIA DA COLUNA DE COMPRA
+     ==========================================================
+     A coluna inteira usava um gap uniforme de 16px: eyebrow, titulo,
+     preco, variantes, quantidade, botoes, garantias e compartilhar
+     ficavam todos a mesma distancia uns dos outros. Com espacamento
+     igual em tudo, nada agrupa — a pessoa le uma pilha de elementos
+     soltos em vez de tres decisoes (o que e, quanto custa, como
+     comprar).
+
+     Aqui o bloco de compra passa a ser uma peca so: estoque, botoes
+     e garantias andam juntos, e o respiro maior fica ANTES dele,
+     separando-o da escolha de variante. */
+  .pdp__estoque { margin-bottom: calc(var(--space-2xs) * -1); }
+  .product__buy-buttons { margin-top: var(--space-2xs); }
+
+  /* As garantias encostam nos botoes porque respondem a duvida que
+     nasce no momento exato do clique ("e se nao servir?"). Longe
+     dali, viram decoracao de rodape. */
+  .pdp__trust {
+    margin-top: var(--space-xs);
+    padding-top: var(--space-xs);
+    border-top: 1px solid var(--color-border);
+  }
+
+  /* ==========================================================
+     COMPARTILHAR — acao terciaria, peso terciario
+     ==========================================================
+     Vinha com .button--secondary, ou seja, a mesma moldura do
+     "Compre ja" logo acima. Agora e um controle de texto: continua
+     inteiramente acessivel e com 44px de alvo, mas para de disputar
+     atencao com a decisao de compra. */
+  .product__share { margin-top: var(--space-xs); }
+  .share-button__button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    min-height: 44px;
+    padding: 0;
+    font-family: var(--font-ui-family);
+    font-size: var(--f0);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+  .share-button__button:hover,
+  .share-button__button:focus-visible { color: var(--color-text-primary); }
+
+  /* ==========================================================
+     "COMPRE JA" NA VOZ DA MARCA
+     ==========================================================
+     O rotulo desse botao vem da Shopify (payment_button), entao o
+     tema nao escreve o texto — mas escreve a forma. Todo CTA do
+     site e caixa alta com tracking; so este saia em caixa normal,
+     bem ao lado de "ADICIONAR AO CARRINHO". Era o desencontro mais
+     visivel da pagina. */
+  .product__buy-buttons .shopify-payment-button__button--unbranded {
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-label);
+  }
+
+  /* ==========================================================
+     EYEBROW COM O FIO DE OURO DA MARCA
+     ==========================================================
+     Toda secao editorial do tema abre com .eyebrow, que traz um fio
+     de ouro de 24px antes do rotulo (ver base.css). A PDP tinha so
+     o texto dourado, sem o fio — perdia a assinatura que liga a
+     pagina de produto ao resto do site. */
+  .pdp__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .pdp__eyebrow::before {
+    content: '';
+    width: 24px;
+    height: 1px;
+    background-color: currentColor;
+    opacity: 0.7;
+  }
+
+  /* ==========================================================
+     ROTULO DA OPCAO — label em caixa alta, VALOR em caixa normal
+     ==========================================================
+     O uppercase valia para a linha inteira, entao um valor longo
+     ("Planos de Venda Cera de Esqui") virava uma parede de
+     maiusculas ao lado do nome da opcao. Caixa alta e tratamento de
+     RoTULO; o valor escolhido e conteudo e se le melhor como foi
+     cadastrado. */
+  .product__option-name strong {
+    text-transform: none;
+    letter-spacing: var(--tracking-normal);
+    font-size: var(--f1);
+  }
+
+  /* ==========================================================
+     OS ACORDEOES SAO UM GRUPO, NAO TRES BLOCOS SOLTOS
+     ==========================================================
+     Cada bloco do editor (descricao, entrega, detalhes) emite seu
+     proprio <div class="accordion">, e o .accordion traz border-top
+     enquanto o .accordion__item traz border-bottom. Empilhados, o
+     fio de baixo de um encosta no fio de cima do proximo: o que
+     aparece na tela e uma linha de 2px, visivelmente mais escura
+     que todas as outras hairlines da pagina — justamente entre os
+     dois blocos que a pessoa mais abre e fecha.
+
+     Colapsando a borda repetida, os tres passam a ler como UMA
+     lista de respostas, que e o que eles sao. */
+  .accordion + .accordion { border-top: 0; }
+
+  /* O respiro antes da primeira pergunta separa a DECISAO (preco,
+     variante, comprar) das RESPOSTAS (o que e, como chega, como
+     devolve). Sem ele a pagina e uma pilha unica e a pessoa nao
+     percebe que ha conteudo respondendo as duvidas dela logo ali —
+     ela sai para procurar a resposta em outra pagina. */
+  .pdp__info-inner > .accordion:first-of-type { margin-top: var(--space-sm); }
 
   /* ==========================================================
      BARRA FIXA DE COMPRA — celular
