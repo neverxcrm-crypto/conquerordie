@@ -1,0 +1,630 @@
+{%- comment -%}
+  ============================================================
+  INSTAGRAM — feed curado + reels ao lado
+  ============================================================
+
+  O QUE FAZ:
+  Uma faixa de prova social: o @ da marca, uma grade de posts e, ao
+  lado, um vídeo em formato reels (9:16).
+
+  POR QUE OS POSTS SÃO CURADOS, E NÃO UM FEED AUTOMÁTICO:
+  Buscar o feed real exige a Graph API do Instagram com um token de
+  acesso. Liquid roda no servidor da Shopify e não tem como guardar
+  esse token, e fazer a chamada no navegador exporia a chave para
+  qualquer visitante. Os temas premium resolvem do mesmo jeito que
+  aqui: o lojista escolhe os posts que quer mostrar e aponta cada um
+  para o link real. Visualmente é idêntico a um feed, e tem a
+  vantagem de você escolher o que vende, em vez de mostrar o último
+  story de bastidor.
+
+  Se um dia você instalar um app de feed (Instafeed e afins), ele
+  injeta o HTML dele no lugar da grade — a estrutura já está pronta
+  para isso, e a coluna do reels continua valendo.
+
+  O VÍDEO:
+  Dois caminhos, escolhidos pelo que estiver preenchido:
+  1. Vídeo enviado para a Shopify — toca sozinho, sem som, em loop.
+     É o caminho certo para reels: nenhum script de terceiro entra
+     na página.
+  2. Link do YouTube/Vimeo — NÃO carrega o player junto com a
+     página. Mostra a capa e só busca o player quando a pessoa
+     clica. Um iframe do YouTube custa quase um megabyte, e numa
+     seção que a maioria só passa rolando isso é peso puro.
+
+  ONDE É USADA:
+  Qualquer template, pelo editor de temas. Pensada para a home.
+{%- endcomment -%}
+
+{%- liquid
+  assign arroba = section.settings.arroba | remove: '@' | strip
+  assign posts = section.blocks | where: 'type', 'post'
+  assign video_shopify = section.settings.video
+  assign video_externo = section.settings.video_url
+
+  assign tem_reels = false
+  if video_shopify != blank or video_externo != blank
+    assign tem_reels = true
+  endif
+
+  assign perfil = section.settings.perfil_url
+  if perfil == blank and arroba != blank
+    assign perfil = 'https://www.instagram.com/' | append: arroba | append: '/'
+  endif
+-%}
+
+<div
+  class="insta page-width{% if tem_reels %} insta--com-reels{% endif %} insta--reels-{{ section.settings.reels_lado }}"
+  data-section-id="{{ section.id }}"
+  style="--insta-colunas: {{ section.settings.colunas }};"
+>
+  {%- if section.settings.heading != blank or arroba != blank -%}
+    <div class="insta__topo">
+      <div class="insta__titulos">
+        {%- if section.settings.eyebrow != blank -%}
+          <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+        {%- endif -%}
+        {%- if section.settings.heading != blank -%}
+          <h2 class="insta__titulo">{{ section.settings.heading | escape }}</h2>
+        {%- endif -%}
+      </div>
+
+      {%- if arroba != blank -%}
+        {%- comment -%}
+          O @ é um link de verdade para o perfil, não um enfeite: é a
+          ação que esta seção inteira existe para provocar.
+        {%- endcomment -%}
+        <a
+          class="insta__perfil"
+          href="{{ perfil }}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {% render 'icon', name: 'instagram' %}
+          <span class="insta__arroba">@{{ arroba }}</span>
+        </a>
+      {%- endif -%}
+    </div>
+  {%- endif -%}
+
+  <div class="insta__corpo">
+    {%- if tem_reels -%}
+      <div class="insta__reels">
+        {%- if video_shopify != blank -%}
+          {%- comment -%}
+            O <video> é montado à mão, e não pelo filtro video_tag,
+            porque o formato reels precisa de atributos que o filtro
+            não garante: playsinline (sem ele o iPhone abre o vídeo
+            em tela cheia sozinho ao tocar) e preload=metadata (baixa
+            só o cabeçalho, não o arquivo inteiro, antes de a pessoa
+            chegar na seção).
+          {%- endcomment -%}
+          <video
+            class="insta__video"
+            data-insta-video
+            {% if video_shopify.preview_image %}
+              poster="{{ video_shopify.preview_image | image_url: width: 720 }}"
+            {% endif %}
+            muted
+            loop
+            playsinline
+            preload="metadata"
+            aria-label="{{ section.settings.video_descricao | default: 'Vídeo da marca no Instagram' | escape }}"
+          >
+            {%- for fonte in video_shopify.sources -%}
+              {%- if fonte.format == 'mp4' -%}
+                <source src="{{ fonte.url }}" type="{{ fonte.mime_type }}">
+              {%- endif -%}
+            {%- endfor -%}
+          </video>
+
+          {%- comment -%}
+            WCAG 2.2.2: qualquer coisa que se move sozinha por mais de
+            cinco segundos precisa de um jeito de parar. Um reels em
+            loop é exatamente isso. O botão também é o que deixa
+            alguém ATIVAR o vídeo quando o navegador bloqueia o
+            autoplay ou quando o sistema pede menos movimento.
+          {%- endcomment -%}
+          <button
+            type="button"
+            class="insta__toque"
+            data-insta-toggle
+            aria-label="Pausar vídeo"
+            aria-pressed="true"
+          >
+            <span class="insta__toque-icone" aria-hidden="true"></span>
+          </button>
+        {%- else -%}
+          {%- comment -%}
+            Caminho do YouTube/Vimeo: capa clicável. O iframe só nasce
+            depois do clique — ver o script no fim do arquivo.
+          {%- endcomment -%}
+          <button
+            type="button"
+            class="insta__capa"
+            data-insta-externo="{{ video_externo | escape }}"
+            aria-label="{{ section.settings.video_descricao | default: 'Assistir ao vídeo' | escape }}"
+          >
+            {%- if section.settings.video_capa != blank -%}
+              {{
+                section.settings.video_capa
+                | image_url: width: 720
+                | image_tag:
+                  loading: 'lazy',
+                  class: 'insta__video',
+                  widths: '360, 540, 720',
+                  sizes: '(min-width: 1000px) 320px, 80vw',
+                  alt: ''
+              }}
+            {%- else -%}
+              <span class="insta__video insta__capa-vazia"></span>
+            {%- endif -%}
+            <span class="insta__play" aria-hidden="true"></span>
+          </button>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    {%- if posts.size > 0 -%}
+      <ul class="insta__grade" role="list">
+        {%- for bloco in posts -%}
+          <li class="insta__post" {{ bloco.shopify_attributes }}>
+            {%- comment -%}
+              Sem link cadastrado o post vira uma figura comum, e não
+              um link morto: um <a> sem href não é focável nem
+              anunciado como link, e um que não leva a lugar nenhum é
+              pior que nenhum.
+            {%- endcomment -%}
+            {%- if bloco.settings.link != blank -%}
+              <a
+                class="insta__post-link"
+                href="{{ bloco.settings.link }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="{{ bloco.settings.alt | default: 'Ver publicação no Instagram' | escape }}"
+              >
+            {%- endif -%}
+
+            {%- if bloco.settings.imagem != blank -%}
+              {{
+                bloco.settings.imagem
+                | image_url: width: 640
+                | image_tag:
+                  loading: 'lazy',
+                  class: 'insta__imagem',
+                  widths: '160, 240, 320, 480, 640',
+                  sizes: '(min-width: 1000px) 22vw, 33vw',
+                  alt: bloco.settings.alt | default: '' | escape
+              }}
+            {%- else -%}
+              <span class="insta__imagem insta__imagem--vazia"></span>
+            {%- endif -%}
+
+            {%- if bloco.settings.link != blank -%}
+              </a>
+            {%- endif -%}
+          </li>
+        {%- endfor -%}
+      </ul>
+    {%- endif -%}
+  </div>
+
+  {%- if section.settings.cta_label != blank and perfil != blank -%}
+    <div class="insta__rodape">
+      <a class="button button--secondary" href="{{ perfil }}" target="_blank" rel="noopener noreferrer">
+        {{ section.settings.cta_label | escape }}
+      </a>
+    </div>
+  {%- endif -%}
+</div>
+
+<style>
+  /* ==========================================================
+     INSTAGRAM
+     ==========================================================
+     Tudo sai dos tokens do tema: espaçamento de seção, escala
+     tipográfica, raio, hairline e durações. Nenhum valor solto —
+     esta seção precisa parecer parte da mesma loja. */
+  .section-instagram {
+    padding-block: var(--space-section);
+    background-color: var(--color-background);
+  }
+
+  .insta__topo {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+  }
+  .insta__titulos { display: flex; flex-direction: column; gap: var(--space-2xs); }
+
+  /* Mesma escala dos outros títulos de seção do tema. */
+  .insta__titulo {
+    font-size: clamp(var(--f5), 4vw, var(--f7));
+    line-height: var(--leading-display);
+    margin: 0;
+  }
+
+  .insta__perfil {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    min-height: var(--control-h);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    font-family: var(--font-ui-family);
+    font-size: var(--f1);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--tracking-label);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+  .insta__perfil svg { width: 20px; height: 20px; }
+  .insta__perfil:hover { color: var(--color-accent); }
+
+  /* ----------------------------------------------------------
+     CORPO — reels ao lado da grade
+
+     Duas colunas no desktop. A do reels tem largura própria porque
+     ela é definida pela PROPORÇÃO do vídeo (9:16), não pelo espaço
+     que sobra: deixá-la em 1fr faria o vídeo esticar ou encolher
+     junto com o número de posts, e um reels precisa ter sempre a
+     mesma cara. */
+  .insta__corpo { display: grid; gap: var(--space-md); }
+
+  @media screen and (min-width: 1000px) {
+    .insta--com-reels .insta__corpo {
+      grid-template-columns: clamp(240px, 24vw, 320px) minmax(0, 1fr);
+      align-items: start;
+    }
+    /* O lado é escolhido pelo lojista sem mexer na ordem do HTML —
+       quem lê por leitor de tela continua recebendo o vídeo antes da
+       grade, que é a ordem que faz sentido em voz. */
+    .insta--reels-direita .insta__reels { order: 2; }
+  }
+
+  .insta__reels {
+    position: relative;
+    aspect-ratio: 9 / 16;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface);
+  }
+  .insta__video,
+  .insta__capa {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: none;
+    padding: 0;
+    background: none;
+  }
+  .insta__capa { cursor: pointer; position: relative; }
+  .insta__capa-vazia { background-color: var(--color-surface-elevated); }
+
+  /* Botão de play da capa do YouTube/Vimeo. */
+  .insta__play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition: transform var(--dur-normal) var(--ease-out), background-color var(--dur-normal) var(--ease-out);
+  }
+  .insta__play::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 54%;
+    transform: translate(-50%, -50%);
+    border-style: solid;
+    border-width: 9px 0 9px 15px;
+    border-color: transparent transparent transparent var(--color-text-primary);
+  }
+  .insta__capa:hover .insta__play { transform: translate(-50%, -50%) scale(1.06); background-color: rgba(0, 0, 0, 0.7); }
+
+  /* Pausar/retomar o reels. Discreto no canto, mas com alvo de
+     toque inteiro — é um controle de acessibilidade, não um enfeite. */
+  .insta__toque {
+    position: absolute;
+    right: var(--space-2xs);
+    bottom: var(--space-2xs);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--control-h);
+    min-height: var(--control-h);
+    border: none;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+  .insta__toque:hover { background-color: rgba(0, 0, 0, 0.72); }
+  /* Duas barras = tocando (a ação do botão é pausar). */
+  .insta__toque-icone {
+    width: 12px;
+    height: 14px;
+    border-left: 3px solid currentColor;
+    border-right: 3px solid currentColor;
+  }
+  /* Um triângulo = pausado (a ação do botão é tocar). */
+  .insta__toque[aria-pressed='false'] .insta__toque-icone {
+    width: 0;
+    height: 0;
+    border-left: 12px solid currentColor;
+    border-right: none;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    margin-left: 3px;
+  }
+
+  /* ----------------------------------------------------------
+     GRADE DE POSTS */
+  .insta__grade {
+    display: grid;
+    grid-template-columns: repeat(var(--insta-colunas, 4), minmax(0, 1fr));
+    gap: var(--space-2xs);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .insta__post { margin: 0; }
+  .insta__post-link { display: block; text-decoration: none; }
+
+  .insta__imagem {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-surface);
+    transition: opacity var(--dur-normal) var(--ease-out);
+  }
+  .insta__imagem--vazia { background-color: var(--color-surface-elevated); }
+  /* O feedback é uma leve perda de opacidade, como no próprio
+     Instagram — sem zoom nem sombra, que brigariam com os cards de
+     produto logo acima. */
+  .insta__post-link:hover .insta__imagem { opacity: 0.78; }
+  .insta__post-link:focus-visible .insta__imagem { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
+
+  .insta__rodape { margin-top: var(--space-lg); text-align: center; }
+
+  @media screen and (max-width: 999px) {
+    /* No celular o vídeo vem primeiro e centralizado: ele é o que
+       segura a atenção. A grade continua embaixo, com o número de
+       colunas do próprio Instagram. */
+    .insta__reels {
+      width: min(280px, 72vw);
+      margin-inline: auto;
+    }
+    .insta__grade { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  @media screen and (max-width: 480px) {
+    .insta__topo { align-items: flex-start; }
+    .insta__grade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .insta__imagem,
+    .insta__play,
+    .insta__toque { transition: none; }
+  }
+</style>
+
+<script>
+  (function () {
+    var raiz = document.querySelector('.insta[data-section-id="{{ section.id }}"]');
+    if (!raiz) return;
+
+    /* ---------------------------------------------------------
+       VÍDEO HOSPEDADO NA SHOPIFY
+
+       Toca só quando está na tela. Um reels rodando fora do campo de
+       visão gasta bateria e dados para ninguém — e no celular é
+       exatamente o tipo de coisa que faz a página parecer pesada.
+
+       Também respeita quem pediu menos movimento no sistema: nesse
+       caso o vídeo nasce pausado, mostrando a capa, e só toca se a
+       pessoa apertar o botão.
+    --------------------------------------------------------- */
+    var video = raiz.querySelector('[data-insta-video]');
+    var botao = raiz.querySelector('[data-insta-toggle]');
+
+    if (video && botao) {
+      var menosMovimento =
+        window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var pausadoPelaPessoa = menosMovimento;
+      var naTela = false;
+
+      function marcar(tocando) {
+        botao.setAttribute('aria-pressed', tocando ? 'true' : 'false');
+        botao.setAttribute('aria-label', tocando ? 'Pausar vídeo' : 'Reproduzir vídeo');
+      }
+
+      function tentarTocar() {
+        if (pausadoPelaPessoa || !naTela) return;
+        /* play() devolve uma promessa que o navegador REJEITA quando
+           bloqueia o autoplay. Sem o catch, isso vira um erro não
+           tratado no console — e o botão ficaria dizendo "tocando"
+           com o vídeo parado. */
+        var p = video.play();
+        if (p && typeof p.catch === 'function') {
+          p.then(function () { marcar(true); }).catch(function () { marcar(false); });
+        } else {
+          marcar(true);
+        }
+      }
+
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entradas) {
+          naTela = entradas[0].isIntersecting;
+          if (naTela) tentarTocar();
+          else if (!video.paused) video.pause();
+        }, { threshold: 0.25 }).observe(video);
+      } else {
+        naTela = true;
+        tentarTocar();
+      }
+
+      botao.addEventListener('click', function () {
+        if (video.paused) {
+          pausadoPelaPessoa = false;
+          naTela = true;
+          tentarTocar();
+        } else {
+          pausadoPelaPessoa = true;
+          video.pause();
+          marcar(false);
+        }
+      });
+
+      video.addEventListener('pause', function () { marcar(false); });
+      video.addEventListener('play', function () { marcar(true); });
+      marcar(!menosMovimento);
+    }
+
+    /* ---------------------------------------------------------
+       YOUTUBE / VIMEO — o player só nasce no clique.
+
+       Trocar a capa por um iframe no clique é o que mantém a página
+       leve: o player e o rastreamento do YouTube nunca entram para
+       quem só passou rolando pela seção.
+    --------------------------------------------------------- */
+    var capa = raiz.querySelector('[data-insta-externo]');
+    if (capa) {
+      capa.addEventListener('click', function () {
+        var url = capa.getAttribute('data-insta-externo');
+        var incorporar = '';
+
+        var yt = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/);
+        var vm = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+        if (yt) incorporar = 'https://www.youtube.com/embed/' + yt[1] + '?autoplay=1&rel=0&playsinline=1';
+        else if (vm) incorporar = 'https://player.vimeo.com/video/' + vm[1] + '?autoplay=1';
+        else return; // link que não reconhecemos: não troca nada
+
+        var quadro = document.createElement('iframe');
+        quadro.className = 'insta__video';
+        quadro.src = incorporar;
+        quadro.title = capa.getAttribute('aria-label') || 'Vídeo';
+        quadro.allow = 'autoplay; encrypted-media; picture-in-picture';
+        quadro.setAttribute('allowfullscreen', '');
+        quadro.setAttribute('frameborder', '0');
+        capa.replaceWith(quadro);
+        quadro.focus();
+      });
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Instagram",
+  "tag": "section",
+  "class": "section-instagram",
+  "max_blocks": 12,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Os posts são escolhidos por você e cada um aponta para a publicação real. O Instagram não permite que um tema busque o feed sozinho sem expor uma chave de acesso."
+    },
+    { "type": "text", "id": "eyebrow", "label": "Chapéu", "default": "Comunidade" },
+    { "type": "text", "id": "heading", "label": "Título", "default": "No Instagram" },
+    {
+      "type": "text",
+      "id": "arroba",
+      "label": "@ do perfil",
+      "default": "@conquerordie",
+      "info": "Só o nome de usuário. Vira um link para o perfil."
+    },
+    {
+      "type": "url",
+      "id": "perfil_url",
+      "label": "Link do perfil (opcional)",
+      "info": "Deixe vazio para montar automaticamente a partir do @ acima."
+    },
+    { "type": "text", "id": "cta_label", "label": "Botão no rodapé", "default": "Seguir no Instagram" },
+    {
+      "type": "range",
+      "id": "colunas",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "default": 4,
+      "unit": "col",
+      "label": "Colunas de posts (computador)"
+    },
+    { "type": "header", "content": "Reels" },
+    {
+      "type": "video",
+      "id": "video",
+      "label": "Vídeo (enviado para a Shopify)",
+      "info": "Formato vertical 9:16. Toca sozinho, sem som e em loop — é o caminho mais leve, sem scripts de terceiros."
+    },
+    {
+      "type": "video_url",
+      "id": "video_url",
+      "accept": ["youtube", "vimeo"],
+      "label": "Ou um link do YouTube/Vimeo",
+      "info": "Usado só se não houver vídeo enviado acima. A capa aparece primeiro e o player só carrega quando alguém clica."
+    },
+    { "type": "image_picker", "id": "video_capa", "label": "Capa do vídeo do YouTube/Vimeo" },
+    {
+      "type": "text",
+      "id": "video_descricao",
+      "label": "Descrição do vídeo",
+      "info": "Lida por leitores de tela. Ex.: desfile da coleção de inverno."
+    },
+    {
+      "type": "select",
+      "id": "reels_lado",
+      "label": "Lado do vídeo (computador)",
+      "options": [
+        { "value": "esquerda", "label": "Esquerda" },
+        { "value": "direita", "label": "Direita" }
+      ],
+      "default": "esquerda"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "post",
+      "name": "Publicação",
+      "settings": [
+        { "type": "image_picker", "id": "imagem", "label": "Imagem" },
+        { "type": "url", "id": "link", "label": "Link da publicação" },
+        {
+          "type": "text",
+          "id": "alt",
+          "label": "Descrição da imagem",
+          "info": "Lida por leitores de tela e usada como rótulo do link."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Instagram",
+      "blocks": [
+        { "type": "post" },
+        { "type": "post" },
+        { "type": "post" },
+        { "type": "post" },
+        { "type": "post" },
+        { "type": "post" },
+        { "type": "post" },
+        { "type": "post" }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -252,6 +252,61 @@
         "countdown_date": "",
         "countdown_time": "00:00"
       }
+    },
+    "instagram": {
+      "type": "instagram",
+      "blocks": {
+        "post_1": {
+          "type": "post",
+          "settings": {}
+        },
+        "post_2": {
+          "type": "post",
+          "settings": {}
+        },
+        "post_3": {
+          "type": "post",
+          "settings": {}
+        },
+        "post_4": {
+          "type": "post",
+          "settings": {}
+        },
+        "post_5": {
+          "type": "post",
+          "settings": {}
+        },
+        "post_6": {
+          "type": "post",
+          "settings": {}
+        },
+        "post_7": {
+          "type": "post",
+          "settings": {}
+        },
+        "post_8": {
+          "type": "post",
+          "settings": {}
+        }
+      },
+      "block_order": [
+        "post_1",
+        "post_2",
+        "post_3",
+        "post_4",
+        "post_5",
+        "post_6",
+        "post_7",
+        "post_8"
+      ],
+      "settings": {
+        "eyebrow": "Comunidade",
+        "heading": "No Instagram",
+        "arroba": "@conquerordie",
+        "cta_label": "Seguir no Instagram",
+        "colunas": 4,
+        "reels_lado": "esquerda"
+      }
     }
   },
   "order": [
@@ -260,6 +315,7 @@
     "latest_drop",
     "collections",
     "brand_story",
+    "instagram",
     "campaign"
   ]
 }
