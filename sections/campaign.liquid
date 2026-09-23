@@ -175,7 +175,7 @@
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 40px;
+    gap: var(--space-lg);
     flex-wrap: wrap;
     padding-top: var(--space-section);
     padding-bottom: var(--space-section);
@@ -197,7 +197,7 @@
     margin: 0;
     padding: 0;
   }
-  .campaign__unit { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .campaign__unit { display: flex; flex-direction: column; align-items: center; gap: var(--space-3xs); }
   .campaign__number {
     font-family: var(--font-ui-family);
     font-size: var(--f5);
@@ -217,9 +217,9 @@
   @media screen and (max-width: 1000px) {
     .campaign { min-height: 76vh; }
     .campaign__media::after { background: var(--photo-veil-bottom); }
-    .campaign__inner { flex-direction: column; align-items: flex-start; gap: 36px; }
+    .campaign__inner { flex-direction: column; align-items: flex-start; gap: var(--space-lg); }
     .campaign__aside { text-align: left; }
-    .campaign__countdown { gap: 24px; }
+    .campaign__countdown { gap: var(--space-md); }
     .campaign__cta { width: 100%; }
   }
 </style>

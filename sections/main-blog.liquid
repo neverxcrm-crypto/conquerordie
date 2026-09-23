@@ -95,7 +95,7 @@
   .blog__grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 32px;
+    gap: var(--space-lg);
   }
 
   .blog-card__media {
@@ -150,7 +150,7 @@
   @media screen and (max-width: 1000px) {
     .blog__grid {
       grid-template-columns: 1fr;
-      gap: 32px;
+      gap: var(--space-lg);
     }
   }
 </style>

@@ -175,10 +175,10 @@
     padding: 0 0 0 clamp(24px, 3vw, 40px);
     border-left: 1px solid var(--color-border);
     display: grid;
-    gap: 24px;
+    gap: var(--space-md);
     min-width: 230px;
   }
-  .brand-story__benefit { display: flex; align-items: flex-start; gap: 14px; }
+  .brand-story__benefit { display: flex; align-items: flex-start; gap: var(--space-xs); }
   .brand-story__benefit-icon { color: var(--color-text-muted); flex-shrink: 0; line-height: 0; }
   .brand-story__benefit-icon svg { width: 20px; height: 20px; }
   .brand-story__benefit-copy { display: flex; flex-direction: column; gap: 2px; }
@@ -198,7 +198,7 @@
     .brand-story--media-right .brand-story__media { order: 0; }
     .brand-story--image-full .brand-story__media { min-height: 50vh; }
     .brand-story__grid,
-    .brand-story__grid--single { grid-template-columns: 1fr; gap: 40px; }
+    .brand-story__grid--single { grid-template-columns: 1fr; gap: var(--space-lg); }
     .brand-story__benefits {
       padding: 32px 0 0;
       border-left: none;

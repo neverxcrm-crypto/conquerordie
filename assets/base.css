@@ -193,19 +193,42 @@ html:has([class*='section-aviso'] + .section-header) { --aviso-altura: 40px; }
 }
 
 /* Shared button */
-.button,
-button.button {
+/* ARMADILHA DE ESPECIFICIDADE — removida.
+
+   O grupo era `.button, button.button`. O segundo seletor pesa
+   0-1-1 (elemento + classe), e com isso vencia QUALQUER
+   `.classe-da-section` (0-1-0) que tentasse ajustar um <button>.
+
+   Efeito real medido no navegador: .cart-drawer__checkout pedia
+   `min-height: 52px`, o comentario do arquivo explicava por que
+   precisava de 52 — e o botao renderizava 44px, porque
+   `button.button` ganhava. O mesmo valia para qualquer section que
+   quisesse um botao diferente: ela era silenciosamente ignorada e
+   ninguem via, porque o codigo dizia uma coisa e a tela mostrava
+   outra.
+
+   O `button.button` nao era necessario: as regras de elemento em
+   normalizar.css pesam 0-0-1, e `.button` sozinho (0-1-0) ja as
+   vence. */
+.button {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
+  min-height: var(--control-h);
   padding: 12px 24px;
   font-family: var(--font-ui-family);
   font-size: var(--f2);
   font-weight: var(--font-weight-semibold);
   line-height: var(--leading-ui);
-  letter-spacing: var(--tracking-normal);
+  /* VOZ DOS BOTÕES — caixa alta com tracking.
+     O resto da interface já fala assim (menu, eyebrow, REMOVER,
+     SUBTOTAL, rótulos de preço). Os botões eram a única família que
+     destoava, e o CTA do hero era a única que destoava DELES: fonte
+     serifada, caixa alta e raio próprio. Agora existe uma voz só, e
+     ela está aqui — não copiada em cada section. */
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-button);
   color: var(--color-button-primary-text);
   background-color: var(--color-button-primary-background);
   border: 1px solid var(--color-button-primary-background);
@@ -296,8 +319,7 @@ button.button {
 
 /* Shared form inputs */
 .field__input,
-.select__select,
-textarea.field__input {
+.select__select {
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
@@ -335,7 +357,6 @@ textarea.field__input::placeholder {
 @media (pointer: coarse) {
   .field__input,
   .select__select,
-  textarea.field__input,
   input[type='search'],
   input[type='text'],
   input[type='email'],
@@ -347,8 +368,7 @@ textarea.field__input::placeholder {
 }
 
 .field__input,
-.select__select,
-textarea.field__input {
+.select__select {
   transition:
     border-color var(--dur-normal) var(--ease-out),
     box-shadow var(--dur-normal) var(--ease-out),
@@ -385,7 +405,7 @@ textarea.field__input[aria-invalid='true'] {
 .field__success {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs);
   margin-top: 6px;
   font-size: var(--f1);
   line-height: var(--leading-ui);
@@ -451,7 +471,7 @@ textarea.field__input[disabled] {
 .eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2xs);
   font-family: var(--font-ui-family);
   font-size: var(--f0);
   font-weight: var(--font-weight-medium);
@@ -473,7 +493,7 @@ textarea.field__input[disabled] {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2xs);
   padding-bottom: 3px;
   font-family: var(--font-ui-family);
   font-size: var(--f0);
@@ -620,7 +640,7 @@ textarea.field__input[disabled] {
 .product-grid {
   display: grid;
   grid-template-columns: repeat(var(--grid-columns, 4), 1fr);
-  gap: 24px;
+  gap: var(--space-md);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -727,7 +747,7 @@ textarea.field__input[disabled] {
 .card-product__swatches {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs);
   margin-top: 10px;
   list-style: none;
   padding: 0;
@@ -937,7 +957,7 @@ textarea.field__input[disabled] {
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-sm);
   padding: 20px 0;
   background-color: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px) saturate(140%);
@@ -1079,7 +1099,7 @@ textarea.field__input[disabled] {
 .collection-panel__cta {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2xs);
   color: var(--color-accent-readable);
 }
 .collection-panel__cta svg { width: 12px; height: 12px; }
@@ -1303,7 +1323,7 @@ textarea.field__input[disabled] {
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs);
   padding: 4px 9px;
   font-family: var(--font-ui-family);
   font-size: var(--f0);

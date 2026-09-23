@@ -171,10 +171,10 @@
     <!-- SETAS LATERAIS (Desktop Apenas) -->
     {%- if section.settings.show_arrows -%}
       <button type="button" class="hero__arrow hero__arrow--prev tap-target" data-hero-prev aria-label="Slide anterior">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
       </button>
       <button type="button" class="hero__arrow hero__arrow--next tap-target" data-hero-next aria-label="Próximo slide">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </button>
     {%- endif -%}
 
@@ -201,8 +201,24 @@
   :root {
     --hero-ease-out: cubic-bezier(0.21, 0.85, 0.32, 1);
     --hero-dur-reveal: 0.8s;
-    /* Força a fonte de títulos (a mais estilizada do tema) para a seção inteira */
-    --hero-font: var(--font-heading-family), var(--font-display-family), inherit;
+    /* ------------------------------------------------------------
+       A FONTE QUE O HERO ACHAVA QUE ESTAVA USANDO
+
+       Havia aqui um --hero-font apontando para --font-heading-family,
+       com o comentário "a fonte mais estilizada do tema", aplicado
+       com !important no título, no eyebrow, no subtítulo e no corpo.
+
+       Só que --font-heading-family é um ALIAS retrocompatível que
+       aponta para a fonte de INTERFACE (ver css-variables.liquid), e
+       o hero era o único lugar do tema que o usava. Ou seja: o H1 da
+       home — o maior tipo do site, a primeira coisa que o cliente lê
+       — saía em Inter, enquanto todo outro H1 da loja sai em Playfair
+       Display, que é o que a hierarquia documentada manda.
+
+       O !important garantia que ninguém corrigisse isso por cima.
+       Removido: cada elemento do hero usa agora a mesma fonte que o
+       seu equivalente usa no resto da loja.
+    ------------------------------------------------------------ */
   }
 
   .hero {
@@ -494,12 +510,12 @@
      age em palavra que realmente não cabe, e hyphens: none garante
      que, quando agir, não invente hífen nenhum. */
   .hero__heading {
-    font-family: var(--hero-font) !important;
-    font-size: clamp(2.75rem, 6.2vw + 0.6rem, 6rem);
-    line-height: 0.98;
-    letter-spacing: -0.025em;
+    font-family: var(--font-display-family);
+    font-size: var(--f9);
+    line-height: var(--leading-display);
+    letter-spacing: var(--tracking-display);
     margin: 0;
-    color: #ffffff;
+    color: var(--color-text-primary);
     text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35);
     text-wrap: balance;
     overflow-wrap: break-word;
@@ -507,31 +523,31 @@
   }
 
   .hero__subheading {
-    font-family: var(--hero-font) !important;
-    font-size: clamp(0.95rem, 1.2vw, 1.25rem);
-    font-weight: 500;
-    letter-spacing: 0.05em;
-    color: #ffffff;
+    font-family: var(--font-ui-family);
+    font-size: var(--f3);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--tracking-label);
+    color: var(--color-text-primary);
     margin: 0;
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
   }
 
   .hero__eyebrow {
-    font-family: var(--hero-font) !important;
+    font-family: var(--font-ui-family);
     margin: 0;
-    font-size: clamp(0.72rem, 0.5vw + 0.62rem, 0.875rem);
-    font-weight: 700;
-    letter-spacing: 0.22em;
+    font-size: var(--f0);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--tracking-code);
     text-transform: uppercase;
-    color: var(--color-accent, #C9A24D);
+    color: var(--color-accent);
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
   }
 
   .hero__body {
-    font-family: var(--hero-font) !important;
-    font-size: clamp(1.05rem, 1vw + 0.5rem, 1.2rem);
-    line-height: 1.5;
-    color: rgba(255, 255, 255, 0.95);
+    font-family: var(--font-ui-family);
+    font-size: var(--f3);
+    line-height: var(--leading-body);
+    color: var(--color-text-secondary);
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
   }
   /* A medida de linha vale em qualquer alinhamento, não só no
@@ -544,26 +560,29 @@
   /* ==========================================================
      BOTÃO CTA (Animação Aprimorada + Seta Dinâmica)
      ========================================================== */
+  /* ------------------------------------------------------------
+     CTA DO HERO — agora é um .button, não um primo dele
+
+     Este bloco redefinia OITO propriedades que .button (assets/
+     base.css) já define, cada uma com um valor diferente: fonte
+     serifada contra a Inter de todos os outros, raio 4px fixo
+     contra os 6px que o lojista configurou, transição de 0.4s
+     contra os 140ms do resto da loja, sombra própria, padding e
+     corpo próprios. Era o botão mais visto da loja e o único que
+     não pertencia à família.
+
+     Sobrou só o que é REALMENTE do hero: a altura de destaque (ele
+     leva à coleção, é o CTA do dinheiro), a largura mínima e o
+     empilhamento sobre a foto. Tudo o mais vem do sistema — e
+     passa a acompanhar o sistema quando ele mudar.
+  ------------------------------------------------------------ */
   .hero__cta {
     position: relative;
     z-index: 1;
     min-width: 200px;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    padding: 16px 32px;
-    font-family: var(--hero-font) !important;
-    font-size: 1.05rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    border-radius: 4px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    transition: 
-      transform 0.4s cubic-bezier(0.21, 0.85, 0.32, 1), 
-      box-shadow 0.4s ease, 
-      background-color 0.4s ease, 
-      color 0.4s ease;
+    min-height: var(--control-h-lg);
+    padding: 14px 32px;
+    box-shadow: var(--shadow-md);
   }
   
   .hero__cta-arrow {
@@ -572,10 +591,8 @@
   }
 
   .hero__cta:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5);
-    background-color: var(--color-button-primary-background-hover, #ffffff);
-    color: var(--color-button-primary-text-hover, #000000);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
   }
 
   /* Faz a seta deslizar elegantemente ao passar o mouse */
@@ -585,7 +602,7 @@
   
   .hero__cta:active { 
     transform: translateY(0) scale(0.98); 
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-md);
   }
 
   /* Setas Laterais Desktop */
@@ -602,7 +619,7 @@
     background-color: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    color: #fff;
+    color: var(--color-text-primary);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 50%;
     cursor: pointer;
@@ -666,9 +683,9 @@
     display: block;
     width: 6px;
     height: 6px;
-    border-radius: 99px;
-    background-color: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    border-radius: var(--radius-pill);
+    background-color: var(--color-border-strong);
+    box-shadow: var(--shadow-xs);
     transition:
       width 0.4s cubic-bezier(0.25, 1, 0.5, 1),
       background-color 0.4s cubic-bezier(0.25, 1, 0.5, 1);
@@ -678,15 +695,15 @@
 
   .hero__dot.is-active::before {
     width: 20px;
-    background-color: #ffffff;
+    background-color: var(--color-text-primary);
   }
 
   /* O foco precisa aparecer: o desenho é pequeno demais para o anel
      padrão do navegador dizer alguma coisa. */
   .hero__dot:focus-visible { outline: none; }
   .hero__dot:focus-visible::before {
-    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.45);
-    background-color: #ffffff;
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+    background-color: var(--color-text-primary);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -735,11 +752,11 @@
        foto tem menos largura para trabalhar do que no desktop. */
     .hero__heading {
       font-size: clamp(2.5rem, 11.5vw, 3.9rem);
-      line-height: 1.0;
-      letter-spacing: -0.03em;
+      line-height: var(--leading-display);
+      letter-spacing: var(--tracking-display);
     }
-    .hero__subheading { font-size: 1rem; }
-    .hero__body { font-size: 1.0rem; line-height: 1.55; }
+    .hero__subheading { font-size: var(--f2); }
+    .hero__body { font-size: var(--f2); line-height: var(--leading-body); }
 
     /* Botão da largura do dedo, não da tela: esticado de ponta a
        ponta num celular grande ele vira uma barra e perde a cara de
@@ -754,7 +771,7 @@
       width: 100%;
       justify-content: center;
       padding: 17px 24px;
-      font-size: 1rem;
+      font-size: var(--f2);
     }
 
     /* Proteção glassmorphism apenas em mobile para os dots */
@@ -764,7 +781,7 @@
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       padding: 0 6px;
-      border-radius: 100px;
+      border-radius: var(--radius-pill);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
   }
@@ -806,8 +823,8 @@
     .hero--short .hero__slide { min-height: 100svh; }
 
     .hero__heading {
-      font-size: clamp(1.75rem, 4.2vw, 2.75rem);
-      line-height: 1.02;
+      font-size: var(--f7);
+      line-height: var(--leading-display);
     }
     .hero__element--eyebrow { margin-bottom: 6px; }
     .hero__element--heading { margin-bottom: 10px; }

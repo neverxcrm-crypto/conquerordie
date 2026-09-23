@@ -261,7 +261,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--space-xs);
     list-style: none;
     cursor: default;
     margin-bottom: 16px;
@@ -285,7 +285,7 @@
   .footer__newsletter-subtext { margin-bottom: 16px; }
 
   /* Bloco de Contato */
-  .footer__contact-info { display: flex; flex-direction: column; gap: 8px; }
+  .footer__contact-info { display: flex; flex-direction: column; gap: var(--space-2xs); }
   .footer__contact-item { margin: 0; font-size: var(--f1, 13px); color: var(--color-text-secondary, #a1a1a1); }
   .footer__contact-label { font-weight: 600; color: var(--color-text-primary, #ffffff); margin-right: 4px; }
   .footer__contact-hours { font-size: 12px; opacity: 0.8; margin-top: 4px; }
@@ -321,7 +321,7 @@
     border-top: 1px solid var(--color-border-accent, rgba(201, 162, 77, 0.35));
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: var(--space-md);
   }
 
   .footer__bottom-primary,
@@ -330,16 +330,16 @@
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: var(--space-sm);
   }
 
   .footer__bottom-left,
-  .footer__bottom-right { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .footer__bottom-right { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
   
-  .footer__payment { display: flex; gap: 8px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
+  .footer__payment { display: flex; gap: var(--space-2xs); list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
   .footer__payment-icon { width: 38px; height: 24px; }
 
-  .footer__social { display: flex; gap: 16px; list-style: none; margin: 0; padding: 0; }
+  .footer__social { display: flex; gap: var(--space-sm); list-style: none; margin: 0; padding: 0; }
   .footer__social a {
     color: var(--color-text-secondary, #a1a1a1);
     display: inline-flex;
@@ -359,7 +359,7 @@
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-2xs);
     padding: 0;
     transition: color var(--dur-fast) var(--ease-out);
   }
@@ -367,8 +367,8 @@
   .footer__back-to-top-icon { font-size: 14px; line-height: 1; }
 
   /* Políticas e CNPJ */
-  .footer__legal-container { display: flex; flex-direction: column; gap: 8px; }
-  .footer__legal { display: flex; gap: 16px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
+  .footer__legal-container { display: flex; flex-direction: column; gap: var(--space-2xs); }
+  .footer__legal { display: flex; gap: var(--space-sm); list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
   .footer__legal a {
     font-size: var(--f0, 11px);
     color: var(--color-text-muted, #777777);
@@ -401,7 +401,7 @@
     .footer__bottom-secondary {
       flex-direction: column;
       align-items: flex-start;
-      gap: 16px;
+      gap: var(--space-sm);
     }
   }
 

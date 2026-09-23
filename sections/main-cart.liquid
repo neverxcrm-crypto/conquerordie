@@ -56,7 +56,7 @@
   .cart__contents {
     display: flex;
     align-items: flex-start;
-    gap: 48px;
+    gap: var(--space-xl);
   }
   .cart__items { flex: 1 1 auto; min-width: 0; }
   .cart__summary {
@@ -132,7 +132,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 10px;
+    gap: var(--space-2xs);
   }
   .cart-items .quantity-selector {
     display: inline-flex;
@@ -209,7 +209,7 @@
   .cart__additional-checkout {
     margin-top: 12px;
     display: grid;
-    gap: 8px;
+    gap: var(--space-2xs);
   }
 
   .cart__header { padding-top: var(--space-md); }
@@ -225,7 +225,7 @@
   .cart__frete.is-ok .cart__frete-label { color: var(--color-accent-readable); }
 
   @media screen and (max-width: 1000px) {
-    .cart__contents { flex-direction: column; gap: 32px; }
+    .cart__contents { flex-direction: column; gap: var(--space-lg); }
     .cart__summary { position: static; flex-basis: auto; width: 100%; }
     .cart-item__media { width: 84px; padding-right: 14px !important; }
     .cart-items thead { display: none; }

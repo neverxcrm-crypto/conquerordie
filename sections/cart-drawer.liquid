@@ -425,7 +425,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: var(--space-sm);
     padding: 24px var(--space-block, 28px);
     /* O painel encosta em y=0: sem este respiro o titulo e o X ficam
        embaixo do notch / da ilha dinamica. */
@@ -520,7 +520,7 @@
   .cart-item-drawer {
     display: grid;
     grid-template-columns: 88px 1fr;
-    gap: 16px;
+    gap: var(--space-sm);
     padding: 20px var(--space-block, 28px);
     border-bottom: 1px solid var(--color-border);
   }
@@ -546,7 +546,7 @@
     object-fit: cover;
   }
   .cart-item-drawer__body { min-width: 0; }
-  .cart-item-drawer__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .cart-item-drawer__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-xs); }
   .cart-item-drawer__name {
     font-family: var(--font-ui-family);
     font-size: var(--f1);
@@ -688,7 +688,7 @@
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: 16px;
+    gap: var(--space-sm);
   }
   .cart-drawer__totals-label {
     font-family: var(--font-ui-family);
@@ -709,11 +709,13 @@
     margin: 4px 0 16px;
   }
   /* O botao de finalizar e o unico caminho para a receita: ele nao
-     pode ter a mesma altura de um botao secundario. 52px e o degrau
-     que o deixa confortavel no polegar sem virar uma barra. */
+     pode ter a mesma altura de um botao secundario. --control-h-lg
+     e o degrau de destaque do sistema: o mesmo que a busca e o campo
+     de contato usam, para "controle importante" medir igual em toda
+     a loja. */
   .cart-drawer__checkout {
     width: 100%;
-    min-height: 52px;
+    min-height: var(--control-h-lg);
     font-size: var(--f2);
   }
 
@@ -721,7 +723,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--space-xs);
     flex-wrap: wrap;
     margin-top: 16px;
   }
@@ -732,7 +734,7 @@
     text-transform: uppercase;
     color: var(--color-text-muted);
   }
-  .cart-drawer__payment-icons { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
+  .cart-drawer__payment-icons { display: flex; gap: var(--space-3xs); list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
   .cart-drawer__payment-icon { width: 30px; height: 20px; }
 
   .cart-drawer__trust {
@@ -774,11 +776,11 @@
   .cart-drawer__empty-cta { align-self: stretch; }
   .cart-drawer__suggestions { margin-top: auto; padding-top: 40px; width: 100%; }
   .cart-drawer__suggestions .eyebrow { margin-bottom: 14px; }
-  .cart-drawer__suggestion-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .cart-drawer__suggestion-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-xs); }
   .cart-drawer__suggestion-link {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: var(--space-xs);
     text-decoration: none;
     color: inherit;
   }

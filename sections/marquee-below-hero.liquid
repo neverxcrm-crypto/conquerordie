@@ -65,7 +65,7 @@
                       <span>{{ block.settings.text | escape }}</span>
                       {%- if section.settings.show_arrow -%}
                         <svg class="marquee-hero__seta" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                          <path d="M3 9l6-6M4 3h5v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M3 9l6-6M4 3h5v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                       {%- endif -%}
                     </a>
@@ -253,7 +253,7 @@
   .marquee-hero__texto {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2xs);
     font-family: var(--font-body-family, inherit);
     font-size: var(--marquee-fonte, 13px);
     font-style: var(--marquee-italico, normal);

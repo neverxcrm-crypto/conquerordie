@@ -376,6 +376,10 @@
     --tracking-normal: 0;
     --tracking-label: 0.1em;
     --tracking-code: 0.15em;
+    /* Rótulo de botão: entre o tracking normal e o de label. Os
+       botões da loja são em caixa alta (decisão de voz da marca), e
+       caixa alta sem tracking fecha demais as letras. */
+    --tracking-button: 0.08em;
 
     /* Comprimento de linha confortavel para texto corrido */
     --measure-body: 68ch;
@@ -393,6 +397,11 @@
     --f6: clamp(1.625rem, 1.4167rem + 0.9259vw, 2.25rem);
     --f7: clamp(2rem, 1.6667rem + 1.4815vw, 3rem);
     --f8: clamp(2.5rem, 1.8333rem + 2.963vw, 4.5rem);
+    /* O degrau de banner. Existe porque o hero precisava de um corpo
+       maior que --f8 e, sem ele, escrevia um clamp proprio — o tipo
+       de valor solto que faz a home parecer de outro projeto. Acima
+       de --f8 so o hero chega; por isso o token para aqui. */
+    --f9: clamp(2.75rem, 6.2vw + 0.6rem, 6rem);
 
     /* Aliases semanticos da mesma escala */
     --text-xs: var(--f0);
@@ -404,6 +413,7 @@
     --text-3xl: var(--f6);
     --text-4xl: var(--f7);
     --text-display: var(--f8);
+    --text-hero: var(--f9);
 
     /* ==========================================================
        Ritmo vertical e gutters — usados pelas seções editoriais.
@@ -451,6 +461,24 @@
     --radius-md: 12px;
     --radius-lg: 16px;
     --radius-pill: 999px;
+
+    /* ==========================================================
+       ALTURA DE CONTROLE — duas, e só duas
+       ==========================================================
+       A auditoria achou TRÊS alturas em uso para a mesma função:
+       44px (padrão), 52px (finalizar compra) e 56px (busca, campo
+       de contato, busca do 404). A diferença de 4px entre 52 e 56
+       não tinha justificativa — era só o arquivo em que a regra
+       tinha sido escrita.
+
+       Ficaram duas, com regra clara:
+       --control-h    o padrão de tudo que se toca. 44px é o mínimo
+                      de alvo de toque da WCAG 2.5.5.
+       --control-h-lg o degrau de destaque: o CTA que leva ao
+                      dinheiro e os campos que são o assunto da
+                      página (a busca de uma página de busca). */
+    --control-h: 44px;
+    --control-h-lg: 52px;
 
     /* ==========================================================
        SOMBRA — quatro degraus, todas de baixo contraste
