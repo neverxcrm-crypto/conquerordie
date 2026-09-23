@@ -1,11 +1,24 @@
 {%- comment -%}
   ============================================================
-  HEADER PREMIUM — Minimalista, Seguro e Responsivo
+  HEADER PREMIUM — Inteligência de Contraste e Sem Linhas
   ============================================================
 {%- endcomment -%}
 
-<header class="header {% if section.settings.transparent_on_top %}header--transparent-top{% endif %}" data-section-id="{{ section.id }}" data-header>
-  <!-- O fundo (vidro) que só aparece ao rolar -->
+{%- liquid
+  assign is_transparent = false
+  if section.settings.transparent_on_top
+    if section.settings.transparent_home_only
+      if template.name == 'index'
+        assign is_transparent = true
+      endif
+    else
+      assign is_transparent = true
+    endif
+  endif
+-%}
+
+<header class="header {% if is_transparent %}header--transparent-top{% endif %}" data-section-id="{{ section.id }}" data-header>
+  <!-- O fundo (vidro) -->
   <span class="header__glass" aria-hidden="true">
     {%- if section.settings.show_progress_bar -%}
       <span class="header__progress" data-header-progress></span>
@@ -196,54 +209,52 @@
   .header {
     position: fixed; top: 0; left: 0; right: 0; width: 100%;
     z-index: 100; transform: translate3d(0, 0, 0) !important;
+    border: none !important; /* Previne que o tema global injete borda no wrapper */
+    box-shadow: none !important;
   }
 
-  /* --- VIDRO ZERO LINHAS E PROTEÇÃO DE LEITURA (Estado Topo) --- */
+  /* --- VIDRO: Estado Base (Páginas Internas) --- */
   .header__glass {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    z-index: -1; pointer-events: none;
-    background-color: transparent;
-    border-bottom: none;
+    position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background-color: var(--color-background, #0A0A0C);
+    border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.05));
     box-shadow: none;
     transition:
       background-color var(--hd-duration) var(--hd-ease),
       border-color var(--hd-duration) var(--hd-ease),
       box-shadow var(--hd-duration) var(--hd-ease),
-      backdrop-filter var(--hd-duration) var(--hd-ease),
-      bottom var(--hd-duration) var(--hd-ease);
+      backdrop-filter var(--hd-duration) var(--hd-ease);
   }
 
-  .header:not(.header--transparent-top):not(.header--scrolled) .header__glass {
-    background-color: var(--color-background, #0A0A0C);
-  }
-
-  /* Degradê alongado para baixo da header para esfumar sem corte brusco */
+  /* --- VIDRO: Estado Topo Transparente (Home Page) --- */
   .header.header--transparent-top:not(.header--scrolled) .header__glass {
-    bottom: -150px; /* Dá espaço para o gradiente descer suavemente */
-    background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 35%, rgba(0,0,0,0.2) 65%, transparent 100%);
+    background-color: transparent;
+    border-bottom: none !important; /* Remove totalmente a linha divisória */
+    box-shadow: none !important;
+    background-image: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 100%);
   }
 
-  /* Sombras dinâmicas nos itens apenas no estado do topo */
+  /* Sombras dinâmicas super limpas nos itens (Apenas no estado transparente) */
   .header.header--transparent-top:not(.header--scrolled) .header__menu-link,
   .header.header--transparent-top:not(.header--scrolled) .header__logo-text {
-    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
   }
   .header.header--transparent-top:not(.header--scrolled) .header__action-button svg,
   .header.header--transparent-top:not(.header--scrolled) .header__burger,
   .header.header--transparent-top:not(.header--scrolled) .header__burger::before,
   .header.header--transparent-top:not(.header--scrolled) .header__burger::after,
   .header.header--transparent-top:not(.header--scrolled) .header__menu-caret svg {
-    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
   }
 
   /* --- VIDRO ATIVADO (Ao Rolar) --- */
   .header--scrolled .header__glass {
-    bottom: 0; /* Retorna a máscara ao tamanho estrito do header ao rolar */
     background-color: rgba(10, 10, 12, 0.85);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.05));
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    background-image: none; 
   }
 
   @media (hover: none) {
@@ -915,7 +926,14 @@
     {
       "type": "checkbox",
       "id": "transparent_on_top",
-      "label": "Fundo transparente no topo da página",
+      "label": "Fundo transparente no topo",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "transparent_home_only",
+      "label": "Transparente APENAS na Página Inicial",
+      "info": "Resolve o problema de contraste (texto invisível) em páginas internas com fundo branco.",
       "default": true
     },
     {
