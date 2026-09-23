@@ -16,6 +16,9 @@
           "type": "slide",
           "settings": {
             "image": "shopify://shop_images/Muralestampas.webp",
+            "overlay_color": "#000000",
+            "overlay_opacity": 30,
+            "text_alignment": "left",
             "eyebrow": "",
             "heading": "",
             "subheading": "",
@@ -29,6 +32,9 @@
           "settings": {
             "image": "shopify://shop_images/ChatGPT_Image_18_de_set._de_2026_14_37_38.png",
             "image_mobile": "shopify://shop_images/A1FF48D2-8135-4609-B9EB-FFD142BC5718.png",
+            "overlay_color": "#000000",
+            "overlay_opacity": 30,
+            "text_alignment": "left",
             "eyebrow": "Streetwear dark",
             "heading": "Conquer\nor Die",
             "subheading": "Not made to blend in.",
@@ -43,7 +49,11 @@
         "slide_1"
       ],
       "settings": {
-        "height": "tall"
+        "height": "default",
+        "autoplay": true,
+        "autoplay_speed": 5,
+        "show_arrows": true,
+        "show_indicator": true
       }
     },
     "marquee_below_hero_M8HkFV": {
