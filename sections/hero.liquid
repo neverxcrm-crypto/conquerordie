@@ -8,9 +8,23 @@
   assign slide_count = slides.size
   assign autoplay = section.settings.autoplay
   assign autoplay_speed = section.settings.autoplay_speed | times: 1000
+
+  # Onde o bloco de texto se apoia na vertical. Vira classe na raiz
+  # em vez de style inline para o CSS conseguir mudar a proteção de
+  # leitura (o degradê) junto com a posição — as duas coisas andam
+  # sempre coladas.
+  assign pos = section.settings.content_position | default: 'centro'
+
+  # O indicador só existe com mais de um slide. Quando existe, o
+  # texto precisa reservar a faixa dele; quando não existe, essa
+  # reserva seria um buraco no rodapé do banner.
+  assign tem_indicador = false
+  if slide_count > 1 and section.settings.show_dots
+    assign tem_indicador = true
+  endif
 -%}
 <div
-  class="hero scheme-dark hero--{{ section.settings.height }}"
+  class="hero scheme-dark hero--{{ section.settings.height }} hero--pos-{{ pos }}{% if tem_indicador %} hero--com-indicador{% endif %}"
   data-section-id="{{ section.id }}"
   data-header-overlay
   {% if slide_count > 1 %}
@@ -192,12 +206,41 @@
   }
 
   .hero {
-    margin-top: calc(-1 * var(--header-height, 70px));
+    /* --header-total = altura da barra + recorte da tela (notch).
+       Usar --header-height cru fazia o banner subir de menos em
+       aparelho com recorte e sobrar uma faixa da cor de fundo entre
+       a header e a foto. O token vive em snippets/css-variables. */
+    margin-top: calc(-1 * var(--header-total, var(--header-height, 70px)));
     position: relative;
     background-color: var(--color-background, #000000);
     overflow: hidden;
     width: 100%;
+
+    /* ------------------------------------------------------------
+       O RITMO VERTICAL DO BANNER, EM TRES MEDIDAS
+
+       Tudo que posiciona o texto sai daqui, e não de números
+       espalhados por cinco media queries. Mudar o respiro do banner
+       inteiro passa a ser mudar uma linha.
+
+       --hero-zona-indicador: a faixa do rodapé que pertence às
+       bolinhas. O texto NUNCA entra nela. Vale 0 quando não há
+       indicador — reservar espaço para algo que não existe deixava
+       um buraco no pé do banner.
+
+       --hero-respiro-topo / --hero-respiro-base: o ar em volta do
+       bloco de texto. Em vh, não em px fixo: num iPhone SE e num
+       monitor de 27" o banner tem alturas muito diferentes, e um
+       respiro de 90px que fica elegante num é metade da tela no
+       outro. Era exatamente esse 90px fixo que empurrava o texto
+       para o fundo da tela no celular.
+    ------------------------------------------------------------ */
+    --hero-zona-indicador: 0px;
+    --hero-respiro-topo: clamp(24px, 6vh, 72px);
+    --hero-respiro-base: clamp(28px, 7vh, 80px);
   }
+
+  .hero--com-indicador { --hero-zona-indicador: clamp(56px, 7vh, 76px); }
 
   .hero__slides {
     list-style: none;
@@ -215,14 +258,42 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    /* FIX: Mantém todo o conteúdo SEMPRE ancorado em baixo. Assim os botões nunca pulam! */
-    justify-content: flex-end; 
+    /* A âncora vertical vem da escolha do lojista. O padrão é o
+       meio: é a única posição que continua equilibrada com título
+       de uma linha ou de quatro, e em tela alta ou baixa. Ancorar
+       sempre embaixo (o que havia aqui) era o motivo de o texto
+       nascer colado no rodapé no celular. */
+    justify-content: var(--hero-ancora, center);
     box-sizing: border-box;
   }
 
-  /* Alturas Modernas (suporte a svh para iOS) */
+  .hero--pos-topo   { --hero-ancora: flex-start; }
+  .hero--pos-centro { --hero-ancora: center; }
+  .hero--pos-rodape { --hero-ancora: flex-end; }
+
+  /* Embaixo precisa de mais ar por baixo, senão vira legenda de
+     foto. Em cima, o contrário: o peso extra vai para o topo. */
+  .hero--pos-rodape { --hero-respiro-base: clamp(40px, 11vh, 120px); }
+  .hero--pos-topo   { --hero-respiro-topo: clamp(28px, 8vh, 96px); }
+
+  /* ------------------------------------------------------------
+     ALTURAS — svh nas três, e nunca dvh
+
+     `vh` mede a tela COM a barra do navegador recolhida; `svh`, com
+     ela visível. As três opções usavam unidades diferentes, ou seja,
+     mediam coisas diferentes — e a diferença entre elas é justamente
+     a altura da barra do navegador.
+
+     `dvh` fica de fora de propósito: ele acompanha a barra em tempo
+     real e redimensionaria o banner durante a rolagem, que é o
+     defeito do "hero que cresce ao rolar".
+  ------------------------------------------------------------ */
   .hero--short .hero__slide { min-height: clamp(420px, 60vh, 600px); }
-  .hero--default .hero__slide { min-height: clamp(520px, 80vh, 850px); }
+  .hero--short .hero__slide { min-height: clamp(420px, 60svh, 600px); }
+
+  .hero--default .hero__slide { min-height: clamp(520px, 78vh, 850px); }
+  .hero--default .hero__slide { min-height: clamp(520px, 78svh, 850px); }
+
   .hero--tall .hero__slide { min-height: 100vh; min-height: 100svh; }
 
   .hero__media {
@@ -262,12 +333,73 @@
     pointer-events: none;
   }
 
+  /* ------------------------------------------------------------
+     PROTEÇÃO DE LEITURA
+
+     O degradê é o que garante contraste do texto contra QUALQUER
+     foto que o lojista suba — inclusive uma clara. Ele precisa ser
+     mais escuro onde o texto está, e por isso acompanha a posição
+     escolhida. Antes era sempre pesado embaixo: com o texto no meio
+     ou em cima, a parte escura ficava onde não havia nada e o texto
+     ficava no claro.
+
+     Com o degradê fazendo esse trabalho, a sombra do texto pode ser
+     leve. Sombra pesada em letra grande é a marca registrada de
+     banner amador — suja o traço da fonte em vez de destacá-lo.
+  ------------------------------------------------------------ */
   .hero__gradient-mask {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 35%, transparent 70%);
     z-index: 1;
     pointer-events: none;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.72) 0%,
+      rgba(0, 0, 0, 0.34) 30%,
+      rgba(0, 0, 0, 0.06) 62%,
+      rgba(0, 0, 0, 0.26) 100%
+    );
+  }
+
+  .hero--pos-centro .hero__gradient-mask {
+    background:
+      radial-gradient(130% 78% at 50% 50%, rgba(0, 0, 0, 0.46) 0%, rgba(0, 0, 0, 0) 70%),
+      linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.42) 0%,
+        rgba(0, 0, 0, 0.12) 26%,
+        rgba(0, 0, 0, 0.12) 70%,
+        rgba(0, 0, 0, 0.5) 100%
+      );
+  }
+
+  .hero--pos-topo .hero__gradient-mask {
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.74) 0%,
+      rgba(0, 0, 0, 0.34) 32%,
+      rgba(0, 0, 0, 0.06) 64%,
+      rgba(0, 0, 0, 0.22) 100%
+    );
+  }
+
+  /* No desktop o texto ocupa só um lado da tela: uma cortina lateral
+     escurece o lado da leitura e deixa a foto respirar do outro —
+     é o que as marcas grandes fazem para a modelo não ficar atrás
+     de um filtro cinza de tela inteira. :has() sozinho numa regra
+     própria: onde ele não existir, o degradê de cima continua
+     valendo e nada fica ilegível. */
+  @media screen and (min-width: 1001px) {
+    .hero__slide:has(.hero__content--left) .hero__gradient-mask {
+      background-image:
+        linear-gradient(to right, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.24) 40%, rgba(0, 0, 0, 0) 70%),
+        linear-gradient(to top, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0) 58%);
+    }
+    .hero__slide:has(.hero__content--right) .hero__gradient-mask {
+      background-image:
+        linear-gradient(to left, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.24) 40%, rgba(0, 0, 0, 0) 70%),
+        linear-gradient(to top, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0) 58%);
+    }
   }
 
   /* Conteúdo */
@@ -277,16 +409,24 @@
     width: 100%;
     display: flex;
     box-sizing: border-box;
-    padding-top: calc(var(--header-height, 70px) + max(20px, env(safe-area-inset-top, 0px)));
-    /* Mantém o padding base consistente para travar o botão */
-    padding-bottom: clamp(70px, 12vh, 120px);
-  }
+    /* ------------------------------------------------------------
+       AQUI ESTAVA O "HERO QUE CRESCE AO ROLAR"
 
-  @media screen and (min-width: 1001px) {
-    .hero__content {
-      padding-top: calc(var(--header-height, 70px) + 60px);
-      padding-bottom: 90px;
-    }
+       Este padding usava env(safe-area-inset-top). No Safari do
+       iPhone, com viewport-fit=cover, esses valores MUDAM enquanto a
+       barra do navegador recolhe durante a rolagem. Como o padding
+       participa do layout do slide, a caixa crescia alguns pixels no
+       meio do scroll, sem nada ter mudado na página.
+
+       --sat é o mesmo recorte, mas CONGELADO em px pelo script do
+       layout/theme.liquid logo depois do primeiro paint; só muda
+       quando o aparelho gira. E --header-total já soma esse recorte
+       à altura da barra, então a conta não o aplica duas vezes.
+    ------------------------------------------------------------ */
+    padding-top: calc(var(--header-total, var(--header-height, 70px)) + var(--hero-respiro-topo));
+    padding-bottom: calc(var(--hero-zona-indicador) + var(--hero-respiro-base));
+    padding-left: max(var(--page-gutter, 24px), var(--sal, 0px));
+    padding-right: max(var(--page-gutter, 24px), var(--sar, 0px));
   }
 
   /* Alinhamentos */
@@ -313,10 +453,14 @@
     max-width: 100%;
   }
   
-  .hero__element--eyebrow { margin-bottom: 12px; }
-  .hero__element--heading { margin-bottom: 16px; display: block; width: 100%; }
-  .hero__element--subheading { margin-bottom: 16px; }
-  .hero__element--body { margin-bottom: 32px; }
+  /* Espaços em vh além de px: numa tela baixa (celular deitado,
+     notebook de 13") o bloco inteiro se comprime junto em vez de
+     estourar a altura do slide e obrigar a rolar só para passar do
+     banner. */
+  .hero__element--eyebrow { margin-bottom: clamp(10px, 1.6vh, 18px); }
+  .hero__element--heading { margin-bottom: clamp(14px, 2.2vh, 26px); display: block; width: 100%; }
+  .hero__element--subheading { margin-bottom: clamp(12px, 1.8vh, 20px); }
+  .hero__element--body { margin-bottom: clamp(20px, 3.4vh, 40px); }
 
   .hero__content--left .hero__element--cta { align-self: flex-start; }
   .hero__content--center .hero__element--cta { align-self: center; }
@@ -340,16 +484,26 @@
   }
 
   /* Tipografia Unificada (Tudo com a fonte estilizada) */
+  /* Entrelinha abaixo de 1 e espacejamento negativo são o que
+     separa um título de banner de um parágrafo grande: em corpo
+     alto, a entrelinha padrão abre buracos entre as linhas e o
+     conjunto perde a forma de bloco.
+
+     word-break: break-word saiu. Ele quebrava palavra no meio —
+     "CONQUIS-TE" — quando a tela era estreita. overflow-wrap só
+     age em palavra que realmente não cabe, e hyphens: none garante
+     que, quando agir, não invente hífen nenhum. */
   .hero__heading {
     font-family: var(--hero-font) !important;
-    font-size: clamp(2.5rem, 6vw + 1rem, 5.5rem);
-    line-height: 1.05;
-    letter-spacing: -0.02em;
+    font-size: clamp(2.75rem, 6.2vw + 0.6rem, 6rem);
+    line-height: 0.98;
+    letter-spacing: -0.025em;
     margin: 0;
     color: #ffffff;
-    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35);
     text-wrap: balance;
-    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: none;
   }
 
   .hero__subheading {
@@ -365,12 +519,12 @@
   .hero__eyebrow {
     font-family: var(--hero-font) !important;
     margin: 0;
-    font-size: 0.9rem;
+    font-size: clamp(0.72rem, 0.5vw + 0.62rem, 0.875rem);
     font-weight: 700;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--color-accent, #C9A24D);
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
   }
 
   .hero__body {
@@ -380,7 +534,11 @@
     color: rgba(255, 255, 255, 0.95);
     text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
   }
-  .hero__content--center .hero__body { margin-left: auto; margin-right: auto; max-width: 48ch; }
+  /* A medida de linha vale em qualquer alinhamento, não só no
+     centralizado: linha de 90 caracteres cansa de ler igual. */
+  .hero__body { max-width: 46ch; }
+  .hero__content--center .hero__body { margin-left: auto; margin-right: auto; }
+  .hero__content--right .hero__body { margin-left: auto; }
   .hero__body p { margin: 0; }
 
   /* ==========================================================
@@ -467,32 +625,72 @@
     z-index: 3;
     display: flex;
     align-items: center;
-    gap: 8px;
-    bottom: clamp(24px, 4vh, 40px);
+    gap: 0;
+    bottom: clamp(20px, 3.5vh, 36px);
     left: 50%;
     transform: translateX(-50%);
   }
 
+  /* ------------------------------------------------------------
+     BOLINHAS — o alvo cresce, o desenho não
+
+     Defeito que estava em produção: o botão tinha `width: 6px` mas
+     também a classe .tap-target, que aplica `min-width: 44px`. E
+     min-width VENCE width. O resultado é que o fundo branco pintava
+     o alvo de toque inteiro: três bolas de 44px dentro da pílula,
+     em vez de três pontinhos. Bem no rodapé da primeira seção que o
+     cliente vê.
+
+     A correção separa as duas funções. O <button> é o ALVO — grande
+     e transparente. O ::before é o DESENHO — 6px, virando uma
+     pílula de 20px quando ativo. É o padrão certo para qualquer
+     controle que precisa ser pequeno no olho e grande no dedo.
+  ------------------------------------------------------------ */
   .hero__dot {
-    width: 6px; /* Bolinhas menores e mais discretas */
-    height: 6px;
-    border-radius: 99px;
-    background-color: rgba(255, 255, 255, 0.35);
+    width: 36px;
+    height: 40px;
+    min-width: 0;
+    min-height: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
     border: none;
     padding: 0;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    -webkit-tap-highlight-color: transparent;
   }
 
-  .hero__dot:hover {
-    background-color: rgba(255, 255, 255, 0.8);
+  .hero__dot::before {
+    content: '';
+    display: block;
+    width: 6px;
+    height: 6px;
+    border-radius: 99px;
+    background-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    transition:
+      width 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+      background-color 0.4s cubic-bezier(0.25, 1, 0.5, 1);
   }
 
-  .hero__dot.is-active {
-    width: 18px; /* Pílula elegante ao ficar ativo */
+  .hero__dot:hover::before { background-color: rgba(255, 255, 255, 0.85); }
+
+  .hero__dot.is-active::before {
+    width: 20px;
     background-color: #ffffff;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  }
+
+  /* O foco precisa aparecer: o desenho é pequeno demais para o anel
+     padrão do navegador dizer alguma coisa. */
+  .hero__dot:focus-visible { outline: none; }
+  .hero__dot:focus-visible::before {
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.45);
+    background-color: #ffffff;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__dot::before { transition: none; }
   }
 
   /* ==========================================================
@@ -501,53 +699,98 @@
   @media screen and (max-width: 749px) {
     .hero__arrow { display: none; }
 
-    .hero__content { 
-      padding-bottom: 90px;
-      padding-left: max(20px, env(safe-area-inset-left)); 
-      padding-right: max(20px, env(safe-area-inset-right));
+    /* A faixa das bolinhas no celular tem a pílula (~22px) mais o
+       afastamento do rodapé e o recorte inferior da tela. --sab é o
+       recorte CONGELADO; com env() ao vivo essa reserva mudava de
+       tamanho enquanto a barra do navegador recolhia e o texto
+       inteiro subia e descia durante a rolagem. */
+    .hero--com-indicador { --hero-zona-indicador: calc(52px + var(--sab, 0px)); }
+
+    .hero__content {
+      padding-left: max(20px, var(--sal, 0px));
+      padding-right: max(20px, var(--sar, 0px));
     }
 
-    .hero__heading { font-size: clamp(2.3rem, 9vw, 3.2rem); line-height: 1.1; }
-    .hero__body { font-size: 1.05rem; }
+    /* 11.5vw em vez de 9vw: num iPhone de 390px o título sai de 35px
+       para 45px. É a diferença entre um banner que informa e um que
+       impõe — e é o que as marcas grandes fazem no celular, onde a
+       foto tem menos largura para trabalhar do que no desktop. */
+    .hero__heading {
+      font-size: clamp(2.5rem, 11.5vw, 3.9rem);
+      line-height: 1.0;
+      letter-spacing: -0.03em;
+    }
+    .hero__subheading { font-size: 1rem; }
+    .hero__body { font-size: 1.0rem; line-height: 1.55; }
 
-    /* Botão 100% no mobile */
-    .hero__element--cta { width: 100%; margin-top: 8px; }
-    .hero__content--left .hero__element--cta, 
-    .hero__content--center .hero__element--cta, 
-    .hero__content--right .hero__element--cta { align-self: stretch; }
-    
-    .hero__cta { 
-      width: 100%; 
-      justify-content: center; 
-      padding: 16px; 
+    /* Botão da largura do dedo, não da tela: esticado de ponta a
+       ponta num celular grande ele vira uma barra e perde a cara de
+       botão. O teto o mantém confortável e ainda bem acima dos 44px
+       de alvo de toque. */
+    .hero__element--cta { width: 100%; max-width: 24rem; margin-top: clamp(4px, 1vh, 12px); }
+    .hero__content--left .hero__element--cta { align-self: flex-start; }
+    .hero__content--center .hero__element--cta { align-self: center; }
+    .hero__content--right .hero__element--cta { align-self: flex-end; }
+
+    .hero__cta {
+      width: 100%;
+      justify-content: center;
+      padding: 17px 24px;
+      font-size: 1rem;
     }
 
     /* Proteção glassmorphism apenas em mobile para os dots */
     .hero__indicator {
-      bottom: max(20px, env(safe-area-inset-bottom, 20px)); 
-      background-color: rgba(0, 0, 0, 0.25); 
+      bottom: max(20px, var(--sab, 0px));
+      background-color: rgba(0, 0, 0, 0.25);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      padding: 8px 14px; 
+      padding: 0 6px;
       border-radius: 100px;
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
   }
 
-  /* Celular Deitado */
-  @media (orientation: landscape) and (max-height: 540px) {
-    .hero__content {
-      padding-top: calc(var(--header-height, 70px) + 10px);
-      padding-bottom: clamp(24px, 6vh, 44px);
+  /* Celular pequeno (iPhone SE e afins): menos ar, senão o bloco de
+     texto ocupa a tela inteira e a foto some por trás dele. */
+  @media screen and (max-width: 380px) {
+    .hero { --hero-respiro-topo: clamp(16px, 4vh, 40px); --hero-respiro-base: clamp(20px, 5vh, 48px); }
+    .hero__heading { font-size: clamp(2.15rem, 11vw, 2.75rem); }
+  }
+
+  /* ------------------------------------------------------------
+     CELULAR DEITADO — a orientação que o banner não previa
+
+     O título é dimensionado por LARGURA. Deitado, um celular tem
+     ~844px de largura e ~390px de altura: a conta devolve um título
+     enorme dentro de uma tela baixa, o conteúdo estoura a altura e
+     a "tela cheia" vira uma tela e meia — a pessoa precisa rolar só
+     para passar do banner.
+
+     O corte de celular para em 749px de LARGURA, então um aparelho
+     deitado nunca chega lá: ele é tratado como desktop estreito. Por
+     isso a condição aqui é por ALTURA.
+  ------------------------------------------------------------ */
+  @media (orientation: landscape) and (max-height: 560px) {
+    .hero {
+      --hero-respiro-topo: clamp(8px, 3vh, 20px);
+      --hero-respiro-base: clamp(12px, 4vh, 28px);
     }
+    .hero--com-indicador { --hero-zona-indicador: calc(34px + var(--sab, 0px)); }
+    .hero--tall .hero__slide,
+    .hero--default .hero__slide,
+    .hero--short .hero__slide { min-height: 100svh; }
+
     .hero__heading {
       font-size: clamp(1.75rem, 4.2vw, 2.75rem);
+      line-height: 1.02;
     }
     .hero__element--eyebrow { margin-bottom: 6px; }
     .hero__element--heading { margin-bottom: 10px; }
     .hero__element--subheading { margin-bottom: 10px; }
+    /* Com ~390px de altura o texto de apoio é a primeira coisa que sobra. */
     .hero__element--body { display: none; }
-    .hero__element--cta { width: auto; margin-top: 4px; }
+    .hero__element--cta { width: auto; max-width: none; margin-top: 4px; }
     .hero__cta { width: auto; padding: 12px 28px; }
   }
 
@@ -689,6 +932,18 @@
       ],
       "default": "default",
       "label": "Altura do Banner"
+    },
+    {
+      "type": "select",
+      "id": "content_position",
+      "options": [
+        { "value": "topo", "label": "Em cima" },
+        { "value": "centro", "label": "No meio" },
+        { "value": "rodape", "label": "Embaixo" }
+      ],
+      "default": "centro",
+      "label": "Posição do texto",
+      "info": "No meio é o mais seguro: funciona com título curto ou longo, em qualquer tela."
     },
     {
       "type": "header",
