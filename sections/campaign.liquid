@@ -1,37 +1,9 @@
 {%- comment -%}
   ============================================================
-  CAMPAIGN — próximo drop / campanha em fotografia
+  CAMPAIGN PREMIUM — Banner de Drop c/ Countdown Inteligente
   ============================================================
-
-  O QUE FAZ:
-  Faixa full-bleed de campanha: fotografia grande, eyebrow do drop,
-  título Display, uma linha de texto, CTA e um countdown opcional.
-  É o momento de URGÊNCIA da narrativa da home — e só funciona se a
-  data for real, por isso o countdown é opt-in e some sozinho quando
-  a data passa.
-
-  ONDE É USADA:
-  Home (templates/index.json). Tem preset.
-
-  PRINCIPAIS PARTES:
-  - .campaign__media: imagem (desktop) + image_mobile opcional.
-  - .campaign__content: eyebrow, heading, texto e CTA.
-  - .campaign__countdown: 4 pares número/label. Só renderiza com
-    show_countdown ativo E uma data futura preenchida.
-
-  COUNTDOWN:
-  - A data vem do setting 'countdown_date' (YYYY-MM-DD) + hora.
-  - O HTML já nasce com os valores certos calculados no servidor,
-    então não há "flash" de zeros; o JS apenas continua a contagem.
-  - Quando zera, o bloco inteiro é removido do DOM — nada de
-    contador negativo ou travado em 00.
-  - Sem JS, os números renderizados no servidor continuam corretos.
-
-  OBSERVAÇÕES:
-  - .scheme-dark: a seção vive dentro do <main> claro e precisa dos
-    tokens escuros para o texto sobre a foto.
-  - Overlay usa os tokens --photo-veil-*, os mesmos do hero.
 {%- endcomment -%}
+
 {%- liquid
   assign show_countdown = false
   if section.settings.show_countdown and section.settings.countdown_date != blank
@@ -49,8 +21,16 @@
       assign seconds = after_hours | modulo: 60
     endif
   endif
+
+  assign align_class_desktop = 'campaign__inner--desktop-' | append: section.settings.desktop_text_alignment
+  assign pos_class_desktop = 'campaign__inner--desktop-pos-' | append: section.settings.desktop_content_position
+  assign align_class_mobile = 'campaign__inner--mobile-' | append: section.settings.mobile_text_alignment
+  assign pos_class_mobile = 'campaign__inner--mobile-pos-' | append: section.settings.mobile_content_position
 -%}
-<div class="campaign scheme-dark" data-section-id="{{ section.id }}">
+
+<div class="campaign scheme-dark" data-section-id="{{ section.id }}" style="--overlay-color: {{ section.settings.overlay_color }}; --overlay-opacity: {{ section.settings.overlay_opacity | divided_by: 100.0 }};">
+  
+  <!-- Mídia -->
   <div class="campaign__media" data-parallax="0.12">
     {%- if section.settings.image != blank -%}
       {%- if section.settings.image_mobile != blank -%}
@@ -91,51 +71,62 @@
         {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
       </div>
     {%- endif -%}
+
+    <div class="campaign__overlay"></div>
   </div>
 
-  <div class="campaign__inner page-width">
+  <!-- Conteúdo -->
+  <div class="campaign__inner page-width {{ align_class_desktop }} {{ pos_class_desktop }} {{ align_class_mobile }} {{ pos_class_mobile }}">
     <div class="campaign__content" data-reveal>
+      
       {%- if section.settings.eyebrow != blank -%}
-        <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+        <p class="campaign__eyebrow animate-el" style="--item-index: 1;">{{ section.settings.eyebrow | escape }}</p>
       {%- endif -%}
 
       {%- if section.settings.heading != blank -%}
-        <h2 class="campaign__heading">{{ section.settings.heading | escape }}</h2>
+        <h2 class="campaign__heading animate-el" style="--item-index: 2;">{{ section.settings.heading | escape }}</h2>
       {%- endif -%}
 
       {%- if section.settings.text != blank -%}
-        <p class="campaign__text">{{ section.settings.text | escape }}</p>
+        <p class="campaign__text animate-el" style="--item-index: 3;">{{ section.settings.text | escape }}</p>
       {%- endif -%}
 
       {%- if section.settings.button_label != blank -%}
-        <a href="{{ section.settings.button_link | default: '#' }}" class="button button--secondary campaign__cta">
-          {{ section.settings.button_label | escape }}
-          {% render 'icon', name: 'arrow-right' %}
-        </a>
+        <div class="campaign__cta-wrapper animate-el" style="--item-index: 4;">
+          <a href="{{ section.settings.button_link | default: '#' }}" class="button button--secondary campaign__cta">
+            {{ section.settings.button_label | escape }}
+            {% render 'icon', name: 'arrow-right' %}
+          </a>
+        </div>
       {%- endif -%}
     </div>
 
+    <!-- Countdown Opcional -->
     {%- if show_countdown -%}
-      <div class="campaign__aside" data-countdown data-deadline="{{ deadline }}">
+      <div class="campaign__aside animate-el" style="--item-index: 5;" data-countdown data-deadline="{{ deadline }}">
         {%- if section.settings.countdown_label != blank -%}
-          <p class="eyebrow campaign__countdown-label">{{ section.settings.countdown_label | escape }}</p>
+          <p class="campaign__countdown-label">{{ section.settings.countdown_label | escape }}</p>
         {%- endif -%}
+        
         <ul class="campaign__countdown" role="list">
           <li class="campaign__unit">
             <span class="campaign__number" data-countdown-days>{{ days | prepend: '0' | slice: -2, 2 }}</span>
-            <span class="campaign__label">{{ 'sections.campaign.days' | t }}</span>
+            <span class="campaign__label">Dias</span>
           </li>
+          <li class="campaign__separator">:</li>
           <li class="campaign__unit">
             <span class="campaign__number" data-countdown-hours>{{ hours | prepend: '0' | slice: -2, 2 }}</span>
-            <span class="campaign__label">{{ 'sections.campaign.hours' | t }}</span>
+            <span class="campaign__label">Horas</span>
           </li>
+          <li class="campaign__separator">:</li>
           <li class="campaign__unit">
             <span class="campaign__number" data-countdown-minutes>{{ minutes | prepend: '0' | slice: -2, 2 }}</span>
-            <span class="campaign__label">{{ 'sections.campaign.minutes' | t }}</span>
+            <span class="campaign__label">Min</span>
           </li>
+          <li class="campaign__separator">:</li>
           <li class="campaign__unit">
             <span class="campaign__number" data-countdown-seconds>{{ seconds | prepend: '0' | slice: -2, 2 }}</span>
-            <span class="campaign__label">{{ 'sections.campaign.seconds' | t }}</span>
+            <span class="campaign__label">Seg</span>
           </li>
         </ul>
       </div>
@@ -144,199 +135,484 @@
 </div>
 
 <style>
+  /* ==========================================================
+     ESTRUTURA BASE E MÍDIA
+     ========================================================== */
   .campaign {
     position: relative;
     display: flex;
-    align-items: flex-end;
-    min-height: 68vh;
     overflow: hidden;
-    background-color: var(--color-background);
+    background-color: var(--color-background, #0A0A0C);
+    /* Alturas fixadas no layout */
+    min-height: clamp(500px, 75vh, 800px);
   }
-  .campaign__media { position: absolute; inset: 0; }
-  .campaign__image { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .campaign__media { 
+    position: absolute; 
+    inset: 0; 
+  }
+  
+  .campaign__image { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+    display: block; 
+    transition: transform 0.6s ease;
+  }
+  
+  .campaign:hover .campaign__image {
+    transform: scale(1.03);
+  }
+
   .campaign__placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--color-surface);
+    background-color: var(--color-surface, #121212);
     height: 100%;
   }
+
+  /* Overlay Configurável */
+  .campaign__overlay {
+    position: absolute;
+    inset: 0;
+    background-color: var(--overlay-color, #000000);
+    opacity: var(--overlay-opacity, 0.4);
+    z-index: 1;
+    pointer-events: none;
+  }
+
   .campaign__media::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: var(--photo-veil-side);
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 40%, transparent 80%);
+    pointer-events: none;
+    z-index: 2;
   }
 
+  /* ==========================================================
+     CONTEÚDO E ALINHAMENTOS
+     ========================================================== */
   .campaign__inner {
     position: relative;
-    z-index: 2;
+    z-index: 3;
     width: 100%;
     display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: var(--space-lg);
-    flex-wrap: wrap;
-    padding-top: var(--space-section);
-    padding-bottom: var(--space-section);
+    padding-top: var(--space-section, 64px);
+    padding-bottom: var(--space-section, 64px);
   }
-  .campaign__content { max-width: 32rem; }
-  .campaign__content .eyebrow { margin-bottom: 16px; }
-  .campaign__heading { font-size: var(--f7); margin-bottom: 12px; }
-  .campaign__text { font-size: var(--f2); color: var(--color-text-secondary); margin-bottom: 28px; }
-  .campaign__cta { min-width: 200px; }
 
-  /* Countdown editorial: números grandes, rótulos minúsculos.
-     Sem caixas, sem separadores piscando. */
-  .campaign__aside { text-align: right; }
-  .campaign__countdown-label { margin-bottom: 14px; }
+  /* Organização Desktop */
+  @media screen and (min-width: 750px) {
+    /* Posição Vertical */
+    .campaign__inner--desktop-pos-bottom { align-items: flex-end; }
+    .campaign__inner--desktop-pos-middle { align-items: center; }
+    .campaign__inner--desktop-pos-top { align-items: flex-start; }
+
+    /* Alinhamento Horizontal e Disposição */
+    .campaign__inner--desktop-left { 
+      flex-direction: row; 
+      justify-content: space-between; 
+      text-align: left; 
+    }
+    .campaign__inner--desktop-center { 
+      flex-direction: column; 
+      justify-content: center; 
+      text-align: center; 
+      gap: 40px;
+    }
+    .campaign__inner--desktop-right { 
+      flex-direction: row-reverse; 
+      justify-content: space-between; 
+      text-align: right; 
+    }
+  }
+
+  /* Organização Mobile */
+  @media screen and (max-width: 749px) {
+    .campaign { min-height: 80vh; }
+    .campaign__inner { gap: 40px; flex-direction: column; }
+    
+    /* Posição Vertical */
+    .campaign__inner--mobile-pos-bottom { justify-content: flex-end; }
+    .campaign__inner--mobile-pos-middle { justify-content: center; }
+    .campaign__inner--mobile-pos-top { justify-content: flex-start; }
+
+    /* Alinhamento Horizontal */
+    .campaign__inner--mobile-left { align-items: flex-start; text-align: left; }
+    .campaign__inner--mobile-center { align-items: center; text-align: center; }
+    .campaign__inner--mobile-right { align-items: flex-end; text-align: right; }
+  }
+
+  /* ==========================================================
+     TIPOGRAFIA E ESTILOS DE TEXTO
+     ========================================================== */
+  .campaign__content { 
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 36rem; 
+  }
+
+  .campaign__eyebrow { 
+    font-family: var(--font-heading-family, inherit);
+    font-size: 0.875rem; 
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-accent, #C9A24D);
+    margin: 0; 
+  }
+
+  .campaign__heading { 
+    font-family: var(--font-heading-family, inherit);
+    font-size: clamp(2.5rem, 5vw, 4.5rem); 
+    line-height: 1.05;
+    font-weight: 700;
+    margin: 0;
+    color: #ffffff; 
+  }
+
+  .campaign__text { 
+    font-size: clamp(1rem, 1.2vw, 1.15rem); 
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.85); 
+    margin: 0; 
+  }
+
+  .campaign__cta { 
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 32px;
+    margin-top: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background-color: transparent;
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.4);
+    transition: all 0.3s ease;
+  }
+
+  .campaign__cta:hover {
+    background-color: #ffffff;
+    color: #000000;
+    border-color: #ffffff;
+  }
+
+  .campaign__cta svg {
+    transition: transform 0.3s ease;
+  }
+  .campaign__cta:hover svg {
+    transform: translateX(4px);
+  }
+
+  /* ==========================================================
+     COUNTDOWN (Cronômetro Estilo App)
+     ========================================================== */
+  .campaign__aside { 
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    /* Adiciona uma caixa de vidro no desktop quando alinhado ao centro */
+  }
+
+  /* Ajusta alinhamento do título do countdown baseado no layout */
+  .campaign__inner--desktop-left .campaign__aside { align-items: flex-end; text-align: right; }
+  .campaign__inner--desktop-center .campaign__aside { align-items: center; text-align: center; }
+  .campaign__inner--desktop-right .campaign__aside { align-items: flex-start; text-align: left; }
+  
+  .campaign__inner--mobile-left .campaign__aside { align-items: flex-start; text-align: left; }
+  .campaign__inner--mobile-center .campaign__aside { align-items: center; text-align: center; }
+  .campaign__inner--mobile-right .campaign__aside { align-items: flex-end; text-align: right; }
+
+  .campaign__countdown-label { 
+    font-family: var(--font-heading-family, inherit);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #ffffff;
+    margin: 0; 
+  }
+
   .campaign__countdown {
     display: flex;
-    gap: clamp(20px, 3vw, 40px);
+    align-items: center;
+    gap: 12px;
     list-style: none;
     margin: 0;
     padding: 0;
-  }
-  .campaign__unit { display: flex; flex-direction: column; align-items: center; gap: var(--space-3xs); }
-  .campaign__number {
-    font-family: var(--font-ui-family);
-    font-size: var(--f5);
-    font-weight: var(--font-weight-medium);
-    font-variant-numeric: tabular-nums;
-    color: var(--color-text-primary);
-    line-height: 1;
-  }
-  .campaign__label {
-    font-family: var(--font-ui-family);
-    font-size: var(--f0);
-    letter-spacing: var(--tracking-label);
-    text-transform: uppercase;
-    color: var(--color-text-muted);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px 24px;
+    border-radius: var(--radius-md, 12px);
   }
 
-  @media screen and (max-width: 1000px) {
-    .campaign { min-height: 76vh; }
-    .campaign__media::after { background: var(--photo-veil-bottom); }
-    .campaign__inner { flex-direction: column; align-items: flex-start; gap: var(--space-lg); }
-    .campaign__aside { text-align: left; }
-    .campaign__countdown { gap: var(--space-md); }
-    .campaign__cta { width: 100%; }
+  .campaign__unit { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    gap: 4px; 
+    min-width: 48px;
+  }
+
+  .campaign__number {
+    font-family: var(--font-ui-family, inherit);
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-accent, #C9A24D);
+    line-height: 1;
+  }
+
+  .campaign__separator {
+    font-size: 2rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.3);
+    line-height: 1;
+    margin-top: -16px;
+  }
+
+  .campaign__label {
+    font-family: var(--font-ui-family, inherit);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* ==========================================================
+     ANIMAÇÕES DE ENTRADA (Fade Up)
+     ========================================================== */
+  .animate-el {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  
+  .js .campaign__content.is-revealed .animate-el,
+  .js .campaign.is-revealed .animate-el {
+    animation: fadeUp 0.6s cubic-bezier(0.21, 0.85, 0.32, 1) forwards;
+    animation-delay: calc(var(--item-index, 1) * 80ms);
+  }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-el { opacity: 1; transform: none; animation: none; }
+    .campaign:hover .campaign__image { transform: none; }
   }
 </style>
 
-{%- if show_countdown -%}
-  <script>
-    (function () {
-      var section = document.querySelector('.campaign[data-section-id="{{ section.id }}"]');
-      var root = section && section.querySelector('[data-countdown][data-deadline]');
-      if (!root) return;
+<script>
+  (function () {
+    var section = document.querySelector('.campaign[data-section-id="{{ section.id }}"]');
+    if (!section) return;
 
-      var deadline = parseInt(root.getAttribute('data-deadline'), 10) * 1000;
-      var fields = {
-        days: root.querySelector('[data-countdown-days]'),
-        hours: root.querySelector('[data-countdown-hours]'),
-        minutes: root.querySelector('[data-countdown-minutes]'),
-        seconds: root.querySelector('[data-countdown-seconds]')
-      };
+    // Dispara animação baseada no scroll (Intersection Observer)
+    if (typeof window.CODRevelar === 'function') {
+      window.CODRevelar(section);
+    } else {
+      section.classList.add('is-revealed'); // Fallback imediato
+    }
 
-      function pad(n) { return (n < 10 ? '0' : '') + n; }
+    // Lógica do Cronômetro
+    var root = section.querySelector('[data-countdown][data-deadline]');
+    if (!root) return;
 
-      /* Escreve so quando o valor MUDOU. Os dias mudam uma vez por
-         dia, as horas uma vez por hora: sem esta guarda o contador
-         reescrevia os quatro campos a cada segundo, e cada escrita
-         num no de texto custa layout + paint da caixa do numero. */
-      function escrever(campo, valor) {
-        if (!campo || campo.textContent === valor) return;
-        campo.textContent = valor;
+    var deadline = parseInt(root.getAttribute('data-deadline'), 10) * 1000;
+    var fields = {
+      days: root.querySelector('[data-countdown-days]'),
+      hours: root.querySelector('[data-countdown-hours]'),
+      minutes: root.querySelector('[data-countdown-minutes]'),
+      seconds: root.querySelector('[data-countdown-seconds]')
+    };
+
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+    function escrever(campo, valor) {
+      if (!campo || campo.textContent === valor) return;
+      campo.textContent = valor;
+    }
+
+    var acabou = false;
+
+    function tick() {
+      var remaining = Math.floor((deadline - Date.now()) / 1000);
+      if (remaining <= 0) {
+        acabou = true;
+        parar();
+        root.remove();
+        return;
       }
+      escrever(fields.days, pad(Math.floor(remaining / 86400)));
+      escrever(fields.hours, pad(Math.floor((remaining % 86400) / 3600)));
+      escrever(fields.minutes, pad(Math.floor((remaining % 3600) / 60)));
+      escrever(fields.seconds, pad(remaining % 60));
+    }
 
-      var acabou = false;
+    var timer = null;
+    var naTela = true;
 
-      function tick() {
-        var remaining = Math.floor((deadline - Date.now()) / 1000);
-        if (remaining <= 0) {
-          // Acabou: o bloco some em vez de ficar zerado na tela.
-          acabou = true;
-          parar();
-          root.remove();
-          return;
-        }
-        escrever(fields.days, pad(Math.floor(remaining / 86400)));
-        escrever(fields.hours, pad(Math.floor((remaining % 86400) / 3600)));
-        escrever(fields.minutes, pad(Math.floor((remaining % 3600) / 60)));
-        escrever(fields.seconds, pad(remaining % 60));
-      }
+    function parar() {
+      if (timer === null) return;
+      window.clearInterval(timer);
+      timer = null;
+    }
 
-      /* ---------------------------------------------------------
-         O contador so anda quando ALGUEM PODE VE-LO.
+    function andar() {
+      if (timer !== null || acabou) return;
+      tick(); 
+      if (!acabou) timer = window.setInterval(tick, 1000);
+    }
 
-         Antes era um setInterval solto: enquanto a pagina estivesse
-         aberta ele acordava a thread principal uma vez por segundo,
-         para sempre — inclusive com a section rolada para longe da
-         tela, e inclusive com o site numa aba de fundo ou com o
-         celular no bolso. Um relogio que ninguem esta olhando e
-         custo puro: CPU, bateria e um frame gasto por segundo que
-         podia estar servindo a rolagem.
+    function sincronizar() {
+      if (naTela && !document.hidden) andar();
+      else parar();
+    }
 
-         Parar nao desalinha nada: tick() recalcula o tempo a partir
-         de Date.now() toda vez, nunca de um acumulador. Entao ao
-         voltar a ficar visivel ele ja aparece com a hora certa, sem
-         "recuperar" segundos perdidos.
-      --------------------------------------------------------- */
-      var timer = null;
-      var naTela = true;
+    document.addEventListener('visibilitychange', sincronizar);
 
-      function parar() {
-        if (timer === null) return;
-        window.clearInterval(timer);
-        timer = null;
-      }
-
-      function andar() {
-        if (timer !== null || acabou) return;
-        tick();                              // acerta o relogio na hora
-        // tick() pode ter descoberto que o prazo ja venceu: ai nao
-        // ha contador nenhum para manter andando.
-        if (!acabou) timer = window.setInterval(tick, 1000);
-      }
-
-      function sincronizar() {
-        if (naTela && !document.hidden) andar();
-        else parar();
-      }
-
-      document.addEventListener('visibilitychange', sincronizar);
-
-      if ('IntersectionObserver' in window) {
-        new IntersectionObserver(function (entries) {
-          naTela = entries[0].isIntersecting;
-          sincronizar();
-        }, { rootMargin: '120px 0px' }).observe(root);
-      }
-
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        naTela = entries[0].isIntersecting;
+        sincronizar();
+      }, { rootMargin: '120px 0px' }).observe(root);
+    } else {
       sincronizar();
-    })();
-  </script>
-{%- endif -%}
+    }
+  })();
+</script>
 
 {% schema %}
 {
-  "name": "t:sections.campaign.name",
+  "name": "Campanha Promocional",
   "tag": "section",
   "settings": [
-    { "type": "image_picker", "id": "image", "label": "t:sections.campaign.settings.image.label" },
-    { "type": "image_picker", "id": "image_mobile", "label": "t:sections.campaign.settings.image_mobile.label", "info": "t:sections.campaign.settings.image_mobile.info" },
-    { "type": "text", "id": "eyebrow", "label": "t:sections.campaign.settings.eyebrow.label" },
-    { "type": "text", "id": "heading", "label": "t:sections.campaign.settings.heading.label" },
-    { "type": "text", "id": "text", "label": "t:sections.campaign.settings.text.label" },
-    { "type": "text", "id": "button_label", "label": "t:sections.campaign.settings.button_label.label" },
-    { "type": "url", "id": "button_link", "label": "t:sections.campaign.settings.button_link.label" },
-    { "type": "header", "content": "t:sections.campaign.settings.header__countdown.content" },
-    { "type": "checkbox", "id": "show_countdown", "default": false, "label": "t:sections.campaign.settings.show_countdown.label", "info": "t:sections.campaign.settings.show_countdown.info" },
-    { "type": "text", "id": "countdown_label", "label": "t:sections.campaign.settings.countdown_label.label" },
-    { "type": "text", "id": "countdown_date", "label": "t:sections.campaign.settings.countdown_date.label", "info": "t:sections.campaign.settings.countdown_date.info" },
-    { "type": "text", "id": "countdown_time", "default": "00:00", "label": "t:sections.campaign.settings.countdown_time.label" }
+    {
+      "type": "header",
+      "content": "Mídia da Campanha"
+    },
+    { 
+      "type": "image_picker", 
+      "id": "image", 
+      "label": "Imagem Desktop",
+      "info": "Formato recomendado: paisagem (16:9)."
+    },
+    { 
+      "type": "image_picker", 
+      "id": "image_mobile", 
+      "label": "Imagem Mobile (Opcional)", 
+      "info": "Se vazia, será usada a imagem Desktop. Formato recomendado: retrato (4:5)." 
+    },
+    {
+      "type": "color",
+      "id": "overlay_color",
+      "label": "Cor da Máscara",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Escurecimento (Overlay)",
+      "default": 30,
+      "info": "Aumente para garantir leitura em fundos muito claros."
+    },
+    {
+      "type": "header",
+      "content": "Conteúdo e Textos"
+    },
+    { "type": "text", "id": "eyebrow", "label": "Rótulo (Eyebrow)", "default": "PRÓXIMO DROP" },
+    { "type": "text", "id": "heading", "label": "Título Principal", "default": "Coleção Inverno" },
+    { "type": "text", "id": "text", "label": "Texto de Apoio", "default": "Prepare-se para o lançamento mais esperado." },
+    { "type": "text", "id": "button_label", "label": "Texto do Botão", "default": "Ver Detalhes" },
+    { "type": "url", "id": "button_link", "label": "Link do Botão" },
+    {
+      "type": "header",
+      "content": "Layout Desktop"
+    },
+    {
+      "type": "select",
+      "id": "desktop_content_position",
+      "label": "Posição Vertical",
+      "options": [
+        { "value": "top", "label": "Em Cima" },
+        { "value": "middle", "label": "No Meio" },
+        { "value": "bottom", "label": "Embaixo" }
+      ],
+      "default": "bottom"
+    },
+    {
+      "type": "select",
+      "id": "desktop_text_alignment",
+      "label": "Alinhamento e Distribuição",
+      "options": [
+        { "value": "left", "label": "Esquerda (Texto esquerda, Tempo direita)" },
+        { "value": "center", "label": "Centro (Tudo centralizado)" },
+        { "value": "right", "label": "Direita (Texto direita, Tempo esquerda)" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "header",
+      "content": "Layout Mobile"
+    },
+    {
+      "type": "select",
+      "id": "mobile_content_position",
+      "label": "Posição Vertical",
+      "options": [
+        { "value": "top", "label": "Em Cima" },
+        { "value": "middle", "label": "No Meio" },
+        { "value": "bottom", "label": "Embaixo" }
+      ],
+      "default": "bottom"
+    },
+    {
+      "type": "select",
+      "id": "mobile_text_alignment",
+      "label": "Alinhamento do Texto",
+      "options": [
+        { "value": "left", "label": "Esquerda" },
+        { "value": "center", "label": "Centro" },
+        { "value": "right", "label": "Direita" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "header",
+      "content": "Cronómetro (Countdown)"
+    },
+    { 
+      "type": "checkbox", 
+      "id": "show_countdown", 
+      "default": true, 
+      "label": "Ativar Cronómetro", 
+      "info": "A caixa inteira desaparecerá automaticamente quando a data expirar." 
+    },
+    { "type": "text", "id": "countdown_label", "label": "Título do Cronómetro", "default": "Tempo restante" },
+    { 
+      "type": "text", 
+      "id": "countdown_date", 
+      "label": "Data do Evento", 
+      "info": "Formato obrigatório: AAAA-MM-DD. Ex: 2024-12-25",
+      "default": "2024-12-31"
+    },
+    { "type": "text", "id": "countdown_time", "default": "23:59", "label": "Hora do Evento", "info": "Formato: HH:MM" }
   ],
-  "presets": [{ "name": "t:sections.campaign.name" }]
+  "presets": [{ "name": "Campanha (Countdown)" }]
 }
 {% endschema %}
