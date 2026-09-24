@@ -1,6 +1,567 @@
+{% doc %}
+  @prompt
+    Quero implementar no tema Shopify um novo componente chamado "NeverX WhatsApp".
+    
+    IMPORTANTE:
+    Antes de criar qualquer código, leia a arquitetura atual do tema e entenda o design system, tipografia, espaçamentos, cores, border-radius, sombras, breakpoints e padrões de componentes existentes.
+    
+    O componente deve parecer NATIVO do tema, como se sempre tivesse feito parte dele.
+    
+    NÃO quero redesign do site.
+    NÃO altere componentes existentes sem necessidade.
+    NÃO adicione bibliotecas externas.
+    NÃO crie dependências externas.
+    NÃO deixe o componente pesado.
+    NÃO quero um widget genérico de app Shopify.
+    
+    ==================================================
+    OBJETIVO
+    ==================================================
+    
+    Criar um botão flutuante de atendimento via WhatsApp para o e-commerce.
+    
+    A ideia é extremamente simples:
+    
+    O cliente está navegando normalmente pelo e-commerce.
+    
+    No canto inferior da tela existe um pequeno botão de WhatsApp.
+    
+    Ao clicar, abre um pequeno painel de atendimento.
+    
+    O cliente pode escolher uma ação ou simplesmente clicar em:
+    
+    "Falar com atendente"
+    
+    Ao clicar em "Falar com atendente", o sistema abre o WhatsApp oficial da loja com uma mensagem contextualizada.
+    
+    O objetivo é criar uma ponte simples:
+    
+    SHOPIFY
+    ↓
+    NEVERX WHATSAPP
+    ↓
+    WHATSAPP DA LOJA
+    ↓
+    ATENDIMENTO
+    
+    O NeverX CRM futuramente poderá receber e armazenar as conversas através da integração oficial do WhatsApp Business API.
+    
+    IMPORTANTE:
+    Nesta primeira implementação NÃO tente integrar diretamente com a API do NeverX.
+    
+    Quero somente o componente do storefront e a geração correta do link/mensagem do WhatsApp.
+    
+    ==================================================
+    ARQUIVO
+    ==================================================
+    
+    Quero que toda a implementação do componente fique em UM ÚNICO ARQUIVO LIQUID.
+    
+    Exemplo:
+    
+    sections/neverx-whatsapp.liquid
+    
+    Dentro desse arquivo podem existir:
+    
+    - Liquid
+    - HTML
+    - CSS
+    - JavaScript
+    - schema do Shopify
+    
+    NÃO crie vários arquivos para essa funcionalidade.
+    
+    NÃO crie snippets adicionais.
+    
+    NÃO crie arquivos JS externos.
+    
+    NÃO crie CSS externo.
+    
+    A única exceção é caso a arquitetura atual do tema torne tecnicamente impossível fazer isso corretamente. Nesse caso, explique antes de criar qualquer arquivo adicional.
+    
+    ==================================================
+    DESIGN
+    ==================================================
+    
+    O componente deve ser extremamente clean e premium.
+    
+    Ele NÃO deve parecer um popup de marketing.
+    
+    Ele deve parecer uma ferramenta de atendimento.
+    
+    O botão deve ficar no canto inferior direito.
+    
+    Desktop:
+    
+    - tamanho compacto
+    - perfeitamente circular ou seguindo o padrão de radius do tema
+    - ícone oficial do WhatsApp
+    - sombra discreta
+    - excelente contraste
+    - pequeno feedback de hover
+    - não ocupar espaço desnecessário
+    
+    Mobile:
+    
+    - tamanho adequado para toque
+    - não cobrir o Add to Cart
+    - não cobrir sticky cart
+    - não cobrir elementos importantes
+    - respeitar safe-area
+    - posicionamento responsivo
+    
+    Não utilizar:
+    
+    - glow exagerado
+    - pulse infinito
+    - animações chamativas
+    - gradientes
+    - glassmorphism pesado
+    - efeitos 3D
+    - bounce
+    - popup automático invasivo
+    
+    ==================================================
+    BOTÃO
+    ==================================================
+    
+    O botão deve conter o ícone oficial do WhatsApp.
+    
+    Ao passar o mouse:
+    
+    - pequena mudança de escala ou elevação
+    - transição rápida
+    - nada exagerado
+    
+    No mobile, não utilizar hover.
+    
+    Adicionar aria-label apropriado.
+    
+    Exemplo:
+    
+    "Falar com atendimento pelo WhatsApp"
+    
+    ==================================================
+    PAINEL
+    ==================================================
+    
+    Ao clicar no botão, abrir um pequeno painel/drawer de atendimento.
+    
+    O painel deve ser compacto.
+    
+    Estrutura:
+    
+    --------------------------------
+    
+    Atendimento
+    
+    Olá! 👋
+    Como podemos ajudar?
+    
+    [ Tenho dúvida sobre um produto ]
+    
+    [ Preciso de ajuda com meu pedido ]
+    
+    [ Falar com atendente ]
+    
+    --------------------------------
+    
+    Digite sua mensagem...
+    
+    --------------------------------
+    
+    Não quero uma interface gigantesca.
+    
+    Não quero transformar o e-commerce em um aplicativo de chat.
+    
+    O usuário deve continuar enxergando a página atrás do painel.
+    
+    ==================================================
+    AÇÕES
+    ==================================================
+    
+    Criar três opções iniciais:
+    
+    1. "Tenho dúvida sobre um produto"
+    
+    2. "Preciso de ajuda com meu pedido"
+    
+    3. "Falar com atendente"
+    
+    As duas primeiras podem simplesmente preparar mensagens contextualizadas.
+    
+    A terceira deve abrir diretamente o WhatsApp.
+    
+    ==================================================
+    WHATSAPP
+    ==================================================
+    
+    O número do WhatsApp deve ser configurável pelo Theme Editor.
+    
+    NÃO hardcode o número.
+    
+    Criar setting:
+    
+    "WhatsApp"
+    
+    O lojista deverá informar o número no formato apropriado.
+    
+    O JavaScript deve sanitizar o número antes de montar a URL.
+    
+    Utilizar o formato oficial:
+    
+    https://wa.me/NUMERO
+    
+    A mensagem deve ser enviada através do parâmetro:
+    
+    ?text=
+    
+    com URL encoding correto.
+    
+    ===============================================
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .neverx-whatsapp-{{ ai_gen_id }} {
+    display: block;
+    width: 100%;
+    position: relative;
+    z-index: 1000;
+    font-family: {{ settings.type_body_font.family }}, {{ settings.type_body_font.fallback_families }};
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__launcher {
+    position: fixed;
+    right: max(20px, env(safe-area-inset-right));
+    bottom: max(20px, env(safe-area-inset-bottom));
+    z-index: 1001;
+    width: 58px;
+    height: 58px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    color: #ffffff;
+    background: #075e45;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__launcher:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.22);
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__launcher:focus-visible,
+  .neverx-whatsapp-{{ ai_gen_id }} button:focus-visible,
+  .neverx-whatsapp-{{ ai_gen_id }} input:focus-visible {
+    outline: 2px solid {{ settings.color_accent }};
+    outline-offset: 3px;
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__launcher svg {
+    width: 29px;
+    height: 29px;
+    fill: currentColor;
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__panel {
+    position: fixed;
+    right: max(20px, env(safe-area-inset-right));
+    bottom: calc(max(20px, env(safe-area-inset-bottom)) + 72px);
+    z-index: 1001;
+    width: min(350px, calc(100vw - 32px));
+    padding: 20px;
+    color: {{ settings.color_light_text }};
+    background: {{ settings.color_light_background }};
+    border: 1px solid rgba(10, 10, 10, 0.12);
+    border-radius: {{ settings.media_radius }}px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__panel[hidden] { display: none; }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__title {
+    margin: 0;
+    font-family: {{ settings.type_display_font.family }}, {{ settings.type_display_font.fallback_families }};
+    font-size: 20px;
+    line-height: 1.25;
+    font-weight: 500;
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 22px;
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__greeting {
+    margin: 0 0 14px;
+    color: {{ settings.color_light_text_secondary }};
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__actions {
+    display: grid;
+    gap: 8px;
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__action {
+    width: 100%;
+    padding: 11px 13px;
+    color: {{ settings.color_light_text }};
+    background: {{ settings.color_light_surface }};
+    border: 1px solid rgba(10, 10, 10, 0.12);
+    border-radius: {{ settings.buttons_radius }}px;
+    text-align: left;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background-color 140ms ease, border-color 140ms ease;
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__action:hover {
+    background: {{ settings.color_light_surface_elevated }};
+    border-color: rgba(10, 10, 10, 0.22);
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__message-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__input {
+    min-width: 0;
+    flex: 1;
+    padding: 10px 12px;
+    color: {{ settings.color_light_text }};
+    background: #ffffff;
+    border: 1px solid rgba(10, 10, 10, 0.2);
+    border-radius: {{ settings.inputs_radius }}px;
+    font: inherit;
+    font-size: 13px;
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__send {
+    width: 42px;
+    flex: 0 0 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: {{ settings.buttons_radius }}px;
+    color: {{ settings.color_accent_text }};
+    background: {{ settings.color_accent }};
+    cursor: pointer;
+  }
+
+  .neverx-whatsapp-{{ ai_gen_id }}__send svg { width: 18px; height: 18px; }
+
+  @media screen and (max-width: 749px) {
+    .neverx-whatsapp-{{ ai_gen_id }}__launcher {
+      width: 56px;
+      height: 56px;
+      right: max(16px, env(safe-area-inset-right));
+      bottom: max(18px, env(safe-area-inset-bottom));
+    }
+
+    .neverx-whatsapp-{{ ai_gen_id }}__panel {
+      right: max(12px, env(safe-area-inset-right));
+      bottom: calc(max(18px, env(safe-area-inset-bottom)) + 68px);
+      width: min(350px, calc(100vw - 24px));
+      max-height: min(76vh, 520px);
+      overflow-y: auto;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .neverx-whatsapp-{{ ai_gen_id }}__launcher,
+    .neverx-whatsapp-{{ ai_gen_id }}__action { transition: none; }
+  }
+{% endstyle %}
+
+<neverx-whatsapp-{{ ai_gen_id }}
+  class="neverx-whatsapp-{{ ai_gen_id }}"
+  data-phone="{{ block.settings.whatsapp_number | escape }}"
+  data-page-title="{{ page_title | escape }}"
+  data-page-url="{{ canonical_url | escape }}"
+  data-product-title="{% if product %}{{ product.title | escape }}{% endif %}"
+  {{ block.shopify_attributes }}
+>
+  <button
+    class="neverx-whatsapp-{{ ai_gen_id }}__launcher"
+    type="button"
+    aria-label="Falar com atendimento pelo WhatsApp"
+    aria-expanded="false"
+    aria-controls="neverx-whatsapp-panel-{{ ai_gen_id }}"
+  >
+    <svg viewBox="0 0 32 32" role="img" aria-hidden="true" focusable="false"><path d="M16.04 3C8.87 3 3.04 8.82 3.04 15.99c0 2.29.6 4.53 1.75 6.51L3 29l6.67-1.75a13 13 0 0 0 6.37 1.62h.01c7.17 0 13-5.82 13-12.99A12.9 12.9 0 0 0 25.24 6.7 12.9 12.9 0 0 0 16.04 3Zm0 23.65h-.01a10.8 10.8 0 0 1-5.5-1.51l-.39-.23-3.96 1.04 1.06-3.86-.25-.4a10.7 10.7 0 0 1-1.64-5.7c0-5.9 4.8-10.7 10.7-10.7 2.86 0 5.55 1.12 7.57 3.14a10.63 10.63 0 0 1 3.13 7.57c0 5.9-4.8 10.7-10.7 10.7Zm5.87-8.02c-.32-.16-1.9-.94-2.2-1.05-.3-.11-.51-.16-.72.16-.21.32-.83 1.05-1.02 1.27-.19.21-.38.24-.7.08-.32-.16-1.36-.5-2.59-1.59-.96-.85-1.6-1.9-1.79-2.22-.19-.32-.02-.49.14-.65.14-.14.32-.38.48-.56.16-.19.21-.32.32-.54.1-.21.05-.4-.03-.56-.08-.16-.72-1.74-.99-2.38-.26-.62-.53-.54-.72-.55h-.62c-.21 0-.56.08-.86.4-.3.32-1.13 1.1-1.13 2.68s1.15 3.1 1.31 3.31c.16.21 2.26 3.45 5.48 4.84.77.33 1.36.53 1.82.68.77.24 1.47.21 2.02.13.62-.09 1.9-.78 2.17-1.53.27-.75.27-1.39.19-1.53-.08-.13-.29-.21-.61-.37Z"/></svg>
+  </button>
+
+  <section class="neverx-whatsapp-{{ ai_gen_id }}__panel" id="neverx-whatsapp-panel-{{ ai_gen_id }}" role="dialog" aria-modal="false" aria-labelledby="neverx-whatsapp-title-{{ ai_gen_id }}" hidden>
+    <div class="neverx-whatsapp-{{ ai_gen_id }}__header">
+      <h2 class="neverx-whatsapp-{{ ai_gen_id }}__title" id="neverx-whatsapp-title-{{ ai_gen_id }}">Atendimento</h2>
+      <button class="neverx-whatsapp-{{ ai_gen_id }}__close" type="button" aria-label="Fechar atendimento">×</button>
+    </div>
+    <p class="neverx-whatsapp-{{ ai_gen_id }}__greeting">Olá! 👋<br>Como podemos ajudar?</p>
+    <div class="neverx-whatsapp-{{ ai_gen_id }}__actions">
+      <button class="neverx-whatsapp-{{ ai_gen_id }}__action" type="button" data-message="Tenho dúvida sobre um produto">Tenho dúvida sobre um produto</button>
+      <button class="neverx-whatsapp-{{ ai_gen_id }}__action" type="button" data-message="Preciso de ajuda com meu pedido">Preciso de ajuda com meu pedido</button>
+      <button class="neverx-whatsapp-{{ ai_gen_id }}__action" type="button" data-message="Olá! Gostaria de falar com um atendente.">Falar com atendente</button>
+    </div>
+    <form class="neverx-whatsapp-{{ ai_gen_id }}__message-row" novalidate>
+      <label class="visually-hidden" for="neverx-whatsapp-input-{{ ai_gen_id }}">Digite sua mensagem</label>
+      <input class="neverx-whatsapp-{{ ai_gen_id }}__input" id="neverx-whatsapp-input-{{ ai_gen_id }}" type="text" maxlength="500" placeholder="Digite sua mensagem..." autocomplete="off">
+      <button class="neverx-whatsapp-{{ ai_gen_id }}__send" type="submit" aria-label="Enviar mensagem pelo WhatsApp">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4Z"/></svg>
+      </button>
+    </form>
+  </section>
+</neverx-whatsapp-{{ ai_gen_id }}>
+
+<script>
+  (() => {
+    const tagName = 'neverx-whatsapp-{{ ai_gen_id }}';
+    if (customElements.get(tagName)) return;
+
+    class NeverXWhatsApp extends HTMLElement {
+      connectedCallback() {
+        this.launcher = this.querySelector('button[aria-controls]');
+        this.panel = this.querySelector('[role="dialog"]');
+        this.closeButton = this.querySelector('.neverx-whatsapp-{{ ai_gen_id }}__close');
+        this.input = this.querySelector('.neverx-whatsapp-{{ ai_gen_id }}__input');
+        this.form = this.querySelector('form');
+        this.launcher.addEventListener('click', () => this.togglePanel());
+        this.closeButton.addEventListener('click', () => this.closePanel());
+        this.querySelectorAll('[data-message]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const message = button.dataset.message;
+            if (message.startsWith('Olá!')) {
+              this.openWhatsApp(message);
+              return;
+            }
+            this.input.value = this.contextualMessage(message);
+            this.input.focus();
+          });
+        });
+        this.form.addEventListener('submit', (event) => {
+          event.preventDefault();
+          const message = this.input.value.trim();
+          if (message) this.openWhatsApp(message);
+        });
+        this.handleOutsideClick = (event) => {
+          if (!this.contains(event.target)) this.closePanel();
+        };
+        this.handleEscape = (event) => {
+          if (event.key === 'Escape') this.closePanel();
+        };
+        document.addEventListener('click', this.handleOutsideClick);
+        document.addEventListener('keydown', this.handleEscape);
+      }
+
+      disconnectedCallback() {
+        document.removeEventListener('click', this.handleOutsideClick);
+        document.removeEventListener('keydown', this.handleEscape);
+      }
+
+      togglePanel() {
+        if (this.panel.hidden) {
+          this.panel.hidden = false;
+          this.launcher.setAttribute('aria-expanded', 'true');
+          this.input.focus();
+        } else {
+          this.closePanel();
+        }
+      }
+
+      closePanel() {
+        this.panel.hidden = true;
+        this.launcher.setAttribute('aria-expanded', 'false');
+      }
+
+      contextualMessage(reason) {
+        const product = this.dataset.productTitle;
+        const title = this.dataset.pageTitle;
+        const url = this.dataset.pageUrl;
+        let message = reason;
+        if (product) message += `: ${product}`;
+        else if (title) message += `: ${title}`;
+        if (url) message += ` — ${url}`;
+        return message;
+      }
+
+      openWhatsApp(message) {
+        const number = (this.dataset.phone || '').replace(/\D/g, '');
+        if (!number) {
+          this.input.setCustomValidity('Configure o número do WhatsApp nas configurações do bloco.');
+          this.input.reportValidity();
+          this.input.addEventListener('input', () => this.input.setCustomValidity(), { once: true });
+          return;
+        }
+        const url = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    }
+
+    customElements.define(tagName, NeverXWhatsApp);
+  })();
+</script>
+
 {% schema %}
- {
-   "name": "AI_Block",
-   "tag": "shopify-ai-generated-block"
- }
+{
+  "name": "NeverX WhatsApp",
+  "settings": [
+    {
+      "type": "header",
+      "content": "WhatsApp"
+    },
+    {
+      "type": "text",
+      "id": "whatsapp_number",
+      "label": "WhatsApp",
+      "info": "Informe o número com código do país e DDD; a pontuação será removida."
+    },
+    {
+      "type": "range",
+      "id": "desktop_width_percent",
+      "label": "Desktop width",
+      "min": 50,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    }
+  ],
+  "presets": [
+    {
+      "name": "NeverX WhatsApp"
+    }
+  ],
+  "tag": null,
+  "class": "neverx-whatsapp-block"
+}
 {% endschema %}
