@@ -66,6 +66,36 @@
           "empty_link": "",
           "empty_collection": ""
         }
+      },
+      "activity-popup": {
+        "type": "activity-popup",
+        "settings": {
+          "ativo": true,
+          "colecao": "frontpage",
+          "titulo": "Em destaque",
+          "mostrar_imagem": true,
+          "mostrar_preco": true,
+          "mostrar_cta": true,
+          "texto_cta": "Ver produto",
+          "primeira": 17,
+          "visivel_min": 6,
+          "visivel_max": 10,
+          "intervalo_min": 20,
+          "intervalo_max": 45,
+          "limite": 4,
+          "mostrar_desktop": true,
+          "mostrar_mobile": true,
+          "posicao_desktop": "esquerda",
+          "posicao_mobile": "base",
+          "clicavel": true,
+          "nova_aba": false,
+          "cor_fundo": "",
+          "cor_texto": "",
+          "cor_secundaria": "",
+          "cor_borda": "",
+          "raio": 12,
+          "sombra": "suave"
+        }
       }
     },
     "content_for_index": []
