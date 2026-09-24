@@ -11,10 +11,82 @@
   "sections": {
     "main": {
       "type": "main-page",
-      "settings": {}
+      "disabled": true,
+      "settings": {
+        "eyebrow": "",
+        "cta_label": "",
+        "cta_link": ""
+      }
+    },
+    "sobre_qiGaeF": {
+      "type": "sobre",
+      "blocks": {
+        "numero_gPA9kh": {
+          "type": "numero",
+          "settings": {
+            "value": "2019",
+            "label": "Fundação"
+          }
+        },
+        "numero_BQKJxY": {
+          "type": "numero",
+          "settings": {
+            "value": "100%",
+            "label": "Produção nacional"
+          }
+        },
+        "numero_axcG4d": {
+          "type": "numero",
+          "settings": {
+            "value": "+40",
+            "label": "Drops lançados"
+          }
+        },
+        "capitulo_K9tDHc": {
+          "type": "capitulo",
+          "settings": {
+            "title": "A origem",
+            "text": "<p>Conte aqui uma parte da história: de onde veio a marca, o que ela recusa, como uma peça é escolhida antes de virar produto.</p>"
+          }
+        },
+        "capitulo_kRDrfD": {
+          "type": "capitulo",
+          "settings": {
+            "title": "O processo",
+            "text": "<p>Conte aqui uma parte da história: de onde veio a marca, o que ela recusa, como uma peça é escolhida antes de virar produto.</p>"
+          }
+        },
+        "capitulo_ebhgDW": {
+          "type": "capitulo",
+          "settings": {
+            "title": "O compromisso",
+            "text": "<p>Conte aqui uma parte da história: de onde veio a marca, o que ela recusa, como uma peça é escolhida antes de virar produto.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "numero_gPA9kh",
+        "numero_BQKJxY",
+        "numero_axcG4d",
+        "capitulo_K9tDHc",
+        "capitulo_kRDrfD",
+        "capitulo_ebhgDW"
+      ],
+      "name": "Sobre — página de marca",
+      "settings": {
+        "eyebrow": "Quem somos",
+        "heading": "Feito para quem\nnão pede licença",
+        "lead": "<p>Nascemos de uma ideia simples e inegociável: roupa de rua não precisa escolher entre atitude e acabamento. Cada peça sai de uma decisão, não de uma tendência.</p>",
+        "quote": "Conquistar não é vencer os outros.\nÉ não desistir de si.",
+        "quote_author": "Conquer or Die",
+        "cta_text": "A próxima peça é sua.",
+        "cta_label": "Ver coleção",
+        "cta_link": ""
+      }
     }
   },
   "order": [
-    "main"
+    "main",
+    "sobre_qiGaeF"
   ]
 }
