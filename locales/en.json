@@ -266,7 +266,8 @@
     },
     "activity_popup": {
       "label": "Product suggestion",
-      "close": "Close product suggestions"
+      "close": "Close product suggestions",
+      "free_shipping_from": "Free shipping over {{ amount }}"
     },
     "testimonials": {
       "rating": "{{ rating }} out of {{ max }} stars"

@@ -266,7 +266,8 @@
     },
     "activity_popup": {
       "label": "Sugestão de produto",
-      "close": "Fechar sugestões de produto"
+      "close": "Fechar sugestões de produto",
+      "free_shipping_from": "Frete grátis acima de {{ amount }}"
     },
     "testimonials": {
       "rating": "{{ rating }} de {{ max }} estrelas"

@@ -5,44 +5,50 @@
 
   O QUE FAZ:
   De vez em quando, durante a navegação, mostra um cartão pequeno
-  no canto da tela com um produto REAL do catálogo (foto, nome,
-  preço e link). Aparece devagar, fica alguns segundos, some e só
-  volta depois de um intervalo aleatório — com teto por sessão.
+  no canto da tela com um produto REAL — e, quando dá, um produto
+  que COMBINA com o que a pessoa está vendo ou já pôs no carrinho.
+  Dá para escolher o tamanho e adicionar ali mesmo, sem sair da
+  página. Aparece devagar, fica alguns segundos, some, e só volta
+  depois de um intervalo aleatório — com teto por sessão.
 
-  ONDE É USADA:
-  layout/theme.liquid, como section ESTÁTICA ao lado da cart-drawer.
-  Precisa ficar FORA de #smooth-wrapper: lá dentro o ScrollSmoother
-  aplica transform no conteúdo, e position: fixed passaria a rolar
-  junto com a página.
+  DE ONDE VEM O PRODUTO (nesta ordem):
+  1. Página de produto: recomendação da Shopify PARA aquele produto
+     ("complete o look").
+  2. Carrinho com itens: recomendação para o último item adicionado
+     ("combina com o seu carrinho").
+  3. Sem contexto (ou sem recomendação configurada): a coleção
+     escolhida no editor.
+  As recomendações vêm do motor nativo (/recommendations/products),
+  buscadas só na hora de mostrar e guardadas na sessão. Produto que
+  já está no carrinho, que acabou de aparecer ou que é o da página
+  nunca é sugerido.
+
+  POR QUE ISSO AUMENTA TICKET MÉDIO SEM FORÇAR NADA:
+  - sugestão com relação real ao que a pessoa já escolheu;
+  - compra em um toque (tamanho → carrinho), pelo mesmo fluxo AJAX
+    do resto do tema (assets/carrinho.js): gaveta, contador, erros;
+  - quanto falta para o frete grátis, lido do carrinho REAL e do
+    mesmo valor configurado em Configurações do tema > Carrinho;
+  - desconto só quando existe preço "de" cadastrado.
 
   ============================================================
   O QUE ESTE COMPONENTE NÃO FAZ — de propósito
   ============================================================
   Não mostra nome de "cliente", nem real nem inventado, e não diz
   que alguém comprou, viu ou está vendo o produto. O componente
-  não tem acesso a pedidos: qualquer nome ou atividade exibida aqui
-  seria fabricada, e prova social fabricada é propaganda enganosa
-  (CDC art. 37), infringe a política de uso da Shopify e é vedada
-  pela FTC desde 2024. É a mesma regra dos depoimentos
-  (sections/product-testimonials.liquid).
+  não tem acesso a pedidos: qualquer atividade exibida aqui seria
+  fabricada, e prova social fabricada é propaganda enganosa (CDC
+  art. 37), infringe a política de uso da Shopify e é vedada pela
+  FTC desde 2024. Mesma regra de sections/product-testimonials.
 
-  A sensação de loja viva vem da curadoria: escolha como fonte uma
-  coleção de verdade (lançamentos, mais vendidos ordenados pela
-  própria Shopify) e use um título que seja verdade sobre ela.
+  ONDE É USADA:
+  layout/theme.liquid, como section ESTÁTICA, FORA de
+  #smooth-wrapper (lá dentro position: fixed rolaria junto).
 
-  DADOS:
-  Até 12 produtos disponíveis da coleção escolhida, num JSON
-  pequeno na própria página — nada de request extra, nada privado:
-  só o que qualquer página de produto já mostra. O produto da
-  página atual fica de fora. O JSON só é lido quando a primeira
-  exibição chega; se a pessoa sair antes, o custo foi o HTML.
+  ONDE NÃO APARECE: carrinho, checkout, senha, vale-presente e área
+  do cliente — páginas de tarefa.
 
   COMPORTAMENTO: assets/destaque-flutuante.js.
-  O cartão só existe no DOM enquanto está na tela.
-
-  ONDE NÃO APARECE (sem setting — não faz sentido em nenhuma loja):
-  carrinho, checkout, senha, vale-presente e área do cliente. São
-  páginas de tarefa; um convite para outro produto ali atrapalha.
 {%- endcomment -%}
 
 {%- liquid
@@ -61,12 +67,6 @@
     assign fonte = collections.all
   endif
 
-  assign clicavel = section.settings.clicavel
-  assign mostrar_cta = section.settings.mostrar_cta
-  if section.settings.texto_cta == blank
-    assign mostrar_cta = false
-  endif
-
   assign alvo = ''
   if section.settings.nova_aba
     assign alvo = ' target="_blank" rel="noopener"'
@@ -80,17 +80,15 @@
     else
       assign sombra = 'var(--shadow-md)'
   endcase
+
+  # Frete grátis: a MESMA fonte de verdade da gaveta do carrinho.
+  assign frete_centavos = 0
+  if section.settings.mostrar_frete and settings.show_free_shipping and settings.free_shipping_threshold > 0
+    assign frete_centavos = settings.free_shipping_threshold | times: 100 | round
+  endif
 -%}
 
 {%- if ativo -%}
-  {%- comment -%}
-    Configuração e dados. O JS lê daqui; nada disso vira texto na
-    tela até a exibição acontecer.
-
-    Os tempos saem em milissegundos e já ordenados: se o lojista
-    puser o mínimo acima do máximo, o par é invertido aqui, e o JS
-    não precisa desconfiar do editor.
-  {%- endcomment -%}
   {%- liquid
     assign vis_min = section.settings.visivel_min | times: 1000
     assign vis_max = section.settings.visivel_max | times: 1000
@@ -107,6 +105,11 @@
       assign int_max = troca
     endif
     assign primeiro = section.settings.primeira | times: 1000
+
+    assign produto_atual = ''
+    if pagina == 'product' and product
+      assign produto_atual = product.id
+    endif
   -%}
   <div
     class="destaque-flutuante-raiz"
@@ -120,8 +123,31 @@
     data-intervalo-min="{{ int_min }}"
     data-intervalo-max="{{ int_max }}"
     data-limite="{{ section.settings.limite }}"
+    data-recomendar="{{ section.settings.recomendar }}"
+    data-compra-rapida="{{ section.settings.compra_rapida }}"
+    data-desconto="{{ section.settings.mostrar_desconto }}"
+    data-produto-atual="{{ produto_atual }}"
+    data-frete="{{ frete_centavos }}"
+    data-moeda="{{ cart.currency.iso_code }}"
+    data-idioma="{{ request.locale.iso_code }}"
+    data-raiz-loja="{{ routes.root_url }}"
+    data-titulo-padrao="{{ section.settings.titulo | escape }}"
+    data-titulo-produto="{{ section.settings.titulo_produto | escape }}"
+    data-titulo-carrinho="{{ section.settings.titulo_carrinho | escape }}"
+    data-txt-frete-falta="{{ 'sections.cart.free_shipping_remaining_html' | t: amount: '[valor]' | strip_html | escape }}"
+    data-txt-frete-a-partir="{{ 'sections.activity_popup.free_shipping_from' | t: amount: '[valor]' | escape }}"
+    data-txt-adicionar="{{ 'products.product.add_to_cart' | t | escape }}"
+    data-txt-esgotado="{{ 'products.product.sold_out' | t | escape }}"
+    data-txt-a-partir="{{ 'products.product.price.from_price_html' | t: price: '[valor]' | strip_html | escape }}"
     hidden
   >
+    {%- comment -%}
+      Coleção curada (plano C). Até 12 disponíveis, fora o produto da
+      página. Variantes só entram quando o produto tem UMA opção com
+      até 8 valores — o caso "tamanho" que cabe numa fileira de
+      botões. Produto com cor + tamanho vira "ver opções": escolher
+      duas coisas num cartão de canto de tela é pedir erro.
+    {%- endcomment -%}
     <script type="application/json" data-destaque-produtos>
       [
         {%- assign escritos = 0 -%}
@@ -129,15 +155,16 @@
           {%- if escritos >= 12 -%}{%- break -%}{%- endif -%}
           {%- if p.available == false or p.id == product.id -%}{%- continue -%}{%- endif -%}
           {%- liquid
+            assign preco_de = ''
+            assign desconto = 0
             if p.price_varies
               assign preco_min = p.price_min | money
               assign preco_texto = 'products.product.price.from_price_html' | t: price: preco_min
-              assign preco_de = ''
             else
               assign preco_texto = p.price | money
-              assign preco_de = ''
               if p.compare_at_price > p.price
                 assign preco_de = p.compare_at_price | money
+                assign desconto = p.compare_at_price | minus: p.price | times: 100 | divided_by: p.compare_at_price | floor
               endif
             endif
           -%}
@@ -146,9 +173,17 @@
             "id": {{ p.id | json }},
             "url": {{ p.url | json }},
             "titulo": {{ p.title | json }},
-            "imagem": {% if p.featured_image %}{{ p.featured_image | image_url: width: 160 | json }}{% else %}null{% endif %},
+            "imagem": {% if p.featured_image %}{{ p.featured_image | image_url: width: 200 | json }}{% else %}null{% endif %},
             "preco": {{ preco_texto | strip_html | json }},
-            "precoDe": {% if preco_de != blank %}{{ preco_de | json }}{% else %}null{% endif %}
+            "precoDe": {% if preco_de != blank %}{{ preco_de | json }}{% else %}null{% endif %},
+            "desconto": {{ desconto }},
+            "unica": {{ p.has_only_default_variant | json }},
+            "opcao": {% if p.options.size == 1 and p.has_only_default_variant == false and p.variants.size <= 8 %}{{ p.options.first | json }}{% else %}null{% endif %},
+            "variantes": [
+              {%- for v in p.variants limit: 8 -%}
+                {"id": {{ v.id }}, "t": {{ v.title | json }}, "d": {{ v.available | json }}}{%- unless forloop.last -%},{%- endunless -%}
+              {%- endfor -%}
+            ]
           }
           {%- assign escritos = escritos | plus: 1 -%}
         {%- endfor -%}
@@ -156,24 +191,25 @@
     </script>
 
     {%- comment -%}
-      O cartão é um <template>: nada disso entra no DOM até a hora de
-      aparecer, e ao sumir ele é removido de novo. Uma cópia por vez.
+      Molde do cartão. Só entra no DOM na hora de aparecer e sai ao
+      sumir; uma cópia por vez.
 
-      Semântica: <aside> com nome acessível, e dentro dele um <a> de
-      verdade (clicável) ou um <div> (quando o lojista desliga o
-      clique) — nunca uma div com onclick. O fechar é um <button>
-      irmão do link, fora dele: botão dentro de link é HTML inválido
-      e confunde leitor de tela e teclado.
+      Semântica: <aside> com nome acessível. O NOME do produto é o
+      link, e quando o cartão inteiro é clicável esse link se estica
+      por cima dele (::after) — o padrão "stretched link". Assim os
+      botões de tamanho, o adicionar e o fechar podem existir dentro
+      do cartão sem cair dentro de um <a> (botão dentro de link é
+      HTML inválido e quebra teclado e leitor de tela).
 
-      Sem aria-live, também de propósito: anunciar sugestões de
-      produto a cada meio minuto seria exatamente o spam que o
-      componente se propõe a não ser. Quem usa leitor de tela o
-      encontra no fim da ordem de tabulação, como qualquer
-      complemento da página.
+      data-df-passo marca os degraus da cascata de entrada.
+
+      Sem aria-live, de propósito: anunciar sugestões a cada meio
+      minuto seria spam. Quem usa leitor de tela encontra o cartão no
+      fim da ordem de tabulação.
     {%- endcomment -%}
     <template data-destaque-modelo>
       <aside
-        class="destaque-flutuante destaque-flutuante--desk-{{ section.settings.posicao_desktop }} destaque-flutuante--mob-{{ section.settings.posicao_mobile }}"
+        class="destaque-flutuante destaque-flutuante--desk-{{ section.settings.posicao_desktop }} destaque-flutuante--mob-{{ section.settings.posicao_mobile }}{% if section.settings.clicavel %} destaque-flutuante--clicavel{% endif %}"
         aria-label="{{ 'sections.activity_popup.label' | t }}"
         style="
           {%- if section.settings.cor_fundo != blank -%}--df-fundo: {{ section.settings.cor_fundo }};{%- endif -%}
@@ -184,49 +220,63 @@
           --df-sombra: {{ sombra }};
         "
       >
-        {%- if clicavel -%}
-          <a class="destaque-flutuante__corpo destaque-flutuante__corpo--link" href="#" data-df-link{{ alvo }}>
-        {%- else -%}
-          <div class="destaque-flutuante__corpo">
-        {%- endif -%}
-
+        <div class="destaque-flutuante__corpo">
           {%- if section.settings.mostrar_imagem -%}
-            <span class="destaque-flutuante__midia" data-df-midia aria-hidden="true"></span>
+            <div class="destaque-flutuante__midia" data-df-midia aria-hidden="true">
+              <span class="destaque-flutuante__selo" data-df-selo hidden></span>
+            </div>
           {%- endif -%}
 
-          <span class="destaque-flutuante__conteudo">
-            {%- if section.settings.titulo != blank -%}
-              <span class="destaque-flutuante__rotulo">{{ section.settings.titulo | escape }}</span>
-            {%- endif -%}
-            <span class="destaque-flutuante__produto" data-df-titulo></span>
+          <div class="destaque-flutuante__conteudo">
+            <p class="destaque-flutuante__rotulo" data-df-rotulo data-df-passo style="--i: 0;"></p>
+            <a class="destaque-flutuante__produto" href="#" data-df-link data-df-titulo data-df-passo style="--i: 1;"{{ alvo }}></a>
             {%- if section.settings.mostrar_preco -%}
-              <span
+              <p
                 class="destaque-flutuante__preco"
                 data-df-preco
+                data-df-passo
+                style="--i: 2;"
                 data-rotulo-de="{{ 'products.product.price.regular_price' | t | escape }}"
                 data-rotulo-por="{{ 'products.product.price.sale_price' | t | escape }}"
-              ></span>
+              ></p>
             {%- endif -%}
-            {%- if mostrar_cta -%}
-              {%- if clicavel -%}
-                <span class="destaque-flutuante__cta">
-                  {{- section.settings.texto_cta | escape -}}
-                  {% render 'icon', name: 'arrow-right' %}
-                </span>
-              {%- else -%}
-                <a class="destaque-flutuante__cta destaque-flutuante__cta--link" href="#" data-df-link{{ alvo }}>
+
+            {%- comment -%}
+              Ação: o JS escolhe UMA das três, conforme o produto.
+              - tamanhos: botões que adicionam direto;
+              - adicionar: produto sem variantes;
+              - ver: link para a página (várias opções, compra rápida
+                desligada ou sem estoque na fileira).
+              O form é o mesmo tipo que o carrinho.js já intercepta.
+            {%- endcomment -%}
+            <div class="destaque-flutuante__acao" data-df-passo style="--i: 3;">
+              <form action="{{ routes.cart_add_url }}" method="post" class="destaque-flutuante__form" data-df-form hidden>
+                <input type="hidden" name="id" value="" data-df-variante>
+                <input type="hidden" name="quantity" value="1">
+                <div class="destaque-flutuante__tamanhos" role="group" data-df-tamanhos></div>
+                <button type="button" class="destaque-flutuante__adicionar" data-df-adicionar hidden>
+                  <svg viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false"><path d="M6 1.5v9M1.5 6h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                  <span>{{ 'products.product.add_to_cart' | t }}</span>
+                </button>
+              </form>
+              {%- if section.settings.mostrar_cta and section.settings.texto_cta != blank -%}
+                <a class="destaque-flutuante__cta" href="#" data-df-link data-df-ver hidden{{ alvo }}>
                   {{- section.settings.texto_cta | escape -}}
                   {% render 'icon', name: 'arrow-right' %}
                 </a>
               {%- endif -%}
-            {%- endif -%}
-          </span>
-
-        {%- if clicavel -%}
-          </a>
-        {%- else -%}
+            </div>
           </div>
-        {%- endif -%}
+        </div>
+
+        <div class="destaque-flutuante__frete" data-df-frete data-df-passo style="--i: 4;" hidden>
+          <p class="destaque-flutuante__frete-texto" data-df-frete-texto></p>
+          <span class="destaque-flutuante__frete-trilho" aria-hidden="true">
+            <span class="destaque-flutuante__frete-barra" data-df-frete-barra></span>
+          </span>
+        </div>
+
+        <span class="destaque-flutuante__tempo" aria-hidden="true"></span>
 
         <button type="button" class="destaque-flutuante__fechar" data-df-fechar aria-label="{{ 'sections.activity_popup.close' | t }}">
           {% render 'icon', name: 'close' %}
@@ -239,90 +289,144 @@
     /* ==========================================================
        CARTÃO
        ==========================================================
-       Mora fora de #MainContent, então herda os tokens do shell
-       ESCURO — o mesmo material do header, do carrinho e do toast.
-       Um cartão escuro e baixo sobre a página clara lê como parte
-       da interface da loja, não como anúncio colado por cima.
+       Mora fora de #MainContent: herda os tokens do shell ESCURO —
+       o mesmo material do header, do carrinho e do toast. Um
+       cartão escuro sobre a página clara lê como parte da loja,
+       não como anúncio colado por cima.
 
-       Cada cor tem um setting opcional; vazio, vale o token.
        z-index 390: abaixo da barra fixa de compra da PDP (400) e de
-       toda gaveta/menu. Nunca disputa com o que leva ao checkout. */
+       toda gaveta/menu. Nunca disputa com o caminho do checkout. */
     .destaque-flutuante {
       --df-fundo: var(--color-surface-elevated);
       --df-texto: var(--color-text-primary);
       --df-secundaria: var(--color-text-secondary);
       --df-borda: var(--color-border);
       --df-empurra: 0px;
-      --df-desloca: 12px;
+      --df-desloca: 16px;
+      --df-tempo: 8000ms;
 
       position: fixed;
       z-index: 390;
       bottom: calc(var(--space-md) + var(--sab, 0px) + var(--df-empurra));
-      width: min(360px, calc(100vw - var(--space-lg)));
+      width: min(380px, calc(100vw - var(--space-lg)));
+      overflow: hidden;
       color: var(--df-texto);
       background-color: var(--df-fundo);
       border: 1px solid var(--df-borda);
       border-radius: var(--df-raio, var(--radius-md));
       box-shadow: var(--df-sombra, var(--shadow-md));
-      opacity: 0;
-      transform: translate3d(0, var(--df-desloca), 0);
-      transition:
-        opacity var(--dur-emphasis) var(--ease-out),
-        transform var(--dur-emphasis) var(--ease-out);
+      transition: border-color var(--dur-fast) var(--ease-out);
     }
     .destaque-flutuante--desk-esquerda { left: max(var(--space-md), var(--sal, 0px)); }
     .destaque-flutuante--desk-direita { right: max(var(--space-md), var(--sar, 0px)); }
 
+    /* ==========================================================
+       MOVIMENTO — entrar, contar, sair
+       ==========================================================
+       ENTRADA (--dur-reveal, a mesma do reveal do tema):
+       o cartão sobe 16px e assenta, a foto chega um pouco maior e
+       se acomoda, e o conteúdo entra em cascata curta — rótulo,
+       nome, preço, ação, frete — 60ms entre degraus. É uma peça
+       montando, não uma caixa saltando: sem overshoot, sem bounce.
+
+       TEMPO: um fio dourado no pé do cartão encolhe durante o tempo
+       de tela. É o que diz "isto vai sumir sozinho" sem texto, e
+       ele PARA quando o ponteiro ou o foco estão no cartão (o JS
+       congela o relógio no mesmo instante).
+
+       SAÍDA (--dur-normal): mais curta e mais contida que a
+       entrada — desce 10px e apaga. Sair é detalhe, não evento.
+
+       Só transform e opacity. Com "reduzir movimento" os tokens do
+       tema chegam zerados e o fio de tempo some. */
+    .destaque-flutuante {
+      opacity: 0;
+      transform: translate3d(0, var(--df-desloca), 0) scale(0.98);
+      transform-origin: 50% 100%;
+      transition:
+        opacity var(--dur-emphasis) var(--ease-out),
+        transform var(--dur-reveal) var(--ease-out),
+        border-color var(--dur-fast) var(--ease-out);
+    }
     .destaque-flutuante.is-visivel {
       opacity: 1;
       transform: none;
     }
-    /* Saída mais curta e mais curta no deslocamento que a entrada:
-       sair é um detalhe, não um evento. */
     .destaque-flutuante.is-saindo {
       opacity: 0;
-      transform: translate3d(0, 8px, 0);
-      transition-duration: var(--dur-normal);
+      transform: translate3d(0, 10px, 0) scale(0.985);
+      transition-duration: var(--dur-normal), var(--dur-normal), var(--dur-fast);
     }
 
-    /* Menu ou carrinho abertos: o cartão some sem JS nenhum. É a
-       mesma classe que os dois painéis já usam para travar a
-       rolagem (ver carrinho.js e nav.liquid). */
+    .destaque-flutuante [data-df-passo] {
+      opacity: 0;
+      transform: translate3d(0, 6px, 0);
+      transition:
+        opacity var(--dur-emphasis) var(--ease-out),
+        transform var(--dur-emphasis) var(--ease-out);
+      transition-delay: calc(120ms + var(--i, 0) * 60ms);
+    }
+    .destaque-flutuante.is-visivel [data-df-passo] {
+      opacity: 1;
+      transform: none;
+    }
+    .destaque-flutuante.is-saindo [data-df-passo] { transition-delay: 0ms; }
+
+    /* No TOPO, não no pé: o rodapé do cartão já tem o trilho do
+       frete, e duas linhas douradas empilhadas brigariam. */
+    .destaque-flutuante__tempo {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 2px;
+      background-color: var(--color-accent);
+      opacity: 0.85;
+      transform-origin: left center;
+      transform: scaleX(0);
+      pointer-events: none;
+    }
+    .destaque-flutuante.is-contando .destaque-flutuante__tempo {
+      animation: dfTempo var(--df-tempo) linear forwards;
+    }
+    .destaque-flutuante.is-pausado .destaque-flutuante__tempo { animation-play-state: paused; }
+    @keyframes dfTempo {
+      from { transform: scaleX(1); }
+      to { transform: scaleX(0); }
+    }
+
+    /* Menu ou carrinho abertos: some sem JS (mesma classe que os
+       dois painéis usam para travar a rolagem). */
     body.bloquear .destaque-flutuante {
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
     }
 
+    /* ==========================================================
+       ESTRUTURA
+       ========================================================== */
+    /* O JS escolhe UMA ação por produto e esconde as outras com
+       [hidden]. Sem esta regra, o display das classes abaixo vence
+       o atributo e a ação escondida ocupa espaço invisível. */
+    .destaque-flutuante [hidden] { display: none !important; }
+
     .destaque-flutuante__corpo {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr);
-      align-items: center;
-      gap: var(--space-xs);
-      padding: var(--space-xs);
-      /* Faixa reservada para o X — o texto nunca passa por baixo */
-      padding-right: calc(var(--space-xs) + 28px);
-      color: inherit;
-      text-decoration: none;
-      border-radius: inherit;
+      align-items: start;
+      gap: var(--space-sm);
+      padding: var(--space-sm);
+      padding-right: calc(var(--space-sm) + 24px);
     }
     .destaque-flutuante__corpo:not(:has(.destaque-flutuante__midia)) {
       grid-template-columns: minmax(0, 1fr);
     }
-    .destaque-flutuante__corpo--link { cursor: pointer; }
-    .destaque-flutuante__corpo--link:focus-visible {
-      outline: 2px solid var(--color-focus-ring);
-      outline-offset: 2px;
-    }
 
-    /* ---- Foto ----
-       Mesmo tratamento da mídia do card de produto: sem moldura,
-       fundo de superfície enquanto carrega, raio do setting de
-       mídia (em cima de um mínimo, para não brigar com o cartão). */
+    /* ---- Foto ---- */
     .destaque-flutuante__midia {
       position: relative;
-      display: block;
-      width: 64px;
+      width: 76px;
       aspect-ratio: 3 / 4;
       overflow: hidden;
       border-radius: max(var(--media-radius, 0px), var(--radius-xs));
@@ -334,10 +438,10 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transition: transform var(--dur-emphasis) var(--ease-out);
+      transform: scale(1.08);
+      transition: transform calc(var(--dur-reveal) * 1.6) var(--ease-out);
     }
-    /* Sem foto: a inicial do produto no serif da marca, em vez de
-       um ícone genérico de "imagem quebrada". */
+    .destaque-flutuante.is-visivel .destaque-flutuante__midia img { transform: none; }
     .destaque-flutuante__inicial {
       position: absolute;
       inset: 0;
@@ -348,14 +452,34 @@
       font-weight: var(--font-weight-bold);
       color: var(--df-secundaria);
     }
+    /* Desconto REAL (preço "de" cadastrado): tinta sobre ouro,
+       ~8:1 — a leitura que o selo do card de produto deveria ter. */
+    .destaque-flutuante__selo {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      z-index: 1;
+      padding: 2px 5px;
+      font-family: var(--font-ui-family);
+      font-size: 10px;
+      font-weight: var(--font-weight-bold);
+      line-height: 1.3;
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+      color: var(--cod-ink, #0A0A0A);
+      background-color: var(--color-accent);
+      border-radius: var(--radius-xs);
+    }
 
     /* ---- Texto ---- */
     .destaque-flutuante__conteudo {
       display: grid;
-      gap: 2px;
+      gap: 3px;
       min-width: 0;
+      align-content: start;
     }
     .destaque-flutuante__rotulo {
+      margin: 0;
       font-family: var(--font-ui-family);
       font-size: var(--f0);
       font-weight: var(--font-weight-medium);
@@ -369,16 +493,32 @@
       font-weight: var(--font-weight-medium);
       line-height: var(--leading-ui);
       color: var(--df-texto);
+      text-decoration: none;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
       transition: color var(--dur-fast) var(--ease-out);
     }
+    .destaque-flutuante__produto:focus-visible {
+      outline: 2px solid var(--color-focus-ring);
+      outline-offset: 2px;
+    }
+    /* Stretched link: o nome cobre o cartão inteiro. Os controles
+       (tamanhos, adicionar, fechar) ficam acima dele (z-index 2). */
+    .destaque-flutuante--clicavel .destaque-flutuante__produto::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+    .destaque-flutuante--clicavel { cursor: pointer; }
+
     .destaque-flutuante__preco {
       display: flex;
       flex-wrap: wrap;
       align-items: baseline;
       gap: 0 var(--space-2xs);
+      margin: 0;
       font-family: var(--font-ui-family);
       font-size: var(--f1);
       font-weight: var(--font-weight-semibold);
@@ -390,12 +530,99 @@
       color: var(--df-secundaria);
     }
     .destaque-flutuante__preco:empty { display: none; }
+
+    /* ---- Ação ---- */
+    .destaque-flutuante__acao {
+      position: relative;
+      z-index: 2;
+      margin-top: var(--space-2xs);
+      min-width: 0;
+    }
+    .destaque-flutuante__acao:not(:has(> :not([hidden]))) { display: none; }
+    .destaque-flutuante__tamanhos {
+      display: flex;
+      gap: var(--space-3xs);
+      overflow-x: auto;
+      scrollbar-width: none;
+      overscroll-behavior-x: contain;
+    }
+    .destaque-flutuante__tamanhos::-webkit-scrollbar { display: none; }
+    .destaque-flutuante__tamanhos:empty { display: none; }
+
+    /* Mesmo vocabulário dos botões de variante da PDP: contorno
+       fino, texto em caixa alta miúda. Sem cor de destaque em
+       repouso — a ação ganha peso no hover/toque. */
+    .destaque-flutuante__tamanho,
+    .destaque-flutuante__adicionar {
+      position: relative;
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-width: 36px;
+      height: 32px;
+      padding: 0 var(--space-2xs);
+      font-family: var(--font-ui-family);
+      font-size: var(--f0);
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      color: var(--df-texto);
+      background: transparent;
+      border: 1px solid var(--color-border-strong);
+      border-radius: var(--inputs-radius, var(--radius-xs));
+      cursor: pointer;
+      transition:
+        color var(--dur-fast) var(--ease-out),
+        background-color var(--dur-fast) var(--ease-out),
+        border-color var(--dur-fast) var(--ease-out),
+        transform var(--dur-fast) var(--ease-out);
+    }
+    .destaque-flutuante__adicionar { padding: 0 var(--space-xs); }
+    .destaque-flutuante__adicionar svg { width: 10px; height: 10px; }
+    .destaque-flutuante__tamanho:hover,
+    .destaque-flutuante__adicionar:hover {
+      color: var(--color-button-primary-text);
+      background-color: var(--color-button-primary-background);
+      border-color: var(--color-button-primary-background);
+    }
+    .destaque-flutuante__tamanho:active,
+    .destaque-flutuante__adicionar:active { transform: scale(0.95); }
+    .destaque-flutuante__tamanho:focus-visible,
+    .destaque-flutuante__adicionar:focus-visible {
+      outline: 2px solid var(--color-focus-ring);
+      outline-offset: 2px;
+    }
+    .destaque-flutuante__tamanho[aria-disabled='true'] {
+      color: var(--color-text-disabled);
+      border-color: var(--df-borda);
+      cursor: not-allowed;
+      text-decoration: line-through;
+      background: transparent;
+    }
+    .destaque-flutuante__tamanho[aria-busy='true'],
+    .destaque-flutuante__adicionar[aria-busy='true'] {
+      color: transparent;
+      pointer-events: none;
+    }
+    .destaque-flutuante__tamanho[aria-busy='true']::after,
+    .destaque-flutuante__adicionar[aria-busy='true']::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1.5px solid var(--color-border-strong);
+      border-top-color: var(--color-accent);
+      animation: buttonSpin 620ms linear infinite;
+    }
+
     .destaque-flutuante__cta {
       display: inline-flex;
       align-items: center;
       gap: var(--space-2xs);
       width: fit-content;
-      margin-top: var(--space-3xs);
       font-family: var(--font-ui-family);
       font-size: var(--f0);
       font-weight: var(--font-weight-medium);
@@ -411,15 +638,56 @@
       color: var(--color-accent-readable);
       transition: transform var(--dur-normal) var(--ease-out);
     }
+    .destaque-flutuante__cta:focus-visible {
+      outline: 2px solid var(--color-focus-ring);
+      outline-offset: 2px;
+    }
 
-    /* ---- Fechar ----
-       Pequeno no desenho, 44px no dedo: o ::after do .alvo-44 não
-       serve aqui porque o botão encosta na borda do cartão, então o
-       próprio botão cresce e o ícone fica pequeno dentro dele. */
+    /* ---- Frete grátis ----
+       Faixa de rodapé do cartão: a informação que faz a sugestão
+       fazer sentido ("com este, o frete sai de graça"). O trilho é
+       o mesmo desenho do progresso da gaveta do carrinho. */
+    .destaque-flutuante__frete {
+      display: grid;
+      gap: 6px;
+      padding: var(--space-xs) var(--space-sm) calc(var(--space-xs) + 2px);
+      border-top: 1px solid var(--df-borda);
+    }
+    .destaque-flutuante__frete[hidden] { display: none; }
+    .destaque-flutuante__frete-texto {
+      margin: 0;
+      font-family: var(--font-ui-family);
+      font-size: var(--f0);
+      line-height: var(--leading-ui);
+      color: var(--df-secundaria);
+    }
+    .destaque-flutuante__frete-texto strong {
+      color: var(--df-texto);
+      font-weight: var(--font-weight-semibold);
+    }
+    .destaque-flutuante__frete-trilho {
+      position: relative;
+      height: 2px;
+      overflow: hidden;
+      border-radius: var(--radius-pill);
+      background-color: var(--df-borda);
+    }
+    .destaque-flutuante__frete-barra {
+      position: absolute;
+      inset: 0;
+      transform-origin: left center;
+      transform: scaleX(0);
+      background-color: var(--color-accent);
+      transition: transform calc(var(--dur-reveal) * 1.4) var(--ease-out) 360ms;
+    }
+    .destaque-flutuante.is-visivel .destaque-flutuante__frete-barra { transform: scaleX(var(--df-frete, 0)); }
+
+    /* ---- Fechar ---- */
     .destaque-flutuante__fechar {
       position: absolute;
-      top: 0;
-      right: 0;
+      top: 2px;
+      right: 2px;
+      z-index: 2;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -436,34 +704,29 @@
     .destaque-flutuante__fechar svg { width: 14px; height: 14px; }
     .destaque-flutuante__fechar:hover { color: var(--df-texto); }
 
-    /* ---- Resposta ao ponteiro — discreta ----
-       Borda um degrau mais forte, nome do produto no ouro legível
-       (o mesmo hover do card de produto) e a seta andando. Sem
-       levantar o cartão: ele já está flutuando. */
+    /* ---- Resposta ao ponteiro — discreta ---- */
     @media (hover: hover) {
-      .destaque-flutuante:has(.destaque-flutuante__corpo--link:hover) {
-        border-color: var(--color-border-strong);
-      }
-      .destaque-flutuante__corpo--link:hover .destaque-flutuante__produto { color: var(--color-accent-readable); }
-      .destaque-flutuante__corpo--link:hover .destaque-flutuante__midia img { transform: scale(1.04); }
-      .destaque-flutuante__corpo--link:hover .destaque-flutuante__cta,
-      .destaque-flutuante__cta--link:hover { color: var(--df-texto); }
-      .destaque-flutuante__corpo--link:hover .destaque-flutuante__cta svg,
-      .destaque-flutuante__cta--link:hover svg { transform: translateX(3px); }
+      .destaque-flutuante:has(.destaque-flutuante__produto:hover) { border-color: var(--color-border-strong); }
+      .destaque-flutuante:has(.destaque-flutuante__produto:hover) .destaque-flutuante__produto { color: var(--color-accent-readable); }
+      .destaque-flutuante:has(.destaque-flutuante__produto:hover) .destaque-flutuante__midia img { transform: scale(1.04); }
+      .destaque-flutuante__cta:hover { color: var(--df-texto); }
+      .destaque-flutuante__cta:hover svg { transform: translateX(3px); }
     }
-    /* Toque: o cartão recua um pouco, o mesmo feedback do card. */
-    .destaque-flutuante__corpo--link:active { transform: scale(0.985); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .destaque-flutuante__tempo { display: none; }
+      .destaque-flutuante [data-df-passo] { transition-delay: 0ms; }
+    }
 
     /* ==========================================================
-       CELULAR — faixa de ponta a ponta, não o cartão encolhido
+       CELULAR — faixa de ponta a ponta
        ==========================================================
        Mesmo corte de 749px da barra fixa, do carrinho e do hero.
-       Aqui o cartão vira uma faixa com 12px de margem, foto e
-       texto menores e um só nível de leitura por linha.
+       Foto e texto menores, tamanhos em fileira que rola de lado,
+       alvos de 40px de altura para o polegar.
 
        --df-empurra: o JS mede a barra fixa de compra da PDP e o
-       cartão sobe essa altura — nunca cobre o botão de comprar.
-       Em cima: abaixo da pilha fixa do topo (header + recorte). */
+       cartão sobe essa altura — nunca cobre o botão de comprar. */
     @media screen and (max-width: 749px) {
       .destaque-flutuante {
         left: max(var(--space-xs), var(--sal, 0px));
@@ -472,24 +735,25 @@
         bottom: calc(var(--space-xs) + var(--sab, 0px) + var(--df-empurra));
       }
       .destaque-flutuante--mob-topo {
-        --df-desloca: -12px;
+        --df-desloca: -16px;
+        transform-origin: 50% 0;
         top: calc(var(--header-total, var(--header-height)) + var(--aviso-altura, 0px) + var(--space-2xs));
         bottom: auto;
       }
-      .destaque-flutuante--mob-topo.is-saindo { transform: translate3d(0, -8px, 0); }
+      .destaque-flutuante--mob-topo.is-saindo { transform: translate3d(0, -10px, 0) scale(0.985); }
 
       .destaque-flutuante__corpo {
         gap: var(--space-xs);
-        padding: var(--space-2xs);
-        padding-right: calc(var(--space-2xs) + 36px);
+        padding: var(--space-xs);
+        padding-right: calc(var(--space-xs) + 28px);
       }
-      .destaque-flutuante__midia { width: 48px; }
+      .destaque-flutuante__midia { width: 60px; }
       .destaque-flutuante__produto { font-size: var(--f1); }
       .destaque-flutuante__preco { font-size: var(--f0); }
-      /* Na faixa do celular a chamada vira redundante quando o
-         cartão inteiro já é o toque — uma linha a menos de altura. */
-      .destaque-flutuante__corpo--link .destaque-flutuante__cta { display: none; }
-      .destaque-flutuante__fechar { width: 44px; height: 44px; top: 50%; transform: translateY(-50%); }
+      .destaque-flutuante__tamanho,
+      .destaque-flutuante__adicionar { height: 36px; min-width: 40px; }
+      .destaque-flutuante__frete { padding: var(--space-2xs) var(--space-xs) calc(var(--space-2xs) + 2px); }
+      .destaque-flutuante__fechar { width: 44px; height: 44px; top: 0; right: 0; }
     }
 
     @media print {
@@ -507,7 +771,7 @@
   "settings": [
     {
       "type": "paragraph",
-      "content": "Mostra, de vez em quando, um produto real do catálogo num cartão discreto no canto da tela. Não exibe nomes de clientes nem diz que alguém comprou: o componente não tem acesso a pedidos, e atividade inventada é propaganda enganosa (CDC art. 37)."
+      "content": "De vez em quando, mostra um produto real num cartão discreto — de preferência um que combina com o produto aberto ou com o carrinho — com compra em um toque. Não exibe nomes de clientes nem diz que alguém comprou: o componente não tem acesso a pedidos, e atividade inventada é propaganda enganosa (CDC art. 37)."
     },
     {
       "type": "checkbox",
@@ -517,20 +781,64 @@
     },
     {
       "type": "header",
-      "content": "Produtos"
+      "content": "Qual produto mostrar"
+    },
+    {
+      "type": "checkbox",
+      "id": "recomendar",
+      "label": "Sugerir o que combina",
+      "default": true,
+      "info": "Na página de produto e com itens no carrinho, usa as recomendações da Shopify (para \"complete o look\", ligue produtos complementares no app Search & Discovery). Sem recomendação, cai na coleção abaixo."
     },
     {
       "type": "collection",
       "id": "colecao",
       "label": "Coleção de origem",
-      "info": "Vazio usa todos os produtos. Uma coleção ordenada por \"mais vendidos\" na Shopify torna um título como \"Mais procurados\" verdadeiro. Só entram produtos disponíveis; o da página atual nunca aparece."
+      "info": "Usada quando não há contexto. Vazio usa todos os produtos. Só entram produtos disponíveis; o da página atual nunca aparece."
     },
     {
       "type": "text",
       "id": "titulo",
-      "label": "Título do cartão",
+      "label": "Título — coleção",
       "default": "Em destaque",
       "info": "Use uma frase que seja verdade sobre a coleção escolhida."
+    },
+    {
+      "type": "text",
+      "id": "titulo_produto",
+      "label": "Título — na página de produto",
+      "default": "Complete o look"
+    },
+    {
+      "type": "text",
+      "id": "titulo_carrinho",
+      "label": "Título — com itens no carrinho",
+      "default": "Combina com o seu carrinho"
+    },
+    {
+      "type": "header",
+      "content": "Conteúdo"
+    },
+    {
+      "type": "checkbox",
+      "id": "compra_rapida",
+      "label": "Adicionar direto do cartão",
+      "default": true,
+      "info": "Produto com uma opção (ex.: só tamanho) mostra os tamanhos; um toque adiciona ao carrinho. Produto com mais opções leva à página."
+    },
+    {
+      "type": "checkbox",
+      "id": "mostrar_frete",
+      "label": "Mostrar quanto falta para o frete grátis",
+      "default": true,
+      "info": "Usa o valor de Configurações do tema > Carrinho > Frete grátis, e só aparece se ele estiver ativado lá."
+    },
+    {
+      "type": "checkbox",
+      "id": "mostrar_desconto",
+      "label": "Mostrar % de desconto",
+      "default": true,
+      "info": "Só quando o produto tem preço \"de\" cadastrado."
     },
     {
       "type": "checkbox",
@@ -547,14 +855,14 @@
     {
       "type": "checkbox",
       "id": "mostrar_cta",
-      "label": "Mostrar chamada",
+      "label": "Mostrar link quando não der para adicionar direto",
       "default": true
     },
     {
       "type": "text",
       "id": "texto_cta",
-      "label": "Texto da chamada",
-      "default": "Ver produto"
+      "label": "Texto do link",
+      "default": "Ver opções"
     },
     {
       "type": "header",
@@ -575,21 +883,22 @@
       "type": "range",
       "id": "visivel_min",
       "label": "Tempo na tela (mínimo)",
-      "min": 3,
-      "max": 10,
+      "min": 4,
+      "max": 20,
       "step": 1,
       "unit": "s",
-      "default": 4
+      "default": 8,
+      "info": "O tempo para enquanto o cursor ou o foco estão no cartão."
     },
     {
       "type": "range",
       "id": "visivel_max",
       "label": "Tempo na tela (máximo)",
-      "min": 3,
-      "max": 12,
+      "min": 4,
+      "max": 20,
       "step": 1,
       "unit": "s",
-      "default": 7
+      "default": 12
     },
     {
       "type": "range",
@@ -599,7 +908,7 @@
       "max": 120,
       "step": 5,
       "unit": "s",
-      "default": 20
+      "default": 25
     },
     {
       "type": "range",
@@ -609,7 +918,7 @@
       "max": 180,
       "step": 5,
       "unit": "s",
-      "default": 45
+      "default": 50
     },
     {
       "type": "range",
@@ -662,7 +971,7 @@
       "id": "clicavel",
       "label": "Cartão inteiro clicável",
       "default": true,
-      "info": "Desligado, só a chamada leva ao produto."
+      "info": "Desligado, só o nome do produto leva à página."
     },
     {
       "type": "checkbox",
