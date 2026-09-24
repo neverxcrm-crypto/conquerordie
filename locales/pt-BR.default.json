@@ -264,6 +264,10 @@
       "pause": "Pausar avisos",
       "play": "Retomar avisos"
     },
+    "activity_popup": {
+      "label": "Sugestão de produto",
+      "close": "Fechar sugestões de produto"
+    },
     "testimonials": {
       "rating": "{{ rating }} de {{ max }} estrelas"
     }

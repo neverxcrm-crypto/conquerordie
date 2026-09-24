@@ -264,6 +264,10 @@
       "pause": "Pause announcements",
       "play": "Resume announcements"
     },
+    "activity_popup": {
+      "label": "Product suggestion",
+      "close": "Close product suggestions"
+    },
     "testimonials": {
       "rating": "{{ rating }} out of {{ max }} stars"
     }

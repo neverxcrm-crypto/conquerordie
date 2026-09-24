@@ -1,0 +1,708 @@
+{%- comment -%}
+  ============================================================
+  ACTIVITY POPUP — destaque flutuante de produto
+  ============================================================
+
+  O QUE FAZ:
+  De vez em quando, durante a navegação, mostra um cartão pequeno
+  no canto da tela com um produto REAL do catálogo (foto, nome,
+  preço e link). Aparece devagar, fica alguns segundos, some e só
+  volta depois de um intervalo aleatório — com teto por sessão.
+
+  ONDE É USADA:
+  layout/theme.liquid, como section ESTÁTICA ao lado da cart-drawer.
+  Precisa ficar FORA de #smooth-wrapper: lá dentro o ScrollSmoother
+  aplica transform no conteúdo, e position: fixed passaria a rolar
+  junto com a página.
+
+  ============================================================
+  O QUE ESTE COMPONENTE NÃO FAZ — de propósito
+  ============================================================
+  Não mostra nome de "cliente", nem real nem inventado, e não diz
+  que alguém comprou, viu ou está vendo o produto. O componente
+  não tem acesso a pedidos: qualquer nome ou atividade exibida aqui
+  seria fabricada, e prova social fabricada é propaganda enganosa
+  (CDC art. 37), infringe a política de uso da Shopify e é vedada
+  pela FTC desde 2024. É a mesma regra dos depoimentos
+  (sections/product-testimonials.liquid).
+
+  A sensação de loja viva vem da curadoria: escolha como fonte uma
+  coleção de verdade (lançamentos, mais vendidos ordenados pela
+  própria Shopify) e use um título que seja verdade sobre ela.
+
+  DADOS:
+  Até 12 produtos disponíveis da coleção escolhida, num JSON
+  pequeno na própria página — nada de request extra, nada privado:
+  só o que qualquer página de produto já mostra. O produto da
+  página atual fica de fora. O JSON só é lido quando a primeira
+  exibição chega; se a pessoa sair antes, o custo foi o HTML.
+
+  COMPORTAMENTO: assets/destaque-flutuante.js.
+  O cartão só existe no DOM enquanto está na tela.
+
+  ONDE NÃO APARECE (sem setting — não faz sentido em nenhuma loja):
+  carrinho, checkout, senha, vale-presente e área do cliente. São
+  páginas de tarefa; um convite para outro produto ali atrapalha.
+{%- endcomment -%}
+
+{%- liquid
+  assign ativo = section.settings.ativo
+  if section.settings.mostrar_desktop == false and section.settings.mostrar_mobile == false
+    assign ativo = false
+  endif
+
+  assign pagina = request.page_type
+  if pagina == 'cart' or pagina == 'password' or pagina == 'gift_card' or pagina contains 'customers'
+    assign ativo = false
+  endif
+
+  assign fonte = section.settings.colecao
+  if fonte == blank
+    assign fonte = collections.all
+  endif
+
+  assign clicavel = section.settings.clicavel
+  assign mostrar_cta = section.settings.mostrar_cta
+  if section.settings.texto_cta == blank
+    assign mostrar_cta = false
+  endif
+
+  assign alvo = ''
+  if section.settings.nova_aba
+    assign alvo = ' target="_blank" rel="noopener"'
+  endif
+
+  case section.settings.sombra
+    when 'nenhuma'
+      assign sombra = 'none'
+    when 'forte'
+      assign sombra = 'var(--shadow-lg)'
+    else
+      assign sombra = 'var(--shadow-md)'
+  endcase
+-%}
+
+{%- if ativo -%}
+  {%- comment -%}
+    Configuração e dados. O JS lê daqui; nada disso vira texto na
+    tela até a exibição acontecer.
+
+    Os tempos saem em milissegundos e já ordenados: se o lojista
+    puser o mínimo acima do máximo, o par é invertido aqui, e o JS
+    não precisa desconfiar do editor.
+  {%- endcomment -%}
+  {%- liquid
+    assign vis_min = section.settings.visivel_min | times: 1000
+    assign vis_max = section.settings.visivel_max | times: 1000
+    if vis_min > vis_max
+      assign troca = vis_min
+      assign vis_min = vis_max
+      assign vis_max = troca
+    endif
+    assign int_min = section.settings.intervalo_min | times: 1000
+    assign int_max = section.settings.intervalo_max | times: 1000
+    if int_min > int_max
+      assign troca = int_min
+      assign int_min = int_max
+      assign int_max = troca
+    endif
+    assign primeiro = section.settings.primeira | times: 1000
+  -%}
+  <div
+    class="destaque-flutuante-raiz"
+    data-destaque
+    data-section-id="{{ section.id }}"
+    data-desktop="{{ section.settings.mostrar_desktop }}"
+    data-mobile="{{ section.settings.mostrar_mobile }}"
+    data-primeira="{{ primeiro }}"
+    data-visivel-min="{{ vis_min }}"
+    data-visivel-max="{{ vis_max }}"
+    data-intervalo-min="{{ int_min }}"
+    data-intervalo-max="{{ int_max }}"
+    data-limite="{{ section.settings.limite }}"
+    hidden
+  >
+    <script type="application/json" data-destaque-produtos>
+      [
+        {%- assign escritos = 0 -%}
+        {%- for p in fonte.products limit: 30 -%}
+          {%- if escritos >= 12 -%}{%- break -%}{%- endif -%}
+          {%- if p.available == false or p.id == product.id -%}{%- continue -%}{%- endif -%}
+          {%- liquid
+            if p.price_varies
+              assign preco_min = p.price_min | money
+              assign preco_texto = 'products.product.price.from_price_html' | t: price: preco_min
+              assign preco_de = ''
+            else
+              assign preco_texto = p.price | money
+              assign preco_de = ''
+              if p.compare_at_price > p.price
+                assign preco_de = p.compare_at_price | money
+              endif
+            endif
+          -%}
+          {%- if escritos > 0 -%},{%- endif -%}
+          {
+            "id": {{ p.id | json }},
+            "url": {{ p.url | json }},
+            "titulo": {{ p.title | json }},
+            "imagem": {% if p.featured_image %}{{ p.featured_image | image_url: width: 160 | json }}{% else %}null{% endif %},
+            "preco": {{ preco_texto | strip_html | json }},
+            "precoDe": {% if preco_de != blank %}{{ preco_de | json }}{% else %}null{% endif %}
+          }
+          {%- assign escritos = escritos | plus: 1 -%}
+        {%- endfor -%}
+      ]
+    </script>
+
+    {%- comment -%}
+      O cartão é um <template>: nada disso entra no DOM até a hora de
+      aparecer, e ao sumir ele é removido de novo. Uma cópia por vez.
+
+      Semântica: <aside> com nome acessível, e dentro dele um <a> de
+      verdade (clicável) ou um <div> (quando o lojista desliga o
+      clique) — nunca uma div com onclick. O fechar é um <button>
+      irmão do link, fora dele: botão dentro de link é HTML inválido
+      e confunde leitor de tela e teclado.
+
+      Sem aria-live, também de propósito: anunciar sugestões de
+      produto a cada meio minuto seria exatamente o spam que o
+      componente se propõe a não ser. Quem usa leitor de tela o
+      encontra no fim da ordem de tabulação, como qualquer
+      complemento da página.
+    {%- endcomment -%}
+    <template data-destaque-modelo>
+      <aside
+        class="destaque-flutuante destaque-flutuante--desk-{{ section.settings.posicao_desktop }} destaque-flutuante--mob-{{ section.settings.posicao_mobile }}"
+        aria-label="{{ 'sections.activity_popup.label' | t }}"
+        style="
+          {%- if section.settings.cor_fundo != blank -%}--df-fundo: {{ section.settings.cor_fundo }};{%- endif -%}
+          {%- if section.settings.cor_texto != blank -%}--df-texto: {{ section.settings.cor_texto }};{%- endif -%}
+          {%- if section.settings.cor_secundaria != blank -%}--df-secundaria: {{ section.settings.cor_secundaria }};{%- endif -%}
+          {%- if section.settings.cor_borda != blank -%}--df-borda: {{ section.settings.cor_borda }};{%- endif -%}
+          --df-raio: {{ section.settings.raio }}px;
+          --df-sombra: {{ sombra }};
+        "
+      >
+        {%- if clicavel -%}
+          <a class="destaque-flutuante__corpo destaque-flutuante__corpo--link" href="#" data-df-link{{ alvo }}>
+        {%- else -%}
+          <div class="destaque-flutuante__corpo">
+        {%- endif -%}
+
+          {%- if section.settings.mostrar_imagem -%}
+            <span class="destaque-flutuante__midia" data-df-midia aria-hidden="true"></span>
+          {%- endif -%}
+
+          <span class="destaque-flutuante__conteudo">
+            {%- if section.settings.titulo != blank -%}
+              <span class="destaque-flutuante__rotulo">{{ section.settings.titulo | escape }}</span>
+            {%- endif -%}
+            <span class="destaque-flutuante__produto" data-df-titulo></span>
+            {%- if section.settings.mostrar_preco -%}
+              <span
+                class="destaque-flutuante__preco"
+                data-df-preco
+                data-rotulo-de="{{ 'products.product.price.regular_price' | t | escape }}"
+                data-rotulo-por="{{ 'products.product.price.sale_price' | t | escape }}"
+              ></span>
+            {%- endif -%}
+            {%- if mostrar_cta -%}
+              {%- if clicavel -%}
+                <span class="destaque-flutuante__cta">
+                  {{- section.settings.texto_cta | escape -}}
+                  {% render 'icon', name: 'arrow-right' %}
+                </span>
+              {%- else -%}
+                <a class="destaque-flutuante__cta destaque-flutuante__cta--link" href="#" data-df-link{{ alvo }}>
+                  {{- section.settings.texto_cta | escape -}}
+                  {% render 'icon', name: 'arrow-right' %}
+                </a>
+              {%- endif -%}
+            {%- endif -%}
+          </span>
+
+        {%- if clicavel -%}
+          </a>
+        {%- else -%}
+          </div>
+        {%- endif -%}
+
+        <button type="button" class="destaque-flutuante__fechar" data-df-fechar aria-label="{{ 'sections.activity_popup.close' | t }}">
+          {% render 'icon', name: 'close' %}
+        </button>
+      </aside>
+    </template>
+  </div>
+
+  <style>
+    /* ==========================================================
+       CARTÃO
+       ==========================================================
+       Mora fora de #MainContent, então herda os tokens do shell
+       ESCURO — o mesmo material do header, do carrinho e do toast.
+       Um cartão escuro e baixo sobre a página clara lê como parte
+       da interface da loja, não como anúncio colado por cima.
+
+       Cada cor tem um setting opcional; vazio, vale o token.
+       z-index 390: abaixo da barra fixa de compra da PDP (400) e de
+       toda gaveta/menu. Nunca disputa com o que leva ao checkout. */
+    .destaque-flutuante {
+      --df-fundo: var(--color-surface-elevated);
+      --df-texto: var(--color-text-primary);
+      --df-secundaria: var(--color-text-secondary);
+      --df-borda: var(--color-border);
+      --df-empurra: 0px;
+      --df-desloca: 12px;
+
+      position: fixed;
+      z-index: 390;
+      bottom: calc(var(--space-md) + var(--sab, 0px) + var(--df-empurra));
+      width: min(360px, calc(100vw - var(--space-lg)));
+      color: var(--df-texto);
+      background-color: var(--df-fundo);
+      border: 1px solid var(--df-borda);
+      border-radius: var(--df-raio, var(--radius-md));
+      box-shadow: var(--df-sombra, var(--shadow-md));
+      opacity: 0;
+      transform: translate3d(0, var(--df-desloca), 0);
+      transition:
+        opacity var(--dur-emphasis) var(--ease-out),
+        transform var(--dur-emphasis) var(--ease-out);
+    }
+    .destaque-flutuante--desk-esquerda { left: max(var(--space-md), var(--sal, 0px)); }
+    .destaque-flutuante--desk-direita { right: max(var(--space-md), var(--sar, 0px)); }
+
+    .destaque-flutuante.is-visivel {
+      opacity: 1;
+      transform: none;
+    }
+    /* Saída mais curta e mais curta no deslocamento que a entrada:
+       sair é um detalhe, não um evento. */
+    .destaque-flutuante.is-saindo {
+      opacity: 0;
+      transform: translate3d(0, 8px, 0);
+      transition-duration: var(--dur-normal);
+    }
+
+    /* Menu ou carrinho abertos: o cartão some sem JS nenhum. É a
+       mesma classe que os dois painéis já usam para travar a
+       rolagem (ver carrinho.js e nav.liquid). */
+    body.bloquear .destaque-flutuante {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .destaque-flutuante__corpo {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-xs);
+      /* Faixa reservada para o X — o texto nunca passa por baixo */
+      padding-right: calc(var(--space-xs) + 28px);
+      color: inherit;
+      text-decoration: none;
+      border-radius: inherit;
+    }
+    .destaque-flutuante__corpo:not(:has(.destaque-flutuante__midia)) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .destaque-flutuante__corpo--link { cursor: pointer; }
+    .destaque-flutuante__corpo--link:focus-visible {
+      outline: 2px solid var(--color-focus-ring);
+      outline-offset: 2px;
+    }
+
+    /* ---- Foto ----
+       Mesmo tratamento da mídia do card de produto: sem moldura,
+       fundo de superfície enquanto carrega, raio do setting de
+       mídia (em cima de um mínimo, para não brigar com o cartão). */
+    .destaque-flutuante__midia {
+      position: relative;
+      display: block;
+      width: 64px;
+      aspect-ratio: 3 / 4;
+      overflow: hidden;
+      border-radius: max(var(--media-radius, 0px), var(--radius-xs));
+      background-color: var(--color-surface);
+    }
+    .destaque-flutuante__midia img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform var(--dur-emphasis) var(--ease-out);
+    }
+    /* Sem foto: a inicial do produto no serif da marca, em vez de
+       um ícone genérico de "imagem quebrada". */
+    .destaque-flutuante__inicial {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-family: var(--font-display-family);
+      font-size: var(--f5);
+      font-weight: var(--font-weight-bold);
+      color: var(--df-secundaria);
+    }
+
+    /* ---- Texto ---- */
+    .destaque-flutuante__conteudo {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+    .destaque-flutuante__rotulo {
+      font-family: var(--font-ui-family);
+      font-size: var(--f0);
+      font-weight: var(--font-weight-medium);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      color: var(--color-accent-readable);
+    }
+    .destaque-flutuante__produto {
+      font-family: var(--font-ui-family);
+      font-size: var(--f2);
+      font-weight: var(--font-weight-medium);
+      line-height: var(--leading-ui);
+      color: var(--df-texto);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      transition: color var(--dur-fast) var(--ease-out);
+    }
+    .destaque-flutuante__preco {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0 var(--space-2xs);
+      font-family: var(--font-ui-family);
+      font-size: var(--f1);
+      font-weight: var(--font-weight-semibold);
+      font-variant-numeric: tabular-nums;
+      color: var(--df-texto);
+    }
+    .destaque-flutuante__preco s {
+      font-weight: var(--font-weight-regular);
+      color: var(--df-secundaria);
+    }
+    .destaque-flutuante__preco:empty { display: none; }
+    .destaque-flutuante__cta {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2xs);
+      width: fit-content;
+      margin-top: var(--space-3xs);
+      font-family: var(--font-ui-family);
+      font-size: var(--f0);
+      font-weight: var(--font-weight-medium);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      color: var(--df-secundaria);
+      text-decoration: none;
+      transition: color var(--dur-fast) var(--ease-out);
+    }
+    .destaque-flutuante__cta svg {
+      width: 12px;
+      height: 12px;
+      color: var(--color-accent-readable);
+      transition: transform var(--dur-normal) var(--ease-out);
+    }
+
+    /* ---- Fechar ----
+       Pequeno no desenho, 44px no dedo: o ::after do .alvo-44 não
+       serve aqui porque o botão encosta na borda do cartão, então o
+       próprio botão cresce e o ícone fica pequeno dentro dele. */
+    .destaque-flutuante__fechar {
+      position: absolute;
+      top: 0;
+      right: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      color: var(--df-secundaria);
+      background: none;
+      border: 0;
+      border-radius: var(--df-raio, var(--radius-md));
+      cursor: pointer;
+      transition: color var(--dur-fast) var(--ease-out);
+    }
+    .destaque-flutuante__fechar svg { width: 14px; height: 14px; }
+    .destaque-flutuante__fechar:hover { color: var(--df-texto); }
+
+    /* ---- Resposta ao ponteiro — discreta ----
+       Borda um degrau mais forte, nome do produto no ouro legível
+       (o mesmo hover do card de produto) e a seta andando. Sem
+       levantar o cartão: ele já está flutuando. */
+    @media (hover: hover) {
+      .destaque-flutuante:has(.destaque-flutuante__corpo--link:hover) {
+        border-color: var(--color-border-strong);
+      }
+      .destaque-flutuante__corpo--link:hover .destaque-flutuante__produto { color: var(--color-accent-readable); }
+      .destaque-flutuante__corpo--link:hover .destaque-flutuante__midia img { transform: scale(1.04); }
+      .destaque-flutuante__corpo--link:hover .destaque-flutuante__cta,
+      .destaque-flutuante__cta--link:hover { color: var(--df-texto); }
+      .destaque-flutuante__corpo--link:hover .destaque-flutuante__cta svg,
+      .destaque-flutuante__cta--link:hover svg { transform: translateX(3px); }
+    }
+    /* Toque: o cartão recua um pouco, o mesmo feedback do card. */
+    .destaque-flutuante__corpo--link:active { transform: scale(0.985); }
+
+    /* ==========================================================
+       CELULAR — faixa de ponta a ponta, não o cartão encolhido
+       ==========================================================
+       Mesmo corte de 749px da barra fixa, do carrinho e do hero.
+       Aqui o cartão vira uma faixa com 12px de margem, foto e
+       texto menores e um só nível de leitura por linha.
+
+       --df-empurra: o JS mede a barra fixa de compra da PDP e o
+       cartão sobe essa altura — nunca cobre o botão de comprar.
+       Em cima: abaixo da pilha fixa do topo (header + recorte). */
+    @media screen and (max-width: 749px) {
+      .destaque-flutuante {
+        left: max(var(--space-xs), var(--sal, 0px));
+        right: max(var(--space-xs), var(--sar, 0px));
+        width: auto;
+        bottom: calc(var(--space-xs) + var(--sab, 0px) + var(--df-empurra));
+      }
+      .destaque-flutuante--mob-topo {
+        --df-desloca: -12px;
+        top: calc(var(--header-total, var(--header-height)) + var(--aviso-altura, 0px) + var(--space-2xs));
+        bottom: auto;
+      }
+      .destaque-flutuante--mob-topo.is-saindo { transform: translate3d(0, -8px, 0); }
+
+      .destaque-flutuante__corpo {
+        gap: var(--space-xs);
+        padding: var(--space-2xs);
+        padding-right: calc(var(--space-2xs) + 36px);
+      }
+      .destaque-flutuante__midia { width: 48px; }
+      .destaque-flutuante__produto { font-size: var(--f1); }
+      .destaque-flutuante__preco { font-size: var(--f0); }
+      /* Na faixa do celular a chamada vira redundante quando o
+         cartão inteiro já é o toque — uma linha a menos de altura. */
+      .destaque-flutuante__corpo--link .destaque-flutuante__cta { display: none; }
+      .destaque-flutuante__fechar { width: 44px; height: 44px; top: 50%; transform: translateY(-50%); }
+    }
+
+    @media print {
+      .destaque-flutuante { display: none; }
+    }
+  </style>
+
+  <script src="{{ 'destaque-flutuante.js' | asset_url }}" defer="defer"></script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Destaque flutuante",
+  "class": "section-destaque-flutuante",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Mostra, de vez em quando, um produto real do catálogo num cartão discreto no canto da tela. Não exibe nomes de clientes nem diz que alguém comprou: o componente não tem acesso a pedidos, e atividade inventada é propaganda enganosa (CDC art. 37)."
+    },
+    {
+      "type": "checkbox",
+      "id": "ativo",
+      "label": "Ativar destaque flutuante",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Produtos"
+    },
+    {
+      "type": "collection",
+      "id": "colecao",
+      "label": "Coleção de origem",
+      "info": "Vazio usa todos os produtos. Uma coleção ordenada por \"mais vendidos\" na Shopify torna um título como \"Mais procurados\" verdadeiro. Só entram produtos disponíveis; o da página atual nunca aparece."
+    },
+    {
+      "type": "text",
+      "id": "titulo",
+      "label": "Título do cartão",
+      "default": "Em destaque",
+      "info": "Use uma frase que seja verdade sobre a coleção escolhida."
+    },
+    {
+      "type": "checkbox",
+      "id": "mostrar_imagem",
+      "label": "Mostrar foto",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "mostrar_preco",
+      "label": "Mostrar preço",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "mostrar_cta",
+      "label": "Mostrar chamada",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "texto_cta",
+      "label": "Texto da chamada",
+      "default": "Ver produto"
+    },
+    {
+      "type": "header",
+      "content": "Tempo"
+    },
+    {
+      "type": "range",
+      "id": "primeira",
+      "label": "Primeira aparição",
+      "min": 5,
+      "max": 30,
+      "step": 1,
+      "unit": "s",
+      "default": 8,
+      "info": "Sorteado entre este valor e 10 segundos a mais."
+    },
+    {
+      "type": "range",
+      "id": "visivel_min",
+      "label": "Tempo na tela (mínimo)",
+      "min": 3,
+      "max": 10,
+      "step": 1,
+      "unit": "s",
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "visivel_max",
+      "label": "Tempo na tela (máximo)",
+      "min": 3,
+      "max": 12,
+      "step": 1,
+      "unit": "s",
+      "default": 7
+    },
+    {
+      "type": "range",
+      "id": "intervalo_min",
+      "label": "Intervalo entre cartões (mínimo)",
+      "min": 15,
+      "max": 120,
+      "step": 5,
+      "unit": "s",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "intervalo_max",
+      "label": "Intervalo entre cartões (máximo)",
+      "min": 20,
+      "max": 180,
+      "step": 5,
+      "unit": "s",
+      "default": 45
+    },
+    {
+      "type": "range",
+      "id": "limite",
+      "label": "Máximo por sessão",
+      "min": 1,
+      "max": 8,
+      "step": 1,
+      "default": 4,
+      "info": "Vale para a visita inteira, somando todas as páginas."
+    },
+    {
+      "type": "header",
+      "content": "Onde e como"
+    },
+    {
+      "type": "checkbox",
+      "id": "mostrar_desktop",
+      "label": "Mostrar no computador",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "mostrar_mobile",
+      "label": "Mostrar no celular",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "posicao_desktop",
+      "label": "Posição no computador",
+      "options": [
+        { "value": "esquerda", "label": "Embaixo à esquerda" },
+        { "value": "direita", "label": "Embaixo à direita" }
+      ],
+      "default": "esquerda"
+    },
+    {
+      "type": "select",
+      "id": "posicao_mobile",
+      "label": "Posição no celular",
+      "options": [
+        { "value": "base", "label": "Embaixo" },
+        { "value": "topo", "label": "Em cima" }
+      ],
+      "default": "base"
+    },
+    {
+      "type": "checkbox",
+      "id": "clicavel",
+      "label": "Cartão inteiro clicável",
+      "default": true,
+      "info": "Desligado, só a chamada leva ao produto."
+    },
+    {
+      "type": "checkbox",
+      "id": "nova_aba",
+      "label": "Abrir produto em nova aba",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Aparência"
+    },
+    {
+      "type": "paragraph",
+      "content": "Cores vazias usam as do tema (o mesmo material escuro do header e do carrinho)."
+    },
+    { "type": "color", "id": "cor_fundo", "label": "Fundo" },
+    { "type": "color", "id": "cor_texto", "label": "Texto" },
+    { "type": "color", "id": "cor_secundaria", "label": "Texto secundário" },
+    { "type": "color", "id": "cor_borda", "label": "Borda" },
+    {
+      "type": "range",
+      "id": "raio",
+      "label": "Arredondamento",
+      "min": 0,
+      "max": 16,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "select",
+      "id": "sombra",
+      "label": "Sombra",
+      "options": [
+        { "value": "nenhuma", "label": "Nenhuma" },
+        { "value": "suave", "label": "Suave" },
+        { "value": "forte", "label": "Mais marcada" }
+      ],
+      "default": "suave"
+    }
+  ]
+}
+{% endschema %}

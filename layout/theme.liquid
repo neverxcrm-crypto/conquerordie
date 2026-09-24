@@ -174,6 +174,11 @@
 
     {% sections 'header-group' %}
     {% section 'cart-drawer' %}
+    {%- comment -%}
+      Destaque flutuante: fixed, então também fica FORA do
+      #smooth-wrapper. Ver sections/activity-popup.liquid.
+    {%- endcomment -%}
+    {% section 'activity-popup' %}
 
     {%- comment -%}
       ScrollSmoother: o conteúdo que ROLA fica dentro de
