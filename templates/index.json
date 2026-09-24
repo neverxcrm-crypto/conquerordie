@@ -12,21 +12,6 @@
     "hero": {
       "type": "hero",
       "blocks": {
-        "slide_hBexyT": {
-          "type": "slide",
-          "settings": {
-            "image": "shopify://shop_images/ChatGPT_Image_23_de_set._de_2026_16_24_28.png",
-            "overlay_color": "#000000",
-            "overlay_opacity": 20,
-            "text_alignment": "left",
-            "eyebrow": "",
-            "heading": "",
-            "subheading": "",
-            "text": "",
-            "button_label": "",
-            "button_link": ""
-          }
-        },
         "slide_CAaQyc": {
           "type": "slide",
           "settings": {
@@ -61,7 +46,6 @@
         }
       },
       "block_order": [
-        "slide_hBexyT",
         "slide_CAaQyc",
         "slide_1"
       ],
@@ -316,12 +300,19 @@
     "campaign": {
       "type": "campaign",
       "settings": {
-        "image": "shopify://shop_images/frame1.png",
+        "image": "shopify://shop_images/ChatGPT_Image_23_de_set._de_2026_16_36_37.png",
+        "image_mobile": "shopify://shop_images/ChatGPT_Image_23_de_set._de_2026_16_57_37.png",
+        "overlay_color": "#000000",
+        "overlay_opacity": 30,
         "eyebrow": "Drop 003 — Coming soon",
         "heading": "The Ascension",
         "text": "O próximo capítulo está chegando.",
         "button_label": "Receber alertas",
         "button_link": "",
+        "desktop_content_position": "bottom",
+        "desktop_text_alignment": "left",
+        "mobile_content_position": "bottom",
+        "mobile_text_alignment": "left",
         "show_countdown": false,
         "countdown_label": "Em breve",
         "countdown_date": "",
