@@ -318,9 +318,27 @@
         "countdown_date": "01/10/2026",
         "countdown_time": "00:00"
       }
+    },
+    "1790278868cdb4df57": {
+      "type": "_blocks",
+      "blocks": {
+        "ai_gen_block_16ed586_nEmExE": {
+          "type": "ai_gen_block_16ed586",
+          "settings": {
+            "whatsapp_number": "47989135878",
+            "desktop_width_percent": 100
+          },
+          "blocks": {}
+        }
+      },
+      "block_order": [
+        "ai_gen_block_16ed586_nEmExE"
+      ],
+      "settings": {}
     }
   },
   "order": [
+    "1790278868cdb4df57",
     "hero",
     "marquee_below_hero_M8HkFV",
     "latest_drop",
