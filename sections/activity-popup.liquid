@@ -67,6 +67,21 @@
     assign fonte = collections.all
   endif
 
+  # Coleção escolhida sem nenhum produto disponível (vazia, tudo
+  # esgotado, ou só o produto desta página): cai para o catálogo
+  # inteiro. Sem isso o cartão ficava sem o que mostrar e nunca
+  # aparecia — sem erro nenhum na tela.
+  assign fonte_util = false
+  for p in fonte.products limit: 30
+    if p.available and p.id != product.id
+      assign fonte_util = true
+      break
+    endif
+  endfor
+  if fonte_util == false
+    assign fonte = collections.all
+  endif
+
   assign alvo = ''
   if section.settings.nova_aba
     assign alvo = ' target="_blank" rel="noopener"'
@@ -872,12 +887,12 @@
       "type": "range",
       "id": "primeira",
       "label": "Primeira aparição",
-      "min": 5,
+      "min": 3,
       "max": 30,
       "step": 1,
       "unit": "s",
       "default": 8,
-      "info": "Sorteado entre este valor e 10 segundos a mais."
+      "info": "Sorteado entre este valor e 20% a mais."
     },
     {
       "type": "range",
@@ -898,37 +913,39 @@
       "max": 20,
       "step": 1,
       "unit": "s",
-      "default": 12
+      "default": 10
     },
     {
       "type": "range",
       "id": "intervalo_min",
-      "label": "Intervalo entre cartões (mínimo)",
-      "min": 15,
+      "label": "Um cartão a cada (mínimo)",
+      "min": 10,
       "max": 120,
       "step": 5,
       "unit": "s",
-      "default": 25
+      "default": 15,
+      "info": "Do início de um cartão ao início do próximo. Entre um e outro sempre sobram pelo menos 3s de tela limpa."
     },
     {
       "type": "range",
       "id": "intervalo_max",
-      "label": "Intervalo entre cartões (máximo)",
-      "min": 20,
+      "label": "Um cartão a cada (máximo)",
+      "min": 10,
       "max": 180,
       "step": 5,
       "unit": "s",
-      "default": 50
+      "default": 15,
+      "info": "Igual ao mínimo = ritmo fixo. Maior = ritmo variado."
     },
     {
       "type": "range",
       "id": "limite",
       "label": "Máximo por sessão",
-      "min": 1,
-      "max": 8,
+      "min": 0,
+      "max": 20,
       "step": 1,
-      "default": 4,
-      "info": "Vale para a visita inteira, somando todas as páginas."
+      "default": 0,
+      "info": "0 = sem limite: continua enquanto a pessoa navega. Fechar o cartão ainda vale para a visita inteira."
     },
     {
       "type": "header",
@@ -951,8 +968,14 @@
       "id": "posicao_desktop",
       "label": "Posição no computador",
       "options": [
-        { "value": "esquerda", "label": "Embaixo à esquerda" },
-        { "value": "direita", "label": "Embaixo à direita" }
+        {
+          "value": "esquerda",
+          "label": "Embaixo à esquerda"
+        },
+        {
+          "value": "direita",
+          "label": "Embaixo à direita"
+        }
       ],
       "default": "esquerda"
     },
@@ -961,8 +984,14 @@
       "id": "posicao_mobile",
       "label": "Posição no celular",
       "options": [
-        { "value": "base", "label": "Embaixo" },
-        { "value": "topo", "label": "Em cima" }
+        {
+          "value": "base",
+          "label": "Embaixo"
+        },
+        {
+          "value": "topo",
+          "label": "Em cima"
+        }
       ],
       "default": "base"
     },
@@ -987,10 +1016,26 @@
       "type": "paragraph",
       "content": "Cores vazias usam as do tema (o mesmo material escuro do header e do carrinho)."
     },
-    { "type": "color", "id": "cor_fundo", "label": "Fundo" },
-    { "type": "color", "id": "cor_texto", "label": "Texto" },
-    { "type": "color", "id": "cor_secundaria", "label": "Texto secundário" },
-    { "type": "color", "id": "cor_borda", "label": "Borda" },
+    {
+      "type": "color",
+      "id": "cor_fundo",
+      "label": "Fundo"
+    },
+    {
+      "type": "color",
+      "id": "cor_texto",
+      "label": "Texto"
+    },
+    {
+      "type": "color",
+      "id": "cor_secundaria",
+      "label": "Texto secundário"
+    },
+    {
+      "type": "color",
+      "id": "cor_borda",
+      "label": "Borda"
+    },
     {
       "type": "range",
       "id": "raio",
@@ -1006,9 +1051,18 @@
       "id": "sombra",
       "label": "Sombra",
       "options": [
-        { "value": "nenhuma", "label": "Nenhuma" },
-        { "value": "suave", "label": "Suave" },
-        { "value": "forte", "label": "Mais marcada" }
+        {
+          "value": "nenhuma",
+          "label": "Nenhuma"
+        },
+        {
+          "value": "suave",
+          "label": "Suave"
+        },
+        {
+          "value": "forte",
+          "label": "Mais marcada"
+        }
       ],
       "default": "suave"
     }

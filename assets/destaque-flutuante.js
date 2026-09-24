@@ -21,12 +21,14 @@
   produto da página ou os últimos mostrados.
 
   O RITMO:
-  - primeira aparição: sorteada entre N e N+10s;
-  - tempo na tela e intervalo: sorteados entre mínimo e máximo;
-  - o intervalo conta de quando o cartão SAI (quem parou para ler
-    não recebe o próximo colado);
-  - teto por sessão, somando todas as páginas da visita;
-  - chegando numa página nova, nada aparece antes de 6–10s.
+  - primeira aparição: sorteada entre N e N+20%;
+  - tempo na tela: sorteado entre mínimo e máximo;
+  - intervalo: do INÍCIO de um cartão ao início do próximo ("um a
+    cada 15s"), sorteado entre mínimo e máximo — mas sempre com
+    pelo menos 3s de tela limpa entre um e outro, inclusive quando
+    a pessoa segurou o cartão parado com o cursor;
+  - teto por sessão somando todas as páginas (0 = sem teto);
+  - chegando numa página nova, nada aparece antes de 4–7s.
 
   QUANDO NÃO MOSTRA (tenta de novo mais tarde, sem contar):
   aba em segundo plano, menu ou carrinho abertos, <dialog> aberto,
@@ -67,6 +69,7 @@
   var PROTEGIDOS = '.product__buy-buttons, .product__variants';
   var HISTORICO = 4;
   var TAMANHOS_MAX = 8;
+  var RESPIRO = 3000; // tela limpa mínima entre dois cartões
 
   var raiz = null;
   var cfg = null;
@@ -469,7 +472,10 @@
     preparar().then(function (escolha) {
       preparando = false;
       if (!raiz) return;
-      if (!escolha) return;
+      /* Nada para sugerir agora (tudo já está no carrinho, por
+         exemplo). O carrinho muda: tenta de novo no próximo ciclo
+         em vez de desistir da visita. */
+      if (!escolha) { agendar(cfg.intervaloMin); return; }
       if (document.hidden || ocupado()) { agendar(sorteio(4000, 8000)); return; }
       mostrar(escolha, false);
     }, function () {
@@ -510,7 +516,7 @@
     no.style.setProperty('--df-tempo', tempo + 'ms');
     estado.exibidos = (estado.exibidos || 0) + 1;
     estado.historico = (estado.historico || []).concat(escolha.produto.id).slice(-HISTORICO);
-    estado.proximoEm = Date.now() + tempo + sorteio(cfg.intervaloMin, cfg.intervaloMax);
+    estado.proximoEm = Date.now() + Math.max(tempo + RESPIRO, sorteio(cfg.intervaloMin, cfg.intervaloMax));
     gravarEstado();
     agendarSaida(tempo);
   }
@@ -525,10 +531,16 @@
     }, ms);
   }
 
+  function esgotou() {
+    return cfg.limite > 0 && (estado.exibidos || 0) >= cfg.limite;
+  }
+
+  /* O próximo horário já foi marcado quando este cartão entrou
+     (início a início). Se a pessoa segurou o cartão parado e esse
+     horário passou, garante o respiro mínimo antes do próximo. */
   function seguir() {
-    if (!raiz || estado.dispensado) return;
-    if ((estado.exibidos || 0) >= cfg.limite) return;
-    estado.proximoEm = Date.now() + sorteio(cfg.intervaloMin, cfg.intervaloMax);
+    if (!raiz || estado.dispensado || esgotou()) return;
+    estado.proximoEm = Math.max(estado.proximoEm || 0, Date.now() + RESPIRO);
     gravarEstado();
     agendar(estado.proximoEm - Date.now());
   }
@@ -643,8 +655,8 @@
       primeira: numero('data-primeira', 8000),
       visivelMin: numero('data-visivel-min', 8000),
       visivelMax: numero('data-visivel-max', 12000),
-      intervaloMin: numero('data-intervalo-min', 25000),
-      intervaloMax: numero('data-intervalo-max', 50000),
+      intervaloMin: numero('data-intervalo-min', 15000),
+      intervaloMax: numero('data-intervalo-max', 15000),
       limite: numero('data-limite', 4),
       recomendar: sim('data-recomendar'),
       compraRapida: sim('data-compra-rapida'),
@@ -669,11 +681,11 @@
     curados = null;
 
     if (window.Shopify && window.Shopify.designMode) return;
-    if (estado.dispensado || (estado.exibidos || 0) >= cfg.limite) return;
+    if (estado.dispensado || esgotou()) return;
 
     var espera = estado.proximoEm
-      ? Math.max(estado.proximoEm - Date.now(), sorteio(6000, 10000))
-      : sorteio(cfg.primeira, cfg.primeira + 10000);
+      ? Math.max(estado.proximoEm - Date.now(), sorteio(4000, 7000))
+      : sorteio(cfg.primeira, Math.round(cfg.primeira * 1.2));
     agendar(espera);
   }
 
