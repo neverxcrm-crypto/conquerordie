@@ -21,6 +21,11 @@
   da Shopify e, nos EUA, é multável pela FTC desde 2024. Numa loja
   que fatura, o custo disso não é teórico.
 
+  Pelo mesmo motivo a seção NÃO calcula "nota média": os
+  depoimentos são escolhidos a dedo pelo lojista, e a média de uma
+  amostra escolhida apresentada como avaliação geral seria outra
+  forma de induzir ao erro.
+
   A seção só deve ir ao ar com depoimentos REAIS — de pedidos,
   e-mails, mensagens ou de um app de avaliações. Enquanto não
   houver, o caminho certo é não publicar a seção (basta removê-la
@@ -33,8 +38,23 @@
   PRINCIPAIS PARTES:
   - Cabeçalho editorial: eyebrow + título.
   - Blocos 'depoimento': texto, autor, origem e nota (0 = sem nota).
-  - Desktop: grade. Celular: trilho horizontal com scroll-snap, o
-    mesmo gesto que a galeria da PDP já usa.
+    Bloco sem texto não é renderizado.
+
+  O LAYOUT SE DECIDE PELO CONTEÚDO, NÃO SÓ PELA TELA:
+  - Corpo da citação: medido pelo depoimento MAIS LONGO da seção.
+    Frase curta ("Qualidade extrema") vira citação grande; relato
+    de um parágrafo fica em corpo de leitura. Um tamanho só por
+    seção — misturar corpos na mesma fileira parece erro.
+  - Colunas no desktop: pela quantidade (1→1, 2→2, 3→3, 4→2x2,
+    5+→3). Nunca sobra um card órfão numa fileira de 4.
+  - Desktop com poucas colunas: o cabeçalho vira a primeira coluna
+    de uma "tabela editorial" e divide o mesmo fio com os cards.
+    Com 3 colunas isso só acontece a partir de 1280px — antes
+    disso as colunas ficariam estreitas demais para ler.
+  - Celular: trilho horizontal com scroll-snap (o mesmo gesto da
+    galeria da PDP), a menos que o conteúdo caiba empilhado sem
+    custo — um depoimento só, ou até três frases curtas. Esconder
+    três palavras atrás de um arrasto não economiza nada.
 
   OBSERVAÇÕES:
   A nota nunca é comunicada só pela cor das estrelas — o texto
@@ -43,86 +63,175 @@
 
 {%- liquid
   assign depoimentos = section.blocks | where: 'type', 'depoimento'
-  assign total = depoimentos.size
+
+  assign total = 0
+  assign maior = 0
+  for block in depoimentos
+    assign n = block.settings.texto | remove: '"' | remove: '“' | remove: '”' | strip | size
+    if n > 0
+      assign total = total | plus: 1
+    endif
+    if n > maior
+      assign maior = n
+    endif
+  endfor
+
+  if maior <= 70
+    assign tamanho = 'curto'
+  elsif maior <= 180
+    assign tamanho = 'medio'
+  else
+    assign tamanho = 'longo'
+  endif
+
+  case total
+    when 1
+      assign cols = 1
+    when 2, 4
+      assign cols = 2
+    else
+      assign cols = 3
+  endcase
+
+  assign modo = 'trilho'
+  if total == 1
+    assign modo = 'pilha'
+  elsif tamanho == 'curto' and total <= 3
+    assign modo = 'pilha'
+  endif
+
+  assign tem_header = false
+  if section.settings.eyebrow != blank or section.settings.heading != blank
+    assign tem_header = true
+  endif
+
+  if cols == 1
+    assign trilhas = 3
+  else
+    assign trilhas = cols | plus: 1
+  endif
+  if cols == 3
+    assign ponto_divisao = 1280
+  else
+    assign ponto_divisao = 1000
+  endif
 -%}
 
 {%- if total > 0 -%}
   <div
-    class="depo section-space {% if section.settings.scheme == 'dark' %}scheme-dark{% endif %}"
+    class="depo section-space depo--{{ tamanho }} depo--{{ modo }}{% if total == 1 %} depo--solo{% endif %}{% if section.settings.scheme == 'dark' %} scheme-dark{% endif %}"
+    style="--depo-cols: {{ cols }}; --depo-trilhas: {{ trilhas }}; --depo-total: {{ total }};"
     data-section-id="{{ section.id }}"
   >
     <div class="page-width">
-      {%- if section.settings.eyebrow != blank or section.settings.heading != blank -%}
-        <div class="depo__header" data-reveal>
-          {%- if section.settings.eyebrow != blank -%}
-            <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
-          {%- endif -%}
-          {%- if section.settings.heading != blank -%}
-            <h2 class="depo__heading">{{ section.settings.heading | escape }}</h2>
-          {%- endif -%}
-        </div>
-      {%- endif -%}
+      <div class="depo__corpo">
+        {%- if tem_header -%}
+          <div class="depo__header" data-reveal>
+            {%- if section.settings.eyebrow != blank -%}
+              <p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>
+            {%- endif -%}
+            {%- if section.settings.heading != blank -%}
+              <h2 class="depo__heading">{{ section.settings.heading | escape }}</h2>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
 
-      {%- comment -%}
-        data-reveal-group: os cards não são irmãos diretos do
-        elemento que o revelar.js numera, então o grupo diz a ele
-        quem entra em cascata. Ver assets/revelar.js.
-      {%- endcomment -%}
-      <ul class="depo__lista" role="list" data-reveal-group>
-        {%- for block in depoimentos -%}
-          {%- liquid
-            assign nota = block.settings.nota | plus: 0
-            assign autor = block.settings.autor | strip
-          -%}
-          <li class="depo__item" data-reveal {{ block.shopify_attributes }}>
-            <figure class="depo__card">
-              {%- if nota > 0 -%}
-                {%- comment -%}
-                  As estrelas são decorativas (aria-hidden) e o texto
-                  ao lado diz a nota por extenso. Cor e forma nunca
-                  carregam a informação sozinhas.
-                {%- endcomment -%}
-                <div class="depo__nota">
-                  <span class="depo__estrelas" aria-hidden="true">
-                    {%- for i in (1..5) -%}
-                      <svg class="depo__estrela {% if i > nota %}depo__estrela--vazia{% endif %}" viewBox="0 0 24 24" focusable="false">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                      </svg>
-                    {%- endfor -%}
-                  </span>
-                  <span class="visually-hidden">
-                    {{- 'sections.testimonials.rating' | t: rating: nota, max: 5 -}}
-                  </span>
-                </div>
-              {%- endif -%}
+        {%- comment -%}
+          data-reveal-group: os cards não são irmãos diretos do
+          elemento que o revelar.js numera, então o grupo diz a ele
+          quem entra em cascata. Ver assets/revelar.js.
+        {%- endcomment -%}
+        <ul class="depo__lista" role="list" data-reveal-group>
+          {%- for block in depoimentos -%}
+            {%- liquid
+              assign nota = block.settings.nota | plus: 0
+              assign autor = block.settings.autor | strip
+              assign origem = block.settings.origem | strip
 
-              {%- if block.settings.texto != blank -%}
-                <blockquote class="depo__texto">{{ block.settings.texto }}</blockquote>
-              {%- endif -%}
-
-              {%- if autor != blank or block.settings.origem != blank -%}
-                <figcaption class="depo__autoria">
-                  {%- if autor != blank -%}
-                    <cite class="depo__autor">{{ autor | escape }}</cite>
+              # As aspas são desenhadas pelo CSS. Se o lojista colou o
+              # texto já entre aspas, tiramos as dele para não sair dobrado.
+              assign texto = block.settings.texto | strip
+              assign primeiro = texto | slice: 0
+              if primeiro == '"' or primeiro == '“' or primeiro == '”'
+                assign texto = texto | slice: 1, texto.size | strip
+              endif
+              assign ultimo = texto | slice: -1
+              if ultimo == '"' or ultimo == '”' or ultimo == '“'
+                assign fim = texto.size | minus: 1
+                assign texto = texto | slice: 0, fim | strip
+              endif
+            -%}
+            {%- if texto != blank -%}
+              <li class="depo__item" data-reveal {{ block.shopify_attributes }}>
+                <figure class="depo__card">
+                  {%- if nota > 0 -%}
+                    {%- comment -%}
+                      As estrelas são decorativas (aria-hidden) e o texto
+                      ao lado diz a nota por extenso. Cor e forma nunca
+                      carregam a informação sozinhas.
+                    {%- endcomment -%}
+                    <div class="depo__nota">
+                      <span class="depo__estrelas" aria-hidden="true">
+                        {%- for i in (1..5) -%}
+                          <svg class="depo__estrela {% if i > nota %}depo__estrela--vazia{% endif %}" viewBox="0 0 24 24" focusable="false">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                          </svg>
+                        {%- endfor -%}
+                      </span>
+                      <span class="visually-hidden">
+                        {{- 'sections.testimonials.rating' | t: rating: nota, max: 5 -}}
+                      </span>
+                    </div>
                   {%- endif -%}
-                  {%- if block.settings.origem != blank -%}
-                    <span class="depo__origem">{{ block.settings.origem | escape }}</span>
+
+                  <blockquote class="depo__texto">
+                    <p>{{ texto | escape | newline_to_br }}</p>
+                  </blockquote>
+
+                  {%- if autor != blank or origem != blank -%}
+                    <figcaption class="depo__autoria">
+                      {%- if autor != blank -%}
+                        <cite class="depo__autor">{{ autor | escape }}</cite>
+                      {%- endif -%}
+                      {%- if origem != blank -%}
+                        <span class="depo__origem">{{ origem | escape }}</span>
+                      {%- endif -%}
+                    </figcaption>
                   {%- endif -%}
-                </figcaption>
-              {%- endif -%}
-            </figure>
-          </li>
-        {%- endfor -%}
-      </ul>
+                </figure>
+              </li>
+            {%- endif -%}
+          {%- endfor -%}
+        </ul>
+
+        {%- if modo == 'trilho' -%}
+          <div class="depo__progresso" aria-hidden="true">
+            <span class="depo__progresso-barra"></span>
+          </div>
+        {%- endif -%}
+      </div>
     </div>
   </div>
 
   <style>
     /* ==========================================================
+       RAIZ
+       ==========================================================
+       .scheme-dark só redefine os tokens: quem pinta o fundo é a
+       própria seção, como em todas as outras do tema. Sem isto, o
+       esquema "Escuro" punha texto claro sobre o fundo claro da
+       página. */
+    #shopify-section-{{ section.id }} .depo {
+      background-color: var(--color-background);
+      color: var(--color-text-primary);
+    }
+
+    /* ==========================================================
        CABEÇALHO
        ========================================================== */
     #shopify-section-{{ section.id }} .depo__header {
       display: grid;
+      align-content: start;
       gap: var(--space-2xs);
       margin-bottom: var(--space-block);
     }
@@ -133,20 +242,15 @@
       line-height: var(--leading-heading);
       letter-spacing: var(--tracking-display);
       margin: 0;
+      text-wrap: balance;
     }
 
     /* ==========================================================
-       LISTA
-       ==========================================================
-       Desktop: grade automática. minmax garante que um depoimento
-       longo não esmague os vizinhos, e auto-fit faz a contagem de
-       colunas seguir a largura disponível em vez de um número fixo —
-       com dois, três ou seis depoimentos a fileira continua certa
-       sem o lojista configurar nada. */
+       LISTA — base é o celular: uma coluna
+       ========================================================== */
     #shopify-section-{{ section.id }} .depo__lista {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: var(--space-md);
+      gap: var(--space-lg);
       margin: 0;
       padding: 0;
       list-style: none;
@@ -158,18 +262,36 @@
        Sem fundo sólido e sem sombra: o que separa um depoimento do
        outro é um fio de 1px e o espaço. Card com sombra e cantos
        redondos é a assinatura visual de template genérico, e a
-       marca é editorial. */
+       marca é editorial.
+
+       Coluna flex com a autoria empurrada para o fim: numa fileira,
+       os nomes ficam todos na mesma linha, por mais que os textos
+       tenham tamanhos diferentes.
+
+       position: relative prende o texto da nota (.visually-hidden,
+       que é absolute) dentro do card. Sem isso ele ficava preso ao
+       <body>, escapava do recorte do trilho e alargava a página no
+       celular — a tela inteira "sambava" para o lado.
+
+       border-box porque height: 100% + padding-top em content-box
+       fazia o card vazar 24px do próprio <li>, e o margin-top: auto
+       da autoria empurrava o nome para dentro desse vazamento. */
     #shopify-section-{{ section.id }} .depo__card {
-      display: grid;
-      gap: var(--space-xs);
-      align-content: start;
+      position: relative;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
       height: 100%;
       margin: 0;
-      padding-top: var(--space-sm);
-      border-top: 1px solid var(--color-border);
+      padding-top: var(--space-md);
+      border-top: 1px solid var(--color-border-strong);
     }
 
     /* ---- Nota ---- */
+    #shopify-section-{{ section.id }} .depo__nota {
+      display: flex;
+    }
     #shopify-section-{{ section.id }} .depo__estrelas {
       display: inline-flex;
       gap: 3px;
@@ -185,15 +307,51 @@
 
     /* ---- Texto ----
        Serif de display: é a mesma família dos títulos editoriais do
-       tema. Depoimento é voz de gente, não rótulo de interface. */
+       tema. Depoimento é voz de gente, não rótulo de interface.
+
+       A aspa de abertura fica PENDURADA fora da coluna (right: 100%):
+       a primeira letra do texto, o fio, as estrelas e o nome
+       alinham na mesma vertical, como numa revista. A aspa cai no
+       respiro entre colunas — ou na margem da página, no trilho. */
     #shopify-section-{{ section.id }} .depo__texto {
+      max-width: var(--measure-body);
+      margin: 0;
       font-family: var(--font-display-family);
-      font-size: var(--f3);
       font-weight: var(--font-weight-regular);
-      line-height: var(--leading-body);
       color: var(--color-text-primary);
+      quotes: '\201C' '\201D' '\2018' '\2019';
+    }
+    #shopify-section-{{ section.id }} .depo__texto p {
+      position: relative;
       margin: 0;
       text-wrap: pretty;
+    }
+    #shopify-section-{{ section.id }} .depo__texto p::before {
+      content: open-quote;
+      position: absolute;
+      right: 100%;
+    }
+    #shopify-section-{{ section.id }} .depo__texto p::after {
+      content: close-quote;
+    }
+
+    /* Um corpo por seção, escolhido no Liquid pelo texto mais longo.
+       Frase curta tem presença de citação; parágrafo, de leitura. */
+    #shopify-section-{{ section.id }} .depo--curto .depo__texto {
+      font-size: var(--f5);
+      line-height: var(--leading-ui);
+      letter-spacing: var(--tracking-heading);
+    }
+    #shopify-section-{{ section.id }} .depo--curto .depo__texto p {
+      text-wrap: balance;
+    }
+    #shopify-section-{{ section.id }} .depo--medio .depo__texto {
+      font-size: var(--f4);
+      line-height: var(--leading-ui);
+    }
+    #shopify-section-{{ section.id }} .depo--longo .depo__texto {
+      font-size: var(--f3);
+      line-height: var(--leading-body);
     }
 
     /* ---- Autoria ---- */
@@ -202,6 +360,8 @@
       flex-wrap: wrap;
       align-items: baseline;
       gap: 4px var(--space-2xs);
+      margin-top: auto;
+      padding-top: var(--space-2xs);
       font-family: var(--font-ui-family);
       font-size: var(--f0);
       letter-spacing: var(--tracking-label);
@@ -215,49 +375,156 @@
     #shopify-section-{{ section.id }} .depo__origem {
       color: var(--color-text-muted);
     }
-    #shopify-section-{{ section.id }} .depo__origem::before {
+    #shopify-section-{{ section.id }} .depo__autor + .depo__origem::before {
       content: '·';
       margin-right: var(--space-2xs);
     }
 
+    /* ---- Progresso do trilho: só existe onde há trilho ---- */
+    #shopify-section-{{ section.id }} .depo__progresso {
+      display: none;
+    }
+
     /* ==========================================================
-       CELULAR — trilho que desliza, não pilha
+       PILHA A PARTIR DO TABLET — colunas pela quantidade
+       ========================================================== */
+    @media screen and (min-width: 700px) {
+      #shopify-section-{{ section.id }} .depo--pilha .depo__lista {
+        grid-template-columns: repeat(var(--depo-cols), minmax(0, 1fr));
+      }
+    }
+
+    /* ==========================================================
+       CELULAR E TABLET — trilho que desliza, não pilha
        ==========================================================
-       Empilhados, três depoimentos viram três telas de rolagem
-       entre o produto e o resto da página. Em trilho, a pessoa
-       percorre se quiser e segue adiante se não quiser.
+       Empilhados, cinco relatos viram cinco telas de rolagem entre
+       o produto e o resto da página. Em trilho, a pessoa percorre
+       se quiser e segue adiante se não quiser.
 
        É o mesmo gesto (arrastar na horizontal com encaixe) que a
        galeria da PDP já usa logo acima — dois padrões diferentes
        na mesma página seriam uma inconsistência.
 
        A sangria faz o primeiro card encostar na margem do texto e
-       o último respirar na borda: assim fica evidente que há mais
-       conteúdo à direita, sem precisar de seta nenhuma. */
-    @media screen and (max-width: 700px) {
-      #shopify-section-{{ section.id }} .depo__lista {
-        grid-template-columns: none;
+       o seguinte aparecer cortado na borda: fica evidente que há
+       mais conteúdo à direita, sem precisar de seta nenhuma.
+
+       scroll-padding-inline é o que mantém essa margem: sem ele o
+       encaixe alinhava o card à borda da TELA e o primeiro
+       depoimento abria colado no vidro, sem o respiro do gutter. */
+    @media screen and (max-width: 999px) {
+      #shopify-section-{{ section.id }} .depo--trilho .depo__lista {
         grid-auto-flow: column;
-        grid-auto-columns: minmax(240px, 78%);
-        gap: var(--space-sm);
+        grid-auto-columns: clamp(260px, 80%, 420px);
+        gap: var(--space-md);
         overflow-x: auto;
-        scroll-snap-type: x mandatory;
         overscroll-behavior-x: contain;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
+        scroll-snap-type: x mandatory;
+        scroll-padding-inline: var(--page-gutter);
         margin-inline: calc(var(--page-gutter) * -1);
         padding-inline: var(--page-gutter);
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
       }
-      #shopify-section-{{ section.id }} .depo__lista::-webkit-scrollbar {
+      #shopify-section-{{ section.id }} .depo--trilho .depo__lista::-webkit-scrollbar {
         display: none;
       }
-      #shopify-section-{{ section.id }} .depo__item {
+      #shopify-section-{{ section.id }} .depo--trilho .depo__item {
         scroll-snap-align: start;
       }
-      #shopify-section-{{ section.id }} .depo__texto {
-        font-size: var(--f2);
+
+      /* No trilho, os cards fora da tela estão recortados pelo
+         overflow: o IntersectionObserver só os "vê" quando a pessoa
+         arrasta, e cada um entraria com o atraso da cascata — um
+         card aparecendo atrasado debaixo do dedo. No trilho eles
+         nascem visíveis; o cabeçalho continua com o reveal. */
+      .js #shopify-section-{{ section.id }} .depo--trilho .depo__item {
+        opacity: 1;
+        transform: none;
+        transition: none;
+      }
+
+      /* Fio de progresso — o mesmo de collection-list, mas sem JS:
+         a barra é uma animação presa à rolagem do próprio trilho.
+         Parte do tamanho de um card (1/total) e chega ao fim junto
+         com o último. Navegador sem scroll-timeline não mostra o
+         fio — o card cortado na borda já basta como indício. */
+      @supports (animation-timeline: scroll()) {
+        #shopify-section-{{ section.id }} .depo--trilho .depo__corpo {
+          timeline-scope: --depo-trilho;
+        }
+        #shopify-section-{{ section.id }} .depo--trilho .depo__lista {
+          scroll-timeline: --depo-trilho inline;
+        }
+        #shopify-section-{{ section.id }} .depo__progresso {
+          display: block;
+          position: relative;
+          height: 1px;
+          margin-top: var(--space-lg);
+          overflow: hidden;
+          background-color: var(--color-border-strong);
+        }
+        #shopify-section-{{ section.id }} .depo__progresso-barra {
+          position: absolute;
+          inset: 0;
+          background-color: var(--color-accent);
+          transform-origin: left center;
+          animation: depo-progresso linear both;
+          animation-timeline: --depo-trilho;
+        }
       }
     }
+
+    @keyframes depo-progresso {
+      from { transform: scaleX(calc(1 / var(--depo-total))); }
+      to { transform: scaleX(1); }
+    }
+
+    /* ==========================================================
+       DESKTOP — grade com colunas pela quantidade
+       ========================================================== */
+    @media screen and (min-width: 1000px) {
+      #shopify-section-{{ section.id }} .depo__lista {
+        grid-template-columns: repeat(var(--depo-cols), minmax(0, 1fr));
+        gap: var(--space-xl) var(--space-lg);
+      }
+    }
+
+    {%- if tem_header %}
+    /* ==========================================================
+       DESKTOP LARGO — tabela editorial
+       ==========================================================
+       O cabeçalho vira a primeira coluna e divide o fio com os
+       cards: um fio de tinta sob o título, fios claros sob os
+       depoimentos, tudo na mesma altura. Com dois depoimentos
+       curtos, isso ocupa a largura com intenção em vez de esticar
+       duas frases por 660px cada.
+
+       subgrid faz os cards usarem as MESMAS trilhas do cabeçalho,
+       então os respiros entre colunas batem ao pixel. Onde não há
+       subgrid, a regra de desktop acima (repeat) segue valendo. */
+    @media screen and (min-width: {{ ponto_divisao }}px) {
+      #shopify-section-{{ section.id }} .depo__corpo {
+        display: grid;
+        grid-template-columns: repeat(var(--depo-trilhas), minmax(0, 1fr));
+        column-gap: var(--space-lg);
+        align-items: start;
+      }
+      #shopify-section-{{ section.id }} .depo__header {
+        align-self: stretch;
+        margin-bottom: 0;
+        padding-top: var(--space-md);
+        border-top: 1px solid var(--color-text-primary);
+      }
+      #shopify-section-{{ section.id }} .depo__lista {
+        grid-column: 2 / -1;
+        grid-template-columns: subgrid;
+      }
+      #shopify-section-{{ section.id }} .depo--solo .depo__item {
+        grid-column: 1 / -1;
+      }
+    }
+    {%- endif %}
   </style>
 {%- endif -%}
 
@@ -303,7 +570,8 @@
           "type": "textarea",
           "id": "texto",
           "label": "Depoimento",
-          "default": "Substitua por um depoimento real de cliente."
+          "default": "Substitua por um depoimento real de cliente.",
+          "info": "Sem aspas: elas são colocadas automaticamente."
         },
         {
           "type": "text",
