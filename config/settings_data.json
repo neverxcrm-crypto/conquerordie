@@ -37,7 +37,7 @@
     "spacing_sections": 40,
     "buttons_radius": 6,
     "inputs_radius": 6,
-    "media_radius": 0,
+    "media_radius": 12,
     "card_image_ratio": "portrait",
     "card_show_vendor": false,
     "card_show_second_image": true,
