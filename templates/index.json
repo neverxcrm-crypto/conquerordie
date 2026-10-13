@@ -105,13 +105,21 @@
             "text": "ENVIAMOS PARA TODO O BRASIL",
             "link": ""
           }
+        },
+        "announcement_B4YpTx": {
+          "type": "announcement",
+          "settings": {
+            "text": "FRETE GRÁTIS ACIMA DE R$585!",
+            "link": ""
+          }
         }
       },
       "block_order": [
         "announcement_GmLeGb",
         "announcement_GxLLNk",
         "announcement_DTPTkM",
-        "announcement_KXEyXH"
+        "announcement_KXEyXH",
+        "announcement_B4YpTx"
       ],
       "name": "Marquee Pós-Hero",
       "settings": {
@@ -138,7 +146,7 @@
       "settings": {
         "eyebrow": "Últimos lançamentos",
         "heading": "Produtos mais procurados",
-        "collection": "automated-collection",
+        "collection": "itens",
         "products_to_show": 4,
         "columns_desktop": 4,
         "show_view_all": true
