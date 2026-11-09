@@ -1,0 +1,54 @@
+{% doc %}
+  @prompt
+    crie um liqud customizado.
+    
+    2. Cole onde a avaliação deve aparecer, trocando o identificador do produto
+    <div data-neverx-reviews data-channel="shopify" data-external="{{ product.id }}"></div>
+    
+    Endereço dos dados (JSON, para quem desenvolve)
+    https://app.neverxcrm.online/api/public/reviews/feed/u9etWTHEwp28nOEx85T-aqpb?channel=shopify&external=ID
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-neverx-reviews-{{ ai_gen_id }} {
+    display: block;
+    width: {{ block.settings.desktop_width_percent }}%;
+    max-width: 100%;
+    color: #0A0A0A;
+    font-family: inherit;
+  }
+{% endstyle %}
+
+<div class="ai-neverx-reviews-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  {% if product != blank %}
+    <div data-neverx-reviews data-channel="shopify" data-external="{{ product.id }}"></div>
+  {% else %}
+    <p>As avaliações serão exibidas na página de um produto.</p>
+  {% endif %}
+</div>
+
+{% schema %}
+{
+  "name": "Avaliações Neverx",
+  "settings": [
+    {
+      "type": "range",
+      "id": "desktop_width_percent",
+      "label": "Largura no desktop",
+      "min": 50,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    }
+  ],
+  "presets": [
+    {
+      "name": "Avaliações Neverx"
+    }
+  ],
+  "tag": null,
+  "class": "neverx-reviews-block"
+}
+{% endschema %}
