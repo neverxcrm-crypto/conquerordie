@@ -103,36 +103,6 @@
         "low_stock_threshold": 5
       }
     },
-    "17943168196dc2d46a": {
-      "type": "_blocks",
-      "blocks": {
-        "ai_gen_block_469dbb5_n6hKMj": {
-          "type": "ai_gen_block_469dbb5",
-          "settings": {
-            "eyebrow": "OPINIÕES DE CLIENTES",
-            "heading": "O que dizem sobre esta peça",
-            "description": "Avaliações de quem já escolheu este produto.",
-            "desktop_width_percent": 100,
-            "heading_size": 22,
-            "mobile_heading_size": 18,
-            "padding": 24,
-            "mobile_padding": 16,
-            "corner_radius": 8,
-            "background_color": "#F7F7F5",
-            "text_color": "#0A0A0A",
-            "muted_color": "#4A4A46",
-            "border_color": "#E4E4E0",
-            "accent_color": "#80631F",
-            "icon_background": "#EFEFEC"
-          },
-          "blocks": {}
-        }
-      },
-      "block_order": [
-        "ai_gen_block_469dbb5_n6hKMj"
-      ],
-      "settings": {}
-    },
     "related": {
       "type": "related-products",
       "settings": {
@@ -147,7 +117,6 @@
   },
   "order": [
     "main",
-    "17943168196dc2d46a",
     "related"
   ]
 }
