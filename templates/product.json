@@ -92,7 +92,7 @@
         "custom_liquid_azfiXB": {
           "type": "custom_liquid",
           "settings": {
-            "custom_liquid": "<div data-neverx-reviews data-mode=\"summary\" data-channel=\"shopify\" data-external=\"{{ product.id }}\"></div>\n<script async src=\"https://app.neverxcrm.online/api/public/reviews/feed/u9etWTHEwp28nOEx85T-aqpb/widget\"></script>"
+            "custom_liquid": "<style>\n  .neverx-reviews-wrapper {\n    max-width: 1200px; /* Largura máxima da seção */\n    margin: 0 auto;\n    padding: 36px 20px; /* Espaçamento em cima/baixo e laterais */\n    background-color: transparent; /* Cor de fundo */\n  }\n\n  .neverx-reviews-title {\n    text-align: center; /* Alinhamento do título: center, left, right */\n    color: #121212; /* Cor do título */\n    margin-bottom: 30px;\n    font-size: 2.5rem;\n  }\n</style>\n\n<div class=\"neverx-reviews-wrapper\">\n  <h2 class=\"neverx-reviews-title\">Avaliações de Clientes</h2>\n  \n  <!-- Código de Integração NeverX -->\n  <div data-neverx-reviews data-mode=\"summary\" data-channel=\"shopify\" data-external=\"{{ product.id }}\"></div>\n  <script async src=\"https://app.neverxcrm.online/api/public/reviews/feed/u9etWTHEwp28nOEx85T-aqpb/widget\"></script>\n</div>"
           }
         }
       },
