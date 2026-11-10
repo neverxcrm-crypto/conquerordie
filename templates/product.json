@@ -88,6 +88,12 @@
         "share": {
           "type": "share",
           "settings": {}
+        },
+        "custom_liquid_azfiXB": {
+          "type": "custom_liquid",
+          "settings": {
+            "custom_liquid": "<div data-neverx-reviews data-mode=\"summary\" data-channel=\"shopify\" data-external=\"{{ product.id }}\"></div>\n<script async src=\"https://app.neverxcrm.online/api/public/reviews/feed/u9etWTHEwp28nOEx85T-aqpb/widget\"></script>"
+          }
         }
       },
       "block_order": [
@@ -101,43 +107,12 @@
         "description",
         "entrega",
         "detalhes",
-        "share"
+        "share",
+        "custom_liquid_azfiXB"
       ],
       "settings": {
         "show_low_stock": true,
         "low_stock_threshold": 5
-      }
-    },
-    "depoimentos": {
-      "type": "product-testimonials",
-      "blocks": {
-        "depoimento_GxRDi8": {
-          "type": "depoimento",
-          "settings": {
-            "texto": "Qualidade extrema",
-            "autor": "Kadu",
-            "origem": "Rio do Sul, SC",
-            "nota": 5
-          }
-        },
-        "depoimento_a9tCGC": {
-          "type": "depoimento",
-          "settings": {
-            "texto": "Bizarro de bom",
-            "autor": "Victor Krieger",
-            "origem": "São Paulo, SP",
-            "nota": 5
-          }
-        }
-      },
-      "block_order": [
-        "depoimento_GxRDi8",
-        "depoimento_a9tCGC"
-      ],
-      "settings": {
-        "eyebrow": "Quem já comprou",
-        "heading": "Depoimentos",
-        "scheme": "auto"
       }
     },
     "related": {
@@ -154,7 +129,6 @@
   },
   "order": [
     "main",
-    "depoimentos",
     "related"
   ]
 }
