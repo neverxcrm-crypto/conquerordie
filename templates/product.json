@@ -84,6 +84,14 @@
             "page": "",
             "open_by_default": false
           }
+        },
+        "neverx_crm_neverx_reviews_dTbA34": {
+          "type": "shopify://apps/neverx-crm/blocks/neverx-reviews/01a1c65c-2fc9-7cef-a4d8-a286930bab6a",
+          "settings": {
+            "limit": 16,
+            "margin": "lg",
+            "theme": "light"
+          }
         }
       },
       "block_order": [
@@ -96,7 +104,8 @@
         "trust",
         "description",
         "entrega",
-        "detalhes"
+        "detalhes",
+        "neverx_crm_neverx_reviews_dTbA34"
       ],
       "settings": {
         "show_low_stock": true,
