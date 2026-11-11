@@ -112,10 +112,15 @@
         "settings": {
           "home_store": true,
           "product_on": true,
-          "summary": false,
-          "carousel": false,
-          "gallery": false
+          "summary": true,
+          "carousel": true,
+          "gallery": true
         }
+      },
+      "3505502720145096310": {
+        "type": "shopify://apps/neverx-crm/blocks/neverx-stars/01a1c65c-2fc9-7cef-a4d8-a286930bab6a",
+        "disabled": false,
+        "settings": {}
       }
     }
   },
