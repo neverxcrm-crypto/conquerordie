@@ -104,7 +104,20 @@
         }
       }
     },
-    "content_for_index": []
+    "content_for_index": [],
+    "blocks": {
+      "12716132110218293764": {
+        "type": "shopify://apps/neverx-crm/blocks/neverx-auto/01a1c65c-2fc9-7cef-a4d8-a286930bab6a",
+        "disabled": false,
+        "settings": {
+          "home_store": true,
+          "product_on": true,
+          "summary": false,
+          "carousel": false,
+          "gallery": false
+        }
+      }
+    }
   },
   "presets": {
     "Base Liquid": {
